@@ -13,6 +13,7 @@ interface DocumentViewerProps {
   year?: string;
   pageCount?: number;
   chunks: Chunk[];
+  highlightChunkId?: string;
   onClose?: () => void;
 }
 
@@ -25,6 +26,7 @@ export default function DocumentViewer({
   year,
   pageCount,
   chunks,
+  highlightChunkId,
   onClose,
 }: DocumentViewerProps) {
   const [currentPdfPage, setCurrentPdfPage] = useState(1);
@@ -137,6 +139,7 @@ export default function DocumentViewer({
           <ChunkedTextPane
             chunks={chunks}
             currentPdfPage={currentPdfPage}
+            highlightChunkId={highlightChunkId}
             onChunkClick={handleChunkClick}
           />
         </div>

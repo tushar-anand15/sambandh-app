@@ -15,3 +15,5 @@ refs/
 docs/
 .cursor/
 rag_export/
+*.dump
+*.tar.gz

@@ -4,6 +4,7 @@ import type { Chunk } from "@/types";
 interface ChunkedTextPaneProps {
   chunks: Chunk[];
   currentPdfPage: number;
+  highlightChunkId?: string;
   onChunkClick: (chunk: Chunk) => void;
 }
 
@@ -22,6 +23,7 @@ function isChunkOnPage(chunk: Chunk, page: number): boolean {
 export default function ChunkedTextPane({
   chunks,
   currentPdfPage,
+  highlightChunkId,
   onChunkClick,
 }: ChunkedTextPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -68,15 +70,18 @@ export default function ChunkedTextPane({
         <div className="divide-y divide-border/50">
           {chunks.map((chunk) => {
             const onPage = isChunkOnPage(chunk, currentPdfPage);
+            const isHighlighted = highlightChunkId === chunk.id;
             return (
               <div
                 key={chunk.id}
                 ref={setChunkRef(chunk.id)}
                 onClick={() => onChunkClick(chunk)}
                 className={`cursor-pointer px-4 py-3 transition-colors ${
-                  onPage
-                    ? "bg-indigo-subtle/30 border-l-2 border-l-indigo"
-                    : "hover:bg-surface-alt/40 border-l-2 border-l-transparent"
+                  isHighlighted
+                    ? "bg-warning/20 border-l-2 border-l-warning"
+                    : onPage
+                      ? "bg-indigo-subtle/30 border-l-2 border-l-indigo"
+                      : "hover:bg-surface-alt/40 border-l-2 border-l-transparent"
                 }`}
               >
                 {/* Chunk header */}
