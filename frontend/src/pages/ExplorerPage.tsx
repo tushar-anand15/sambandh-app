@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Database, ChevronLeft, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Database, ChevronLeft, ChevronRight, X, List, FileText } from "lucide-react";
 import api from "@/lib/api";
 import type { Chunk, DocResult } from "@/types";
 import SearchBar from "@/components/explorer/SearchBar";
@@ -31,6 +31,7 @@ export default function ExplorerPage() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [selectedId, setSelectedId] = useState<string>();
   const [viewerDoc, setViewerDoc] = useState<ViewerData | null>(null);
+  const [mobileView, setMobileView] = useState<"list" | "viewer">("list");
 
   const pageSize = 20;
   const totalPages = Math.ceil(total / pageSize);
@@ -72,6 +73,7 @@ export default function ExplorerPage() {
 
   const handleSelect = useCallback(async (doc: DocResult) => {
     setSelectedId(doc.id);
+    setMobileView("viewer");
     try {
       const { data } = await api.get(`/documents/${doc.id}`);
       setViewerDoc({
@@ -89,6 +91,12 @@ export default function ExplorerPage() {
     }
   }, []);
 
+  const handleCloseViewer = useCallback(() => {
+    setViewerDoc(null);
+    setSelectedId(undefined);
+    setMobileView("list");
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -96,22 +104,22 @@ export default function ExplorerPage() {
       className="flex h-full flex-col"
     >
       {/* Header */}
-      <div className="border-b border-border px-6 py-3">
-        <h2 className="font-display text-lg text-ink">Data Explorer</h2>
+      <div className="border-b border-border px-4 py-3 sm:px-6">
+        <h2 className="font-display text-base text-ink sm:text-lg">Data Explorer</h2>
         <p className="text-[10px] text-ink-faint tracking-wide uppercase">
           Sulekha project records
         </p>
       </div>
 
       {/* Search & filters */}
-      <div className="border-b border-border px-5 py-3 space-y-2.5">
+      <div className="border-b border-border px-4 py-3 space-y-2.5 sm:px-5">
         <div className="flex gap-2">
           <div className="flex-1">
             <SearchBar value={query} onChange={setQuery} onSearch={() => search(1)} />
           </div>
           <button
             onClick={() => search(1)}
-            className="rounded-md bg-indigo px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-hover"
+            className="rounded-lg bg-indigo px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-hover sm:px-4"
           >
             Search
           </button>
@@ -134,7 +142,7 @@ export default function ExplorerPage() {
                 <button
                   onClick={() => search(page - 1)}
                   disabled={page <= 1}
-                  className="rounded border border-border p-0.5 text-ink-muted transition-colors hover:bg-surface disabled:opacity-30"
+                  className="rounded border border-border p-1 text-ink-muted transition-colors hover:bg-surface disabled:opacity-30"
                 >
                   <ChevronLeft size={14} />
                 </button>
@@ -144,7 +152,7 @@ export default function ExplorerPage() {
                 <button
                   onClick={() => search(page + 1)}
                   disabled={page >= totalPages}
-                  className="rounded border border-border p-0.5 text-ink-muted transition-colors hover:bg-surface disabled:opacity-30"
+                  className="rounded border border-border p-1 text-ink-muted transition-colors hover:bg-surface disabled:opacity-30"
                 >
                   <ChevronRight size={14} />
                 </button>
@@ -154,17 +162,49 @@ export default function ExplorerPage() {
         )}
       </div>
 
+      {/* Mobile view toggle */}
+      {viewerDoc && (
+        <div className="flex border-b border-border md:hidden">
+          <button
+            onClick={() => setMobileView("list")}
+            className={`flex flex-1 items-center justify-center gap-2 py-2.5 text-xs font-medium transition-colors ${
+              mobileView === "list"
+                ? "bg-indigo-subtle text-indigo"
+                : "text-ink-muted hover:bg-surface-alt"
+            }`}
+          >
+            <List size={14} />
+            Results
+          </button>
+          <button
+            onClick={() => setMobileView("viewer")}
+            className={`flex flex-1 items-center justify-center gap-2 py-2.5 text-xs font-medium transition-colors ${
+              mobileView === "viewer"
+                ? "bg-indigo-subtle text-indigo"
+                : "text-ink-muted hover:bg-surface-alt"
+            }`}
+          >
+            <FileText size={14} />
+            Document
+          </button>
+        </div>
+      )}
+
       {/* Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Results list */}
-        <div className="w-[260px] shrink-0 overflow-auto border-r border-border">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* Results list - hidden on mobile when viewing document */}
+        <div
+          className={`w-full shrink-0 overflow-auto border-r border-border md:w-[260px] lg:w-[280px] ${
+            mobileView === "viewer" && viewerDoc ? "hidden md:block" : ""
+          }`}
+        >
           {initialLoad ? (
-            <div className="flex flex-col items-center justify-center h-full px-4 text-center">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-subtle">
-                <Database size={20} className="text-indigo" strokeWidth={1.4} />
+            <div className="flex flex-col items-center justify-center h-full px-4 py-12 text-center">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-subtle">
+                <Database size={24} className="text-indigo" strokeWidth={1.4} />
               </div>
-              <p className="text-xs font-medium text-ink">Search to explore</p>
-              <p className="mt-1 text-[10px] text-ink-faint max-w-[200px]">
+              <p className="text-sm font-medium text-ink">Search to explore</p>
+              <p className="mt-1 text-xs text-ink-faint max-w-[240px]">
                 Enter a query or apply filters to browse project records
               </p>
             </div>
@@ -178,8 +218,12 @@ export default function ExplorerPage() {
           )}
         </div>
 
-        {/* Document viewer */}
-        <div className="flex-1 overflow-hidden">
+        {/* Document viewer - full width on mobile */}
+        <div
+          className={`min-h-0 flex-1 overflow-hidden ${
+            mobileView === "list" && viewerDoc ? "hidden md:block" : ""
+          } ${!viewerDoc ? "hidden md:flex" : ""}`}
+        >
           {viewerDoc ? (
             <DocumentViewer
               documentId={viewerDoc.id}
@@ -190,14 +234,11 @@ export default function ExplorerPage() {
               year={viewerDoc.year}
               pageCount={viewerDoc.pageCount}
               chunks={viewerDoc.chunks}
-              onClose={() => {
-                setViewerDoc(null);
-                setSelectedId(undefined);
-              }}
+              onClose={handleCloseViewer}
             />
           ) : (
             <div className="flex h-full items-center justify-center">
-              <p className="text-xs text-ink-faint">
+              <p className="text-sm text-ink-faint">
                 Select a document to inspect
               </p>
             </div>

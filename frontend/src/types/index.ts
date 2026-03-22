@@ -40,6 +40,8 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   sources?: ChatSource[];
+  toolCalls?: ToolCallEvent[];
+  isStreaming?: boolean;
   timestamp: Date;
 }
 
@@ -49,6 +51,15 @@ export interface ChatSource {
   chunk_id: string;
   excerpt: string;
   page: number;
+  lb_name?: string;
+  score?: number;
+}
+
+export interface ToolCallEvent {
+  tool: string;
+  input: Record<string, unknown>;
+  outputSummary?: string;
+  status: "running" | "done";
 }
 
 export type ViewerTab = "text" | "chunks" | "metadata";

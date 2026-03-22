@@ -1,14 +1,16 @@
 """
-Hybrid search: pgvector dense ANN + Postgres FTS + RRF fusion.
+Hybrid search: pgvector dense ANN + Postgres FTS + RRF fusion + optional rerank.
 """
 
 from __future__ import annotations
 
 import asyncio
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import asyncpg
+
+from .reranker import rerank_chunks
 
 
 @dataclass
@@ -28,6 +30,7 @@ class SearchResult:
     project_no: str | None
     year_label: str | None
     score: float
+    project_name: str | None = None
 
 
 async def dense_recall(
@@ -130,23 +133,30 @@ async def hybrid_search(
     rrf_k: int = 60,
     dense_limit: int = 50,
     fts_limit: int = 50,
+    rerank_k: int = 40,
+    use_rerank: bool = True,
     district: str | None = None,
     lb_type: str | None = None,
+    lb_name: str | None = None,
     year: str | None = None,
 ) -> list[SearchResult]:
-    dense_results, fts_results = await asyncio.gather(
-        dense_recall(
-            conn, query_vector, limit=dense_limit,
-            district=district, lb_type=lb_type, year=year,
-        ),
-        fts_recall(
-            conn, query_text, limit=fts_limit,
-            district=district, lb_type=lb_type, year=year,
-        ),
+    dense_results = await dense_recall(
+        conn, query_vector, limit=dense_limit,
+        district=district, lb_type=lb_type, year=year,
+    )
+    fts_results = await fts_recall(
+        conn, query_text, limit=fts_limit,
+        district=district, lb_type=lb_type, year=year,
     )
 
-    fused_ids = rrf_fuse(dense_results, fts_results, rrf_k=rrf_k)[:top_k]
+    candidate_k = rerank_k if use_rerank else top_k
+    fused_ids = rrf_fuse(dense_results, fts_results, rrf_k=rrf_k)[:candidate_k]
     chunks = await fetch_chunks(conn, fused_ids)
+
+    if use_rerank and chunks:
+        chunks = await rerank_chunks(query_text, chunks, top_k=top_k)
+    else:
+        chunks = chunks[:top_k]
 
     results = []
     for i, chunk in enumerate(chunks):
@@ -165,6 +175,6 @@ async def hybrid_search(
             lb_type=chunk.get("lb_type"),
             project_no=chunk.get("project_no"),
             year_label=chunk.get("year_label"),
-            score=1.0 / (rrf_k + i + 1),
+            score=chunk.get("rerank_score", 1.0 / (rrf_k + i + 1)),
         ))
     return results

@@ -38,7 +38,7 @@ def _get_model():
 async def embed_query(text: str) -> list[float]:
     if not _flag_available:
         return [0.0] * settings.embed_dim
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _embed_sync, text)
 
 

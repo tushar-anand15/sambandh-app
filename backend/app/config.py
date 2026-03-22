@@ -13,9 +13,16 @@ class Settings(BaseSettings):
     dense_recall_k: int = 50
     fts_recall_k: int = 50
     rrf_k: int = 60
+    rerank_candidate_k: int = 40
 
+    reranker_model: str = "jinaai/jina-reranker-v2-base-multilingual"
+    reranker_enabled: bool = True
+
+    llm_provider: str = "gemini/gemini-2.0-flash"
     llm_api_key: str = ""
     llm_model: str = ""
+
+    max_message_length: int = 2000
 
     model_config = {"env_file": ".env"}
 

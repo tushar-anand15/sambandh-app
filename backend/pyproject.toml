@@ -15,12 +15,21 @@ dependencies = [
     "alembic>=1.14",
     "pgvector>=0.3",
     "google-cloud-storage>=2.0",
+    "litellm>=1.80",
+    "langchain>=1.2",
+    "langchain-core>=1.2",
+    "langchain-litellm>=0.6",
+    "langgraph>=1.1",
+    "sse-starlette>=3.3",
 ]
 
 [project.optional-dependencies]
 embedding = [
     "torch>=2.0",
     "FlagEmbedding>=1.2",
+    "sentence-transformers>=3.0,<4",
+    "transformers>=4.40,<5",
+    "einops>=0.8",
 ]
 
 [tool.uv]
