@@ -9,6 +9,7 @@ from .database import close_pool, get_pool
 from .routers.auth import router as auth_router
 from .routers.chat import router as chat_router
 from .routers.chat_stream import router as chat_stream_router
+from .routers.chats import router as chats_router
 from .routers.documents import router as documents_router
 from .routers.search import router as search_router
 
@@ -55,4 +56,5 @@ app.include_router(auth_router)
 app.include_router(documents_router)
 app.include_router(chat_router)
 app.include_router(chat_stream_router)
+app.include_router(chats_router)
 app.include_router(search_router)

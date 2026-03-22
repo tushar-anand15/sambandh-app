@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .env
+.env.prod
 __pycache__/
 *.pyc
 .venv/
@@ -11,9 +12,11 @@ __pycache__/
 pgdata/
 
 .secrets/
+secrets/
 refs/
 docs/
 .cursor/
 rag_export/
 *.dump
 *.tar.gz
+nginx/certs/

@@ -1,12 +1,26 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { User, Bot, ChevronDown, Search, FileText, BarChart3, List, ExternalLink } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  User,
+  Bot,
+  ChevronDown,
+  ChevronRight,
+  Search,
+  FileText,
+  BarChart3,
+  List,
+  ExternalLink,
+  CheckCircle2,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ChatMessage, ChatSource, ToolCallEvent } from "@/types";
 
 interface MessageBubbleProps {
   message: ChatMessage;
+  isThinking?: boolean;
   onSourceClick?: (source: ChatSource) => void;
 }
 
@@ -19,46 +33,117 @@ const TOOL_ICONS: Record<string, typeof Search> = {
 
 const TOOL_LABELS: Record<string, string> = {
   search_documents: "Searching documents",
-  get_project_details: "Looking up project",
+  get_project_details: "Looking up project details",
   compare_projects: "Comparing projects",
   list_projects: "Listing projects",
 };
 
-function ToolCallBadge({ tc, isStreaming }: { tc: ToolCallEvent; isStreaming?: boolean }) {
+function ThinkingIndicator() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex items-center gap-3 rounded-xl border border-indigo/20 bg-gradient-to-r from-indigo-subtle/50 to-indigo-subtle/30 px-4 py-3"
+    >
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo/10">
+        <Sparkles size={16} className="animate-pulse text-indigo" />
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-medium text-indigo">Thinking...</p>
+        <p className="text-xs text-ink-muted">Analyzing your question</p>
+      </div>
+      <div className="flex gap-1">
+        <span className="h-2 w-2 animate-bounce rounded-full bg-indigo/60" style={{ animationDelay: "0ms" }} />
+        <span className="h-2 w-2 animate-bounce rounded-full bg-indigo/60" style={{ animationDelay: "150ms" }} />
+        <span className="h-2 w-2 animate-bounce rounded-full bg-indigo/60" style={{ animationDelay: "300ms" }} />
+      </div>
+    </motion.div>
+  );
+}
+
+function ToolCallCard({ tc, isExpanded, onToggle }: { tc: ToolCallEvent; isExpanded: boolean; onToggle: () => void }) {
   const Icon = TOOL_ICONS[tc.tool] || Search;
   const label = TOOL_LABELS[tc.tool] || tc.tool;
   const isRunning = tc.status === "running";
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`overflow-hidden rounded-xl border transition-all ${
         isRunning
-          ? "border-indigo/30 bg-indigo-subtle shimmer"
-          : "border-border bg-surface-alt"
+          ? "border-indigo/30 bg-gradient-to-r from-indigo-subtle/60 to-indigo-subtle/40"
+          : "border-border bg-surface-alt/50"
       }`}
     >
-      <Icon
-        size={14}
-        className={isRunning ? "text-indigo" : "text-ink-faint"}
-      />
-      <span className={isRunning ? "font-medium text-indigo" : "text-ink-muted"}>
-        {label}
-        {isRunning && "..."}
-      </span>
-      {isRunning && (
-        <span className="ml-1 flex gap-0.5">
-          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo" style={{ animationDelay: "0ms" }} />
-          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo" style={{ animationDelay: "150ms" }} />
-          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo" style={{ animationDelay: "300ms" }} />
-        </span>
-      )}
-      {!isRunning && (
-        <span className="rounded bg-success/10 px-1.5 py-0.5 text-[10px] font-medium text-success">
-          Done
-        </span>
-      )}
+      {/* Header - always visible */}
+      <button
+        onClick={onToggle}
+        disabled={isRunning}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt/50 disabled:cursor-default"
+      >
+        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+          isRunning ? "bg-indigo/20" : "bg-surface"
+        }`}>
+          {isRunning ? (
+            <Loader2 size={16} className="animate-spin text-indigo" />
+          ) : (
+            <Icon size={16} className="text-ink-muted" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-medium ${isRunning ? "text-indigo" : "text-ink"}`}>
+              {label}
+            </span>
+            {!isRunning && (
+              <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
+                <CheckCircle2 size={10} />
+                Done
+              </span>
+            )}
+          </div>
+          {/* Show input parameters */}
+          {tc.input && Object.keys(tc.input).length > 0 && (
+            <p className="mt-0.5 truncate text-xs text-ink-muted">
+              {Object.entries(tc.input)
+                .filter(([_, v]) => v)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join(" · ")}
+            </p>
+          )}
+        </div>
+        {!isRunning && tc.output && (
+          <ChevronRight
+            size={16}
+            className={`shrink-0 text-ink-faint transition-transform ${isExpanded ? "rotate-90" : ""}`}
+          />
+        )}
+      </button>
+
+      {/* Expanded output */}
+      <AnimatePresence>
+        {isExpanded && tc.output && !isRunning && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-border/50 bg-canvas/50 px-4 py-3">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+                Tool Output
+              </p>
+              <div className="max-h-[300px] overflow-auto rounded-lg bg-surface p-3">
+                <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-ink-muted">
+                  {tc.output}
+                </pre>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -88,12 +173,26 @@ function SourceChip({ source, onClick }: { source: ChatSource; onClick: () => vo
   );
 }
 
-export default function MessageBubble({ message, onSourceClick }: MessageBubbleProps) {
-  const [showTools, setShowTools] = useState(false);
+export default function MessageBubble({ message, isThinking, onSourceClick }: MessageBubbleProps) {
+  const [expandedTools, setExpandedTools] = useState<Set<number>>(new Set());
+  const [showAllTools, setShowAllTools] = useState(false);
+  
   const isUser = message.role === "user";
   const hasTools = message.toolCalls && message.toolCalls.length > 0;
   const hasRunningTools = message.toolCalls?.some((tc) => tc.status === "running");
-  const showToolsExpanded = message.isStreaming || hasRunningTools;
+  const showThinking = !isUser && message.isStreaming && isThinking && !hasTools && !message.content;
+
+  const toggleTool = (index: number) => {
+    setExpandedTools((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
 
   return (
     <motion.div
@@ -108,29 +207,36 @@ export default function MessageBubble({ message, onSourceClick }: MessageBubbleP
         </div>
       )}
 
-      <div className={`max-w-[85%] min-w-0 ${isUser ? "order-first" : ""}`}>
-        {/* Tool calls - expanded during streaming, collapsible after */}
+      <div className={`max-w-[85%] min-w-0 space-y-3 ${isUser ? "order-first" : ""}`}>
+        {/* Thinking indicator */}
+        {showThinking && <ThinkingIndicator />}
+
+        {/* Tool calls - show all during streaming, collapsible after */}
         {!isUser && hasTools && (
-          <div className="mb-3">
-            {!showToolsExpanded && (
+          <div className="space-y-2">
+            {/* Show/hide toggle for completed tools */}
+            {!message.isStreaming && !hasRunningTools && message.toolCalls!.length > 0 && (
               <button
-                onClick={() => setShowTools(!showTools)}
-                className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-ink-muted transition-colors hover:text-ink"
+                onClick={() => setShowAllTools(!showAllTools)}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-ink-muted transition-colors hover:text-ink"
               >
                 <ChevronDown
                   size={12}
-                  className={`transition-transform ${showTools ? "rotate-0" : "-rotate-90"}`}
+                  className={`transition-transform ${showAllTools ? "rotate-0" : "-rotate-90"}`}
                 />
                 {message.toolCalls!.length} tool call{message.toolCalls!.length > 1 ? "s" : ""} completed
               </button>
             )}
-            {(showToolsExpanded || showTools) && (
-              <div className="flex flex-col gap-2">
+
+            {/* Tool cards */}
+            {(message.isStreaming || hasRunningTools || showAllTools) && (
+              <div className="space-y-2">
                 {message.toolCalls!.map((tc, i) => (
-                  <ToolCallBadge
+                  <ToolCallCard
                     key={`${tc.tool}-${i}`}
                     tc={tc}
-                    isStreaming={message.isStreaming}
+                    isExpanded={expandedTools.has(i)}
+                    onToggle={() => toggleTool(i)}
                   />
                 ))}
               </div>
@@ -139,7 +245,7 @@ export default function MessageBubble({ message, onSourceClick }: MessageBubbleP
         )}
 
         {/* Message content */}
-        {(message.content || !hasRunningTools) && (
+        {(message.content || (!showThinking && !hasRunningTools)) && (
           <div
             className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
               isUser
@@ -149,16 +255,16 @@ export default function MessageBubble({ message, onSourceClick }: MessageBubbleP
           >
             {isUser ? (
               <p className="whitespace-pre-wrap">{message.content}</p>
-            ) : (
+            ) : message.content ? (
               <div className="prose-chat">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {message.content}
                 </ReactMarkdown>
-                {message.isStreaming && message.content && (
+                {message.isStreaming && (
                   <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-indigo" />
                 )}
               </div>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -168,7 +274,6 @@ export default function MessageBubble({ message, onSourceClick }: MessageBubbleP
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mt-3"
           >
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
               References ({message.sources.length})

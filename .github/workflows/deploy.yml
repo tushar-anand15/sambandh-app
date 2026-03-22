@@ -1,0 +1,33 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd ~/sambandh-app
+            
+            # Pull latest code
+            git pull origin main
+            
+            # Rebuild and restart services
+            docker compose build --no-cache
+            docker compose up -d
+            
+            # Clean up old images
+            docker image prune -f
+            
+            echo "Deployment complete!"

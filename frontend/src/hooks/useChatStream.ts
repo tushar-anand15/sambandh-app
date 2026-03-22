@@ -1,19 +1,32 @@
-import { useState, useRef, useCallback, startTransition } from "react";
+import { useState, useRef, useCallback, startTransition, useEffect } from "react";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import type { ChatMessage, ChatSource, ToolCallEvent } from "@/types";
+
+interface UseChatStreamOptions {
+  chatId: string | null;
+  onChatCreated?: (chatId: string) => void;
+  onTitleGenerated?: (title: string) => void;
+}
 
 interface UseChatStreamReturn {
   messages: ChatMessage[];
   isStreaming: boolean;
+  isThinking: boolean;
   currentToolCall: ToolCallEvent | null;
   sendMessage: (text: string) => void;
   stopGeneration: () => void;
   clearHistory: () => void;
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 }
 
-export default function useChatStream(): UseChatStreamReturn {
+export default function useChatStream(
+  options: UseChatStreamOptions = { chatId: null }
+): UseChatStreamReturn {
+  const { chatId, onChatCreated, onTitleGenerated } = options;
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const [currentToolCall, setCurrentToolCall] = useState<ToolCallEvent | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
@@ -21,6 +34,14 @@ export default function useChatStream(): UseChatStreamReturn {
   const rafRef = useRef<number | null>(null);
   const assistantIdRef = useRef("");
   const toolCallsRef = useRef<ToolCallEvent[]>([]);
+  
+  // Use a ref to track the current chat ID so we always use the latest value
+  const chatIdRef = useRef<string | null>(chatId);
+  
+  // Keep the ref in sync with the prop
+  useEffect(() => {
+    chatIdRef.current = chatId;
+  }, [chatId]);
 
   const flushText = useCallback(() => {
     const text = pendingTextRef.current;
@@ -70,6 +91,7 @@ export default function useChatStream(): UseChatStreamReturn {
 
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
       setIsStreaming(true);
+      setIsThinking(true);
       setCurrentToolCall(null);
 
       const controller = new AbortController();
@@ -78,13 +100,19 @@ export default function useChatStream(): UseChatStreamReturn {
       const token = localStorage.getItem("auth_token");
 
       try {
+        // Use the ref value to always get the latest chatId
+        const currentChatId = chatIdRef.current;
+        
         await fetchEventSource("/api/chat/stream", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ message: text }),
+          body: JSON.stringify({
+            message: text,
+            chat_id: currentChatId,
+          }),
           signal: controller.signal,
 
           onopen: async (response) => {
@@ -102,12 +130,38 @@ export default function useChatStream(): UseChatStreamReturn {
             if (!ev.data) return;
 
             switch (ev.event) {
+              case "chat_id": {
+                const { chat_id } = JSON.parse(ev.data);
+                if (chat_id) {
+                  // Update the ref immediately so subsequent messages use the new chat_id
+                  chatIdRef.current = chat_id;
+                  if (onChatCreated) {
+                    onChatCreated(chat_id);
+                  }
+                }
+                break;
+              }
+              case "chat_title": {
+                const { title } = JSON.parse(ev.data);
+                if (title && onTitleGenerated) {
+                  onTitleGenerated(title);
+                }
+                break;
+              }
+              case "thinking": {
+                // Agent is processing - keep thinking state active
+                break;
+              }
               case "token": {
                 const { content } = JSON.parse(ev.data);
-                if (content) pushToken(content);
+                if (content) {
+                  setIsThinking(false);
+                  pushToken(content);
+                }
                 break;
               }
               case "tool_start": {
+                setIsThinking(false);
                 const data = JSON.parse(ev.data);
                 const tc: ToolCallEvent = {
                   tool: data.tool,
@@ -116,16 +170,34 @@ export default function useChatStream(): UseChatStreamReturn {
                 };
                 toolCallsRef.current = [...toolCallsRef.current, tc];
                 setCurrentToolCall(tc);
+                // Immediately update message to show tool call
+                const currentTools = [...toolCallsRef.current];
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantIdRef.current
+                      ? { ...m, toolCalls: currentTools, isStreaming: true }
+                      : m
+                  )
+                );
                 break;
               }
               case "tool_end": {
                 const data = JSON.parse(ev.data);
                 toolCallsRef.current = toolCallsRef.current.map((tc) =>
                   tc.tool === data.tool && tc.status === "running"
-                    ? { ...tc, outputSummary: data.output_summary, status: "done" as const }
+                    ? { ...tc, output: data.output, outputSummary: data.output_summary, status: "done" as const }
                     : tc
                 );
                 setCurrentToolCall(null);
+                // Immediately update message to show completed tool
+                const currentTools = [...toolCallsRef.current];
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantIdRef.current
+                      ? { ...m, toolCalls: currentTools, isStreaming: true }
+                      : m
+                  )
+                );
                 break;
               }
               case "sources": {
@@ -188,11 +260,12 @@ export default function useChatStream(): UseChatStreamReturn {
         });
 
         setIsStreaming(false);
+        setIsThinking(false);
         setCurrentToolCall(null);
         abortRef.current = null;
       }
     },
-    [pushToken, flushText]
+    [onChatCreated, onTitleGenerated, pushToken, flushText]
   );
 
   const stopGeneration = useCallback(() => {
@@ -203,8 +276,19 @@ export default function useChatStream(): UseChatStreamReturn {
     abortRef.current?.abort();
     setMessages([]);
     setIsStreaming(false);
+    setIsThinking(false);
     setCurrentToolCall(null);
+    chatIdRef.current = null;
   }, []);
 
-  return { messages, isStreaming, currentToolCall, sendMessage, stopGeneration, clearHistory };
+  return {
+    messages,
+    isStreaming,
+    isThinking,
+    currentToolCall,
+    sendMessage,
+    stopGeneration,
+    clearHistory,
+    setMessages,
+  };
 }

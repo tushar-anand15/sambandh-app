@@ -108,16 +108,6 @@ async def get_project_details(
     """
     pool = await get_pool()
     async with pool.acquire() as conn:
-        doc_row = await conn.fetchrow(
-            """
-            SELECT id FROM documents
-            WHERE project_no = $1 AND lb_name = $2
-            LIMIT 1
-            """,
-            project_no,
-            lb_name,
-        )
-        
         rows = await conn.fetch(
             """
             SELECT chunk_id, pdf_id, chunk_type, section_path, display_text,
@@ -144,7 +134,8 @@ async def get_project_details(
     header = f"**Project {project_no} — {lb_name}** ({len(rows)} chunks)\n\n"
     formatted = header + "\n\n---\n\n".join(parts[:15])
     
-    document_id = str(doc_row["id"]) if doc_row else str(rows[0]["pdf_id"])
+    # Use pdf_id from the first chunk as document_id
+    document_id = str(rows[0]["pdf_id"])
     first_row = rows[0]
     sources = [{
         "document_id": document_id,

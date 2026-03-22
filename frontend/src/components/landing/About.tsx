@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { ExternalLink, Linkedin, Github, Globe } from "lucide-react";
 
 export default function About() {
   return (
@@ -41,7 +42,7 @@ export default function About() {
             </p>
           </div>
 
-          <div className="mt-10 flex gap-8 border-t border-border pt-8">
+          <div className="mt-10 flex flex-wrap gap-8 border-t border-border pt-8 sm:gap-12">
             <div>
               <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">
                 Built by
@@ -52,6 +53,26 @@ export default function About() {
               <p className="text-xs text-ink-muted">
                 Economist & Governance Researcher
               </p>
+              <div className="mt-2 flex items-center gap-1">
+                <a
+                  href="https://sites.google.com/view/csabishek/home"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded p-1.5 text-ink-muted transition-colors hover:bg-surface-alt hover:text-indigo"
+                  title="Website"
+                >
+                  <Globe size={14} />
+                </a>
+                <a
+                  href="https://www.linkedin.com/in/abishekchoutagunta/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded p-1.5 text-ink-muted transition-colors hover:bg-surface-alt hover:text-indigo"
+                  title="LinkedIn"
+                >
+                  <Linkedin size={14} />
+                </a>
+              </div>
             </div>
             <div>
               <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">
@@ -63,6 +84,26 @@ export default function About() {
               <p className="text-xs text-ink-muted">
                 AI Engineer & NLP Researcher
               </p>
+              <div className="mt-2 flex items-center gap-1">
+                <a
+                  href="https://github.com/tushar-anand15"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded p-1.5 text-ink-muted transition-colors hover:bg-surface-alt hover:text-indigo"
+                  title="GitHub"
+                >
+                  <Github size={14} />
+                </a>
+                <a
+                  href="https://www.linkedin.com/in/tushar-anand1594/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded p-1.5 text-ink-muted transition-colors hover:bg-surface-alt hover:text-indigo"
+                  title="LinkedIn"
+                >
+                  <Linkedin size={14} />
+                </a>
+              </div>
             </div>
           </div>
         </motion.div>

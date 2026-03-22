@@ -58,6 +58,7 @@ export interface ChatSource {
 export interface ToolCallEvent {
   tool: string;
   input: Record<string, unknown>;
+  output?: string;
   outputSummary?: string;
   status: "running" | "done";
 }
@@ -73,4 +74,34 @@ export interface DocResult {
   lb_type: string | null;
   year: string | null;
   page_count: number | null;
+}
+
+// Chat history types
+export interface ChatSummary {
+  id: string;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatDetail {
+  id: string;
+  title: string | null;
+  messages: ChatMessageResponse[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessageResponse {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  sources: ChatSource[] | null;
+  tool_calls: ToolCallEvent[] | null;
+  created_at: string;
+}
+
+export interface ChatsListResponse {
+  chats: ChatSummary[];
+  total: number;
 }

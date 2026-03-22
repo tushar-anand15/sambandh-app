@@ -41,8 +41,72 @@ class User(Base):
         nullable=False, server_default=text("now()")
     )
 
+    chats: Mapped[list[Chat]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
     __table_args__ = (
         Index("idx_users_email", "email"),
+    )
+
+
+class Chat(Base):
+    """A conversation session belonging to a user."""
+
+    __tablename__ = "chats"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    title: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        nullable=False, server_default=text("now()")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        nullable=False, server_default=text("now()")
+    )
+
+    user: Mapped[User] = relationship(back_populates="chats")
+    messages: Mapped[list[ChatMessage]] = relationship(
+        back_populates="chat", cascade="all, delete-orphan", order_by="ChatMessage.created_at"
+    )
+
+    __table_args__ = (
+        Index("idx_chats_user_id", "user_id"),
+        Index("idx_chats_updated_at", "updated_at"),
+    )
+
+
+class ChatMessage(Base):
+    """A single message within a chat conversation."""
+
+    __tablename__ = "chat_messages"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    chat_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("chats.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    role: Mapped[str] = mapped_column(Text, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    sources: Mapped[dict | None] = mapped_column(JSONB)
+    tool_calls: Mapped[dict | None] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(
+        nullable=False, server_default=text("now()")
+    )
+
+    chat: Mapped[Chat] = relationship(back_populates="messages")
+
+    __table_args__ = (
+        Index("idx_chat_messages_chat_id", "chat_id"),
     )
 
 

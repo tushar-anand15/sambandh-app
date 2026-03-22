@@ -1,13 +1,14 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { motion } from "framer-motion";
-import { MessageSquareText, Sparkles } from "lucide-react";
+import { MessageSquareText, Sparkles, History, Plus } from "lucide-react";
 import api from "@/lib/api";
-import type { ChatSource } from "@/types";
+import type { ChatSource, ChatMessage, ChatDetail } from "@/types";
 import useChatStream from "@/hooks/useChatStream";
 import SuggestedPrompts from "@/components/chat/SuggestedPrompts";
 import ChatInput from "@/components/chat/ChatInput";
 import MessageBubble from "@/components/chat/MessageBubble";
 import SourceDrawer from "@/components/chat/SourceDrawer";
+import ChatHistoryPanel from "@/components/chat/ChatHistoryPanel";
 
 interface DrawerState {
   isOpen: boolean;
@@ -21,8 +22,27 @@ interface DrawerState {
 }
 
 export default function ChatbotPage() {
-  const { messages, isStreaming, sendMessage, stopGeneration, clearHistory } =
-    useChatStream();
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [currentTitle, setCurrentTitle] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const {
+    messages,
+    isStreaming,
+    isThinking,
+    sendMessage,
+    stopGeneration,
+    clearHistory,
+    setMessages,
+  } = useChatStream({
+    chatId: currentChatId,
+    onChatCreated: (chatId) => {
+      setCurrentChatId(chatId);
+    },
+    onTitleGenerated: (title) => {
+      setCurrentTitle(title);
+    },
+  });
 
   const [drawer, setDrawer] = useState<DrawerState>({
     isOpen: false,
@@ -33,7 +53,8 @@ export default function ChatbotPage() {
   useEffect(() => {
     if (scrollRef.current) {
       const el = scrollRef.current;
-      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+      const isNearBottom =
+        el.scrollHeight - el.scrollTop - el.clientHeight < 150;
       if (isNearBottom) {
         el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
       }
@@ -68,6 +89,37 @@ export default function ChatbotPage() {
     setDrawer((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
+  const handleSelectChat = useCallback(
+    async (chatId: string) => {
+      try {
+        const { data } = await api.get<ChatDetail>(`/chats/${chatId}`);
+        setCurrentChatId(chatId);
+        setCurrentTitle(data.title);
+
+        // Convert backend messages to frontend format
+        const loadedMessages: ChatMessage[] = data.messages.map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          sources: m.sources || undefined,
+          toolCalls: m.tool_calls || undefined,
+          timestamp: new Date(m.created_at),
+        }));
+
+        setMessages(loadedMessages);
+      } catch (err) {
+        console.error("Failed to load chat:", err);
+      }
+    },
+    [setMessages]
+  );
+
+  const handleNewChat = useCallback(() => {
+    setCurrentChatId(null);
+    setCurrentTitle(null);
+    clearHistory();
+  }, [clearHistory]);
+
   const hasMessages = messages.length > 0;
 
   return (
@@ -78,16 +130,45 @@ export default function ChatbotPage() {
         className="flex h-full flex-col"
       >
         {/* Header */}
-        <div className="relative border-b border-border bg-gradient-to-r from-surface via-surface to-indigo-subtle/20 px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo to-indigo-light shadow-md">
-              <MessageSquareText size={20} className="text-white" strokeWidth={1.5} />
+        <div className="relative z-20 border-b border-border bg-gradient-to-r from-surface via-surface to-indigo-subtle/20 px-4 py-4 sm:px-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo to-indigo-light shadow-md">
+                <MessageSquareText
+                  size={20}
+                  className="text-white"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <div>
+                <h2 className="font-display text-lg text-ink sm:text-xl">
+                  {currentTitle || "Chatbot"}
+                </h2>
+                <p className="text-[11px] text-ink-muted sm:text-xs">
+                  {currentChatId
+                    ? "Continue your conversation"
+                    : "Ask questions about Sulekha project records"}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-display text-lg text-ink sm:text-xl">Chatbot</h2>
-              <p className="text-[11px] text-ink-muted sm:text-xs">
-                Ask questions about Sulekha project records
-              </p>
+
+            <div className="flex items-center gap-2">
+              {hasMessages && (
+                <button
+                  onClick={handleNewChat}
+                  className="flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-xs font-medium text-ink-muted transition-colors hover:border-indigo/30 hover:bg-indigo-subtle hover:text-indigo"
+                >
+                  <Plus size={14} />
+                  <span className="hidden sm:inline">New Chat</span>
+                </button>
+              )}
+              <button
+                onClick={() => setHistoryOpen(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-ink-muted transition-colors hover:border-indigo/30 hover:bg-indigo-subtle hover:text-indigo"
+                title="Chat History"
+              >
+                <History size={16} />
+              </button>
             </div>
           </div>
         </div>
@@ -125,10 +206,11 @@ export default function ChatbotPage() {
             </div>
           ) : (
             <div className="mx-auto max-w-3xl space-y-4 px-4 py-6 sm:px-6">
-              {messages.map((msg) => (
+              {messages.map((msg, idx) => (
                 <MessageBubble
                   key={msg.id}
                   message={msg}
+                  isThinking={isThinking && idx === messages.length - 1}
                   onSourceClick={handleSourceClick}
                 />
               ))}
@@ -157,6 +239,15 @@ export default function ChatbotPage() {
         year={drawer.year}
         projectNo={drawer.projectNo}
         initialPage={drawer.page}
+      />
+
+      {/* Chat History Panel */}
+      <ChatHistoryPanel
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        currentChatId={currentChatId}
+        onSelectChat={handleSelectChat}
+        onNewChat={handleNewChat}
       />
     </>
   );
