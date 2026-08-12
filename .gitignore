@@ -20,3 +20,13 @@ rag_export/
 *.dump
 *.tar.gz
 nginx/certs/
+
+# Test artefacts. The fixture slice itself is checked in on purpose — it is the
+# contract later units assert against — but nothing a runner generates is.
+.pytest_cache/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+coverage/
+*.tsbuildinfo

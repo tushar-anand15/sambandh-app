@@ -42,6 +42,34 @@ Or bring up the full stack with Docker:
 docker compose up
 ```
 
+## Tests
+
+```bash
+# Backend — pytest against a real Postgres holding the fixture slice
+docker compose up -d postgres-test
+cd backend && uv sync --extra dev && uv run pytest
+
+# Frontend — vitest (jsdom + testing-library + MSW)
+cd frontend && npm install && npm run test
+
+# End to end — Playwright starts the Vite dev server itself
+cd frontend && npx playwright install chromium && npm run test:e2e
+```
+
+Backend tests run against Postgres rather than mocks, because every public
+endpoint is a SQL query against materialised rollups and a mocked database
+would prove nothing. `backend/tests/fixtures/master_slice.sql` is seven local
+bodies and every row they touch, exported from the master database by
+`backend/tests/fixtures/build_slice.py`; regenerate it with
+
+```bash
+cd backend && uv run python tests/fixtures/build_slice.py
+```
+
+Frontend tests mock at the network boundary. All handlers live in
+`frontend/src/test/handlers.ts`, so a payload change breaks one file rather
+than twenty.
+
 ## Status
 
 A working prototype — see `eval/eval_report.md` for retrieval-quality benchmarks on the Kerala corpus. Actively iterated on.

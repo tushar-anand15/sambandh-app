@@ -15,6 +15,30 @@ services:
       timeout: 3s
       retries: 5
 
+  # The backend test suite runs against a real Postgres, not mocks, because every
+  # public endpoint is a SQL query against materialised rollups. This one holds
+  # nothing but the fixture slice, which backend/tests/conftest.py drops and
+  # reloads at the start of every session — so its data lives in tmpfs and is
+  # meant to be thrown away.
+  #
+  #   docker compose up -d postgres-test
+  #   cd backend && uv sync --extra dev && uv run pytest
+  postgres-test:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: sambandh
+      POSTGRES_PASSWORD: sambandh
+      POSTGRES_DB: sambandh_test
+    ports:
+      - "55433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sambandh -d sambandh_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   backend:
     build: ./backend
     ports:
