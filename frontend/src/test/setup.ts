@@ -12,9 +12,17 @@ import { cleanup } from "@testing-library/react";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll } from "vitest";
 
-import { handlers } from "./handlers";
+import { baseHandlers } from "./handlers";
+import { handlers as electionsHandlers } from "./handlers.elections";
+import { handlers as financesHandlers } from "./handlers.finances";
+import { handlers as meetingsHandlers } from "./handlers.meetings";
 
-export const server = setupServer(...handlers);
+export const server = setupServer(
+  ...baseHandlers,
+  ...financesHandlers,
+  ...meetingsHandlers,
+  ...electionsHandlers,
+);
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 

@@ -5,7 +5,9 @@ import RegisterPage from "@/pages/RegisterPage";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import ChatbotPage from "@/pages/ChatbotPage";
 import ProtectedRoute from "@/components/dashboard/ProtectedRoute";
-import BodySelector from "@/components/select/BodySelector";
+import ElectionsSection from "@/sections/ElectionsSection";
+import FinancesSection from "@/sections/FinancesSection";
+import MeetingsSection from "@/sections/MeetingsSection";
 import Masthead from "@/components/shell/Masthead";
 import TabBar from "@/components/shell/TabBar";
 import type { Section } from "@/hooks/useBodies";
@@ -34,31 +36,6 @@ import type { Section } from "@/hooks/useBodies";
  * table of public spending buys nothing and delays the number.
  */
 
-interface SectionRouteProps {
-  section: Section;
-  title: string;
-  lede: string;
-}
-
-/**
- * A section page, pending its content.
- *
- * The heading, the lede and the selector are this unit's work; the figures
- * below them are Units 7, 8 and 9. Shipping the selector against a stated
- * placeholder is deliberate — the selection contract is testable now, and the
- * three sections inherit a control that already behaves rather than each
- * growing its own.
- */
-function SectionRoute({ section, title, lede }: SectionRouteProps) {
-  return (
-    <div className="shell-container section-page">
-      <h1>{title}</h1>
-      <p className="lede">{lede}</p>
-      <BodySelector section={section} />
-    </div>
-  );
-}
-
 export default function App() {
   return (
     <>
@@ -73,31 +50,19 @@ export default function App() {
           <Route
             path="/finances/:lb?/:year?"
             element={
-              <SectionRoute
-                section="finances"
-                title="Finances"
-                lede="What a local body planned and what it spent, year by year, from the Sulekha plan monitoring portal."
-              />
+              <FinancesSection />
             }
           />
           <Route
             path="/meetings/:lb?/:year?"
             element={
-              <SectionRoute
-                section="meetings"
-                title="Meetings"
-                lede="Meetings held, by category and by nature, from the Sakarma meeting manifest."
-              />
+              <MeetingsSection />
             }
           />
           <Route
             path="/elections/:lb?/:cycle?"
             element={
-              <SectionRoute
-                section="elections"
-                title="Elections"
-                lede="Ward-level results across the 2010, 2015, 2020 and 2025 cycles, with the boundary layers they are drawn on."
-              />
+              <ElectionsSection />
             }
           />
 

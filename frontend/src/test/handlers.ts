@@ -217,12 +217,13 @@ export const chalakudyMeetings = {
   provenance,
 };
 
-const knownCode = (code: string) => bodies.some((b) => b.lb_code === code);
+export const knownCode = (code: string) => bodies.some((b) => b.lb_code === code);
 
-const notFound = (code: string) =>
+export const notFound = (code: string) =>
   HttpResponse.json({ detail: `No local body with code ${code}` }, { status: 404 });
 
-export const handlers = [
+/** The selector's own endpoint. Section routes live in handlers.<section>.ts */
+export const baseHandlers = [
   http.get("*/api/bodies", () =>
     HttpResponse.json({
       bodies,
@@ -235,50 +236,4 @@ export const handlers = [
       provenance,
     }),
   ),
-
-  http.get("*/api/finances/:lb/:year", ({ params }) => {
-    const { lb, year } = params as { lb: string; year: string };
-    if (!knownCode(lb)) return notFound(lb);
-    if (lb === "M08032" && year === "2023-2024") {
-      return HttpResponse.json(chalakudyFinances);
-    }
-    return HttpResponse.json({
-      ...chalakudyFinances,
-      lb_code: lb,
-      year_label: year,
-      is_complete: year !== "2025-2026",
-    });
-  }),
-
-  http.get("*/api/meetings/:lb/:year", ({ params }) => {
-    const { lb, year } = params as { lb: string; year: string };
-    if (!knownCode(lb)) return notFound(lb);
-    const body = bodies.find((b) => b.lb_code === lb)!;
-    if (!body.has_meetings) {
-      return HttpResponse.json(
-        unavailable("Sakarma holds no meeting record for this body."),
-      );
-    }
-    return HttpResponse.json({ ...chalakudyMeetings, lb_code: lb, year_label: year });
-  }),
-
-  http.get("*/api/elections/:lb/:cycle", ({ params }) => {
-    const { lb } = params as { lb: string; cycle: string };
-    if (!knownCode(lb)) return notFound(lb);
-    const body = bodies.find((b) => b.lb_code === lb)!;
-    if (!body.in_elections) {
-      return HttpResponse.json(
-        unavailable("The State Election Commission published no result for this body."),
-      );
-    }
-    return HttpResponse.json({
-      lb_code: lb,
-      cycle: 2025,
-      available: true,
-      total_wards: 33,
-      ruling_front: "LDF",
-      seats: { LDF: 18, UDF: 12, NDA: 3, OTH: 0 },
-      provenance,
-    });
-  }),
 ];
