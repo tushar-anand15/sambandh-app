@@ -1,47 +1,54 @@
 /**
- * Two names and where to reach them.
+ * Two names, their roles, and where to find them.
+ *
+ * The names, roles and links are exactly those the previous site carried, and
+ * are the authors' own words about themselves — recovered from
+ * `components/landing/About.tsx` rather than rewritten.
  *
  * The five source portals used to be listed here. They belong on the home page,
  * under "Where the records come from", where a reader deciding whether to trust
- * a figure will actually look — a footer is where attribution goes to be
+ * a figure will actually look; a footer is where attribution goes to be
  * ignored.
  *
- * Two names and nothing else. No institution, no funder, no partner: none of
- * those built this, and a logo in a footer reads as an endorsement whether or
- * not one was given.
+ * No institution, funder or partner appears. None of those built this, and a
+ * name in a footer reads as an endorsement whether or not one was given.
  *
  * The domain is `gramsambandh.co.in`. `gramsambandh.in` does not resolve and
  * was linked here until 13 August 2026.
  */
 
+import { Github, Globe, Linkedin } from "lucide-react";
+
 import styles from "./shell.module.css";
 
-/** Inline, because the site makes no external request for anything. */
-function MailIcon() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" className={styles.icon}>
-      <rect x="1.5" y="3.5" width="13" height="9" rx="1" fill="none" stroke="currentColor" />
-      <path d="M2 4.5 8 9l6-4.5" fill="none" stroke="currentColor" />
-    </svg>
-  );
+interface Author {
+  name: string;
+  role: string;
+  links: { label: string; href: string; icon: typeof Globe }[];
 }
 
-function LinkIcon() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" className={styles.icon}>
-      <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" />
-      <path d="M1.5 8h13M8 1.5a10 10 0 0 1 0 13a10 10 0 0 1 0-13" fill="none" stroke="currentColor" />
-    </svg>
-  );
-}
-
-function CodeIcon() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" className={styles.icon}>
-      <path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5" fill="none" stroke="currentColor" />
-    </svg>
-  );
-}
+const AUTHORS: Author[] = [
+  {
+    name: "Abishek Choutagunta",
+    role: "Economist & Governance Researcher",
+    links: [
+      { label: "Website", href: "https://sites.google.com/view/csabishek/home", icon: Globe },
+      {
+        label: "LinkedIn",
+        href: "https://www.linkedin.com/in/abishekchoutagunta/",
+        icon: Linkedin,
+      },
+    ],
+  },
+  {
+    name: "Tushar Anand",
+    role: "AI Engineer & NLP Researcher",
+    links: [
+      { label: "GitHub", href: "https://github.com/tushar-anand15", icon: Github },
+      { label: "LinkedIn", href: "https://www.linkedin.com/in/tushar-anand1594/", icon: Linkedin },
+    ],
+  },
+];
 
 export default function SiteFooter() {
   return (
@@ -53,35 +60,38 @@ export default function SiteFooter() {
             What Kerala&rsquo;s local governments planned, met about and spent,
             joined on one key and handed over in full.
           </p>
+          <p className={styles.footerText}>
+            <a href="https://gramsambandh.co.in">gramsambandh.co.in</a>
+            {" · "}
+            <a href="mailto:csabishek@gmail.com">Contact</a>
+          </p>
         </div>
 
         <div className={styles.footerCol}>
           <h2 className={styles.footerHeading}>Built by</h2>
-          <p className={styles.names}>
-            Abishek Choutagunta
-            <br />
-            Tushar Anand
-          </p>
-          <ul className={styles.links}>
-            <li>
-              <a href="mailto:csabishek@gmail.com">
-                <MailIcon />
-                csabishek@gmail.com
-              </a>
-            </li>
-            <li>
-              <a href="https://gramsambandh.co.in">
-                <LinkIcon />
-                gramsambandh.co.in
-              </a>
-            </li>
-            <li>
-              <a href="/method">
-                <CodeIcon />
-                How the data was built
-              </a>
-            </li>
-          </ul>
+          <div className={styles.authors}>
+            {AUTHORS.map((author) => (
+              <div key={author.name}>
+                <p className={styles.authorName}>{author.name}</p>
+                <p className={styles.authorRole}>{author.role}</p>
+                <ul className={styles.authorLinks}>
+                  {author.links.map(({ label, href, icon: Icon }) => (
+                    <li key={href}>
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={label}
+                        aria-label={`${author.name} on ${label}`}
+                      >
+                        <Icon size={15} aria-hidden="true" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </footer>
