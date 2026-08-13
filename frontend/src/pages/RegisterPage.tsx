@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterPage() {
@@ -10,6 +10,11 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Where ProtectedRoute turned them away from, or the assistant — the only
+  // route on this site that needs an account at all.
+  const destination =
+    (location.state as { from?: string } | null)?.from ?? "/ask";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +26,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(email, password, fullName);
-      navigate("/dashboard/chat");
+      navigate(destination);
     } catch (err: any) {
       setError(err.response?.data?.detail || "Registration failed");
     } finally {

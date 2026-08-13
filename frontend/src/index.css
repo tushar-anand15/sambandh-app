@@ -508,6 +508,106 @@ hr {
   border-bottom-color: var(--accent);
 }
 
+/* ---------------------------------------------------------------------------
+   Selection
+
+   District, body and year. Three controls in one row on a desktop, wrapping to
+   a column on a phone — which is also the order they are used in, so the wrap
+   never reorders the reader's path through them.
+   --------------------------------------------------------------------------- */
+
+.section-page {
+  padding-block: var(--s5) var(--s8);
+}
+
+.selector {
+  margin-block: var(--s5) 0;
+}
+
+.selector-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+}
+
+.selector-status {
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  margin-block: var(--s4) 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.field-label {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.field-select {
+  font-family: var(--font-serif);
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--radius);
+  padding: var(--s2) var(--s3);
+  min-width: 26ch;
+  max-width: 100%;
+}
+
+.field-select:disabled {
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+
+/* A stated cause — a bad code, or a section this body has no record in. Ruled
+   rather than boxed: it is a sentence to read, not an alert to dismiss. */
+.notice {
+  font-size: var(--t3);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  border-left: 2px solid var(--rule-2);
+  padding: 0 0 0 var(--s4);
+  margin-block: var(--s4) 0;
+  max-width: var(--measure);
+}
+
+.coverage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s5);
+  list-style: none;
+  padding: 0;
+  margin-block: var(--s4) 0;
+}
+
+.coverage-item {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  max-width: var(--measure-lede);
+}
+
+.coverage-off .coverage-name {
+  color: var(--ink-3);
+}
+
+.coverage-reason {
+  display: block;
+  color: var(--ink-3);
+  margin-block: var(--s1) 0;
+}
+
 /* Charts scale proportionally. A fixed pixel height with
    preserveAspectRatio="none" stretches every glyph in the SVG horizontally, so
    chart components set a viewBox and let this rule size them. */

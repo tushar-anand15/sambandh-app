@@ -21,6 +21,8 @@ import { http, HttpResponse } from "msw";
 export interface Provenance {
   dataset: string;
   build_date: string;
+  /** The upstream portal, named per section by `backend/app/public.py`. */
+  source?: string;
 }
 
 export interface BodySummary {
@@ -29,9 +31,14 @@ export interface BodySummary {
   lb_name_ml: string | null;
   district_name: string;
   lb_type: string;
+  has_finances: boolean;
   has_meetings: boolean;
   has_geometry: boolean;
   in_elections: boolean;
+  first_cycle: number | null;
+  last_cycle: number | null;
+  years_with_finance: number;
+  years_with_meetings: number;
 }
 
 /**
@@ -56,27 +63,42 @@ export const unavailable = (reason: string): Unavailable => ({
   provenance,
 });
 
-/** The seven bodies in backend/tests/fixtures/master_slice.sql. */
+/**
+ * The seven bodies in backend/tests/fixtures/master_slice.sql, with every
+ * field `/api/bodies` actually returns — including `has_finances` and the
+ * cycle bounds, which the selector needs to state why a section is empty.
+ */
 export const bodies: BodySummary[] = [
   {
     lb_code: "M08032",
     lb_name_en: "Chalakudy",
-    lb_name_ml: "ചാലക്കുടി",
+    lb_name_ml: "\u0d1a\u0d3e\u0d32\u0d15\u0d4d\u0d15\u0d41\u0d1f\u0d3f",
     district_name: "THRISSUR",
     lb_type: "Municipality",
+    has_finances: true,
     has_meetings: true,
     has_geometry: true,
     in_elections: true,
+    first_cycle: 2010,
+    last_cycle: 2025,
+    years_with_finance: 14,
+    years_with_meetings: 9,
   },
   {
+    // Finance and meetings, but the SEC published no result for it.
     lb_code: "M13057",
     lb_name_en: "Mattannur",
     lb_name_ml: null,
     district_name: "KANNUR",
     lb_type: "Municipality",
+    has_finances: true,
     has_meetings: true,
     has_geometry: false,
     in_elections: false,
+    first_cycle: null,
+    last_cycle: null,
+    years_with_finance: 14,
+    years_with_meetings: 8,
   },
   {
     lb_code: "B03024",
@@ -84,9 +106,14 @@ export const bodies: BodySummary[] = [
     lb_name_ml: null,
     district_name: "PATHANAMTHITTA",
     lb_type: "Block Panchayat",
+    has_finances: true,
     has_meetings: true,
     has_geometry: false,
     in_elections: true,
+    first_cycle: 2010,
+    last_cycle: 2025,
+    years_with_finance: 14,
+    years_with_meetings: 7,
   },
   {
     lb_code: "M07025",
@@ -94,29 +121,46 @@ export const bodies: BodySummary[] = [
     lb_name_ml: null,
     district_name: "ERNAKULAM",
     lb_type: "Municipality",
+    has_finances: true,
     has_meetings: true,
     has_geometry: true,
     in_elections: true,
+    first_cycle: 2010,
+    last_cycle: 2025,
+    years_with_finance: 14,
+    years_with_meetings: 9,
   },
   {
+    // Meetings start late: the record is thin, not the year.
     lb_code: "G04036",
     lb_name_en: "Muttar",
     lb_name_ml: null,
     district_name: "ALAPPUZHA",
     lb_type: "Grama Panchayat",
+    has_finances: true,
     has_meetings: true,
     has_geometry: true,
     in_elections: true,
+    first_cycle: 2010,
+    last_cycle: 2025,
+    years_with_finance: 14,
+    years_with_meetings: 3,
   },
   {
+    // Sakarma holds no meeting record for this body at all.
     lb_code: "G13064",
     lb_name_en: "Panoor",
     lb_name_ml: null,
     district_name: "KANNUR",
     lb_type: "Grama Panchayat",
+    has_finances: true,
     has_meetings: false,
     has_geometry: false,
     in_elections: true,
+    first_cycle: 2010,
+    last_cycle: 2015,
+    years_with_finance: 11,
+    years_with_meetings: 0,
   },
   {
     lb_code: "D12001",
@@ -124,11 +168,26 @@ export const bodies: BodySummary[] = [
     lb_name_ml: null,
     district_name: "WAYANAD",
     lb_type: "District Panchayat",
+    has_finances: true,
     has_meetings: true,
     has_geometry: false,
     in_elections: true,
+    first_cycle: 2010,
+    last_cycle: 2025,
+    years_with_finance: 14,
+    years_with_meetings: 9,
   },
 ];
+
+/** The fourteen financial years, with the open one flagged. */
+export const financialYears = Array.from({ length: 14 }, (_, i) => ({
+  year_label: `${2012 + i}-${2013 + i}`,
+  is_complete: 2012 + i !== 2025,
+}));
+
+export const districts = [...new Set(bodies.map((b) => b.district_name))].sort();
+
+export const cycles = [2010, 2015, 2020, 2025];
 
 /** Chalakudy 2023-24, unrounded, exactly as the fixture slice holds it. */
 export const chalakudyFinances = {
@@ -164,7 +223,18 @@ const notFound = (code: string) =>
   HttpResponse.json({ detail: `No local body with code ${code}` }, { status: 404 });
 
 export const handlers = [
-  http.get("*/api/bodies", () => HttpResponse.json({ bodies, provenance })),
+  http.get("*/api/bodies", () =>
+    HttpResponse.json({
+      bodies,
+      count: bodies.length,
+      districts,
+      // The year control's options travel with the selector, so no page
+      // hardcodes the fourteen years or which of them is still open.
+      financial_years: financialYears,
+      cycles,
+      provenance,
+    }),
+  ),
 
   http.get("*/api/finances/:lb/:year", ({ params }) => {
     const { lb, year } = params as { lb: string; year: string };
