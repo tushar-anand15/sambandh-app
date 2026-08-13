@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { MessageSquareText, Search, FileText } from "lucide-react";
 
 const features = [
@@ -26,13 +25,8 @@ export default function DemoFeatures() {
   return (
     <section id="features" className="border-t border-border py-24">
       <div className="mx-auto max-w-5xl px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6 }}
-          className="text-center"
-        >
+        <div
+          className="text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-indigo">
             What the demo includes
           </p>
@@ -43,18 +37,13 @@ export default function DemoFeatures() {
             A focused demo — not a full platform. Each mode lets you inspect
             Kerala's Sulekha project records from a different angle.
           </p>
-        </motion.div>
+        </div>
 
         <div className="mt-14 grid gap-6 md:grid-cols-3">
           {features.map((f, i) => (
-            <motion.div
+            <div
               key={f.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ delay: i * 0.15, duration: 0.6 }}
-              className="group rounded-xl border border-border bg-surface p-6 transition-shadow hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
-            >
+              className="group rounded-xl border border-border bg-surface p-6 transition-shadow hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
               <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-indigo-subtle transition-colors group-hover:bg-indigo/10">
                 <f.icon
                   size={22}
@@ -66,7 +55,7 @@ export default function DemoFeatures() {
               <p className="mt-2 text-sm leading-relaxed text-ink-muted">
                 {f.description}
               </p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

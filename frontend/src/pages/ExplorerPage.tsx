@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Database, ChevronLeft, ChevronRight, X, List, FileText } from "lucide-react";
 import api from "@/lib/api";
 import type { Chunk, DocResult } from "@/types";
@@ -98,11 +97,8 @@ export default function ExplorerPage() {
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex h-full flex-col"
-    >
+    <div
+      className="flex h-full flex-col">
       {/* Header */}
       <div className="border-b border-border px-4 py-3 sm:px-6">
         <h2 className="font-display text-base text-ink sm:text-lg">Data Explorer</h2>
@@ -245,6 +241,6 @@ export default function ExplorerPage() {
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

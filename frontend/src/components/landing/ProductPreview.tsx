@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { useState } from "react";
 import { Search, MessageSquareText, FileText, MapPin, Calendar, Building2, ChevronRight, FileType } from "lucide-react";
 
@@ -104,17 +103,14 @@ function ExplorerPreview() {
           {/* Results */}
           <div className="space-y-1.5">
             {mockDocuments.map((doc, i) => (
-              <motion.div
+              <div
                 key={doc.id}
                 onClick={() => setSelectedDoc(i)}
                 className={`cursor-pointer rounded-lg border p-2 transition-all ${
                   selectedDoc === i
                     ? "border-indigo/30 bg-indigo-subtle/50 shadow-sm"
                     : "border-transparent bg-surface-alt/50 hover:border-border hover:bg-surface-alt"
-                }`}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-              >
+                }`}>
                 <div className="flex items-start justify-between gap-1">
                   <p className="text-[9px] font-medium leading-tight text-ink line-clamp-2">
                     {doc.title}
@@ -126,7 +122,7 @@ function ExplorerPreview() {
                   <span>•</span>
                   <span>{doc.amount}</span>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -221,29 +217,19 @@ export default function ProductPreview() {
   return (
     <section className="border-t border-border bg-surface-alt py-24">
       <div className="mx-auto max-w-5xl px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6 }}
-          className="mb-12 text-center"
-        >
+        <div
+          className="mb-12 text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-indigo">
             The Interface
           </p>
           <h2 className="mt-3 font-display text-3xl tracking-tight text-ink">
             Search, inspect, verify
           </h2>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 32, scale: 0.97 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: [0.25, 0.4, 0.25, 1] }}
-        >
+        <div>
           <ExplorerPreview />
-        </motion.div>
+        </div>
       </div>
     </section>
   );

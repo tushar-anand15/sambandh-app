@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterPage() {
@@ -31,13 +30,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="grain flex min-h-screen items-center justify-center bg-canvas px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-sm"
-      >
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
+      <div
+        className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link to="/" className="font-display text-2xl tracking-tight text-ink">
             Gram<span className="text-indigo">SAMBANDH</span>
@@ -116,7 +111,7 @@ export default function RegisterPage() {
             Sign in
           </Link>
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 }

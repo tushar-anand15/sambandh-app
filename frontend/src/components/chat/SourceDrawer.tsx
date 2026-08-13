@@ -1,5 +1,4 @@
 import { useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { X, FileText, MapPin, Calendar, Hash, ZoomIn, ZoomOut } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { useState } from "react";
@@ -113,27 +112,17 @@ export default function SourceDrawer({
   );
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
         <>
           {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+          <div
             className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm"
-            onClick={onClose}
-          />
+            onClick={onClose}/>
 
           {/* Drawer */}
-          <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 z-50 flex h-full w-full flex-col bg-surface shadow-2xl sm:w-[85vw] md:w-[70vw] lg:w-[55vw] xl:w-[45vw]"
-          >
+          <div
+            className="fixed right-0 top-0 z-50 flex h-full w-full flex-col bg-surface shadow-2xl sm:w-[85vw] md:w-[70vw] lg:w-[55vw] xl:w-[45vw]">
             {/* Header */}
             <div className="flex items-center gap-3 border-b border-border px-4 py-3 sm:px-6">
               <button
@@ -282,9 +271,9 @@ export default function SourceDrawer({
                 Scroll to navigate
               </p>
             </div>
-          </motion.div>
+          </div>
         </>
       )}
-    </AnimatePresence>
+    </>
   );
 }

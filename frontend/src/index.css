@@ -1,55 +1,377 @@
 @import "tailwindcss";
 
-@theme {
-  --font-display: "Instrument Serif", serif;
-  --font-body: "Plus Jakarta Sans", sans-serif;
-  --font-mono: "IBM Plex Mono", monospace;
+/* ---------------------------------------------------------------------------
+   Typefaces
+   ---------------------------------------------------------------------------
+   No webfont is loaded. The site is served from a single origin and makes zero
+   external requests; a font CDN would reintroduce one, and a stylesheet from a
+   third party is a render-blocking dependency on someone else's uptime.
 
-  --color-canvas: #F7F6F3;
-  --color-surface: #FFFFFF;
-  --color-surface-alt: #F0EFEB;
-  --color-border: #E2E0DA;
-  --color-border-strong: #D1CFC8;
-  --color-ink: #1A1A2E;
-  --color-ink-muted: #6B6E76;
-  --color-ink-faint: #9CA3AF;
-  --color-indigo: #312E81;
-  --color-indigo-hover: #4338CA;
-  --color-indigo-light: #4F46E5;
-  --color-indigo-subtle: #EEF2FF;
-  --color-success: #3D6B4F;
-  --color-warning: #92672B;
-  --color-error: #9B3542;
+   The serif stack resolves to Iowan Old Style on Apple platforms, Charter where
+   it is installed, and Georgia everywhere else — three text faces with the same
+   large x-height and sturdy, low-contrast strokes, so the page keeps its
+   proportions whichever one wins. The sans is confined to micro-labels
+   (eyebrows, table headers, axis ticks) and uses the platform UI face, which is
+   already resident.
 
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
+   TO VENDOR LATER (needs network access, deliberately not done here):
+   drop woff2 subsets of Charter (regular, italic, bold) into
+   `frontend/public/fonts/`, declare them with `@font-face { font-display:
+   swap; unicode-range: U+0000-024F,U+0300-036F,U+2000-206F; }` and prepend the
+   family to --font-serif. Nothing else in this file changes.
+   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   Palette — three-state theming.
+
+   The bare :root below carries the COMPLETE light palette. The two dark blocks
+   only redefine values that already exist here. Nothing may be declared for the
+   first time inside a media query or an attribute selector: a viewer whose
+   system reports neither preference must still get a full set of colours.
+
+   Ground is paddy husk — a yellow-green neutral, not a warm cream. Accent is
+   wet paddy. Laterite (--earth) appears exactly once in the whole site, as the
+   4px band above the masthead; it sits close enough to LDF red that a second
+   use would read as a party colour.
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* Ground and surfaces */
+  --paper: #f1f3e9;
+  --surface: #fcfdf7;
+  --surface-2: #e7ebda;
+
+  /* Text */
+  --ink: #1d2417;
+  --ink-2: #59634e;
+  --ink-3: #8b9480;
+
+  /* Rules and hairlines */
+  --rule: #dbe0cc;
+  --rule-2: #c2c9af;
+
+  /* Accent */
+  --accent: #3e5c2a;
+  --accent-ink: #fcfdf7;
+  --accent-wash: #e4ebd6;
+
+  /* Laterite. One use only: the band above the masthead. */
+  --earth: #8c4a2f;
+
+  /* -----------------------------------------------------------------------
+     Front colours. Semantic and identical in both themes — a reader learns
+     "that red is LDF" once and it must stay true in dark mode. They are NOT
+     derived from --accent and must never be harmonised with it.
+     ----------------------------------------------------------------------- */
+  --ldf: #b23a2f;
+  --udf: #1f5fa8;
+  --nda: #d8891b;
+  --oth: #7d8a85;
+
+  /* -----------------------------------------------------------------------
+     Type scale. Nine steps, and every font-size in src/ is one of them.
+     Steps are finer at the bottom because small sizes need finer steps.
+     ----------------------------------------------------------------------- */
+  --t1: 11.5px; /* uppercase micro-labels, table headers, dt */
+  --t2: 13px;   /* source lines, captions, metadata */
+  --t3: 15px;   /* tables, dense UI, list rows */
+  --t4: 17px;   /* body */
+  --t5: 20px;   /* lede, panel titles */
+  --t6: 24px;   /* section headings, stat values */
+  --t7: 29px;   /* page headings, opening figures */
+  --t8: 35px;   /* home heading only */
+  --t9: 56px;   /* one stark figure. Used ONCE on the site. A second use means
+                   the device has stopped working — pick --t7 instead. */
+
+  /* -----------------------------------------------------------------------
+     Spacing. 8px base. Every margin, padding and gap resolves to one of these.
+     ----------------------------------------------------------------------- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 72px;
+
+  /* Line height by role, not one global value. */
+  --lh-tight: 1.14; /* display */
+  --lh-snug: 1.28;  /* headings */
+  --lh-body: 1.62;  /* prose */
+  --lh-ui: 1.45;    /* tables and controls */
+
+  /* Tracking. Large serif tightens; uppercase micro-labels open up. */
+  --track-display: -0.021em;
+  --track-head: -0.012em;
+  --track-label: 0.085em;
+
+  /* Measures. These apply to headings too — without a cap a 35px heading runs
+     the full container width and stops being readable. */
+  --measure: 66ch;
+  --measure-h1: 19ch;
+  --measure-h2: 28ch;
+  --measure-lede: 52ch;
+
+  /* Families */
+  --font-serif: "Iowan Old Style", Charter, Georgia, "Times New Roman", Times,
+    serif;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+
+  /* Chrome */
+  --container: 1120px;
+  --band: 4px;
+  --radius: 2px;
+
+  color-scheme: light;
 }
 
+/* Dark, by system preference — unless the reader has explicitly chosen light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14170f;
+    --surface: #1b1f15;
+    --surface-2: #242a1c;
+
+    --ink: #e9ece0;
+    --ink-2: #a8b09b;
+    --ink-3: #737b67;
+
+    --rule: #2e3524;
+    --rule-2: #3e4632;
+
+    --accent: #9cc271;
+    --accent-ink: #12160c;
+    --accent-wash: #232c18;
+
+    --earth: #b96a46;
+
+    color-scheme: dark;
+  }
+}
+
+/* Dark, by explicit choice. Repeated rather than shared with the media block so
+   the toggle wins in both directions. */
+:root[data-theme="dark"] {
+  --paper: #14170f;
+  --surface: #1b1f15;
+  --surface-2: #242a1c;
+
+  --ink: #e9ece0;
+  --ink-2: #a8b09b;
+  --ink-3: #737b67;
+
+  --rule: #2e3524;
+  --rule-2: #3e4632;
+
+  --accent: #9cc271;
+  --accent-ink: #12160c;
+  --accent-wash: #232c18;
+
+  --earth: #b96a46;
+
+  color-scheme: dark;
+}
+
+/* ---------------------------------------------------------------------------
+   Tailwind bridge.
+
+   `@theme inline` emits utilities that reference the custom properties above
+   rather than copying their values, so `bg-paper` and `text-ink` follow the
+   theme switch. A plain `@theme` block would freeze the light values into the
+   utility and break dark mode silently.
+   --------------------------------------------------------------------------- */
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-rule-2: var(--rule-2);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
+  --color-earth: var(--earth);
+  --color-ldf: var(--ldf);
+  --color-udf: var(--udf);
+  --color-nda: var(--nda);
+  --color-oth: var(--oth);
+
+  --font-serif: var(--font-serif);
+  --font-sans: var(--font-sans);
+
+  --text-t1: var(--t1);
+  --text-t2: var(--t2);
+  --text-t3: var(--t3);
+  --text-t4: var(--t4);
+  --text-t5: var(--t5);
+  --text-t6: var(--t6);
+  --text-t7: var(--t7);
+  --text-t8: var(--t8);
+  --text-t9: var(--t9);
+
+  --spacing-s1: var(--s1);
+  --spacing-s2: var(--s2);
+  --spacing-s3: var(--s3);
+  --spacing-s4: var(--s4);
+  --spacing-s5: var(--s5);
+  --spacing-s6: var(--s6);
+  --spacing-s7: var(--s7);
+  --spacing-s8: var(--s8);
+
+  --leading-tight: var(--lh-tight);
+  --leading-snug: var(--lh-snug);
+  --leading-body: var(--lh-body);
+  --leading-ui: var(--lh-ui);
+
+  --tracking-display: var(--track-display);
+  --tracking-head: var(--track-head);
+  --tracking-label: var(--track-label);
+}
+
+/* ---------------------------------------------------------------------------
+   LEGACY BRIDGE — delete with the pages it serves.
+
+   The pre-revamp landing, explorer and chat pages are written against the old
+   palette's utility names (bg-canvas, text-ink-muted, bg-indigo, …). Those
+   names no longer exist, and in Tailwind v4 an unknown utility simply emits
+   nothing — so without this block those pages would render as unstyled text
+   for the several units it takes to replace them, which makes every
+   intermediate state impossible to look at.
+
+   Each old name is mapped onto a new token rather than onto its old hex value,
+   so the legacy pages at least sit inside the new palette while they last. The
+   whole block goes when Unit 10 deletes the last page that uses it; nothing
+   new should reference these names, and the token lint quarantines exactly the
+   directories that still do.
+   --------------------------------------------------------------------------- */
+
+@theme inline {
+  --color-canvas: var(--paper);
+  --color-surface-alt: var(--surface-2);
+  --color-border: var(--rule);
+  --color-border-strong: var(--rule-2);
+  --color-ink-muted: var(--ink-2);
+  --color-ink-faint: var(--ink-3);
+  --color-indigo: var(--accent);
+  --color-indigo-hover: var(--accent);
+  --color-indigo-light: var(--accent);
+  --color-indigo-subtle: var(--accent-wash);
+  --color-success: var(--accent);
+  --color-warning: var(--nda);
+  --color-error: var(--ldf);
+
+  --font-display: var(--font-serif);
+  --font-body: var(--font-serif);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+   --------------------------------------------------------------------------- */
+
 html {
-  font-family: var(--font-body);
-  color: var(--color-ink);
-  background-color: var(--color-canvas);
+  font-family: var(--font-serif);
+  font-size: var(--t4);
+  line-height: var(--lh-body);
+  color: var(--ink);
+  background-color: var(--paper);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  /* Explicit, not inherited: without a background token here the page borrows
+     whatever ground the host paints behind it. */
+  background-color: var(--paper);
+  color: var(--ink);
 }
 
-.grain::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0.022;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
+/* Digits align in tables, figures and dates. */
+table,
+time,
+[data-numeric] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+   Heading rhythm: large above, small below.
+
+   --s7 over a heading and --s3 under it binds the heading to the text it
+   introduces instead of leaving it floating equidistant between two blocks.
+   This is the single rule that most affects how a page reads, which is why it
+   lives in base styles rather than being reapplied per component.
+   --------------------------------------------------------------------------- */
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--track-head);
+  text-wrap: balance;
+  margin-block: var(--s7) var(--s3);
+}
+
+h1 {
+  font-size: var(--t7);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  max-width: var(--measure-h1);
+}
+
+h2 {
+  font-size: var(--t6);
+  max-width: var(--measure-h2);
+}
+
+h3 {
+  font-size: var(--t5);
+  max-width: var(--measure-h2);
+}
+
+h4 {
+  font-size: var(--t4);
+  max-width: var(--measure-h2);
+}
+
+/* A heading opening a section has nothing above it to separate from. */
+h1:first-child,
+h2:first-child,
+h3:first-child,
+h4:first-child {
+  margin-block-start: 0;
+}
+
+p {
+  margin-block: 0 var(--s4);
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+
+p:last-child {
+  margin-block-end: 0;
+}
+
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin-block: var(--s5);
 }
 
 ::-webkit-scrollbar {
@@ -60,70 +382,142 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border-strong);
+  background: var(--rule-2);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-ink-faint);
+  background: var(--ink-3);
 }
 
 *:focus-visible {
-  outline: 2px solid var(--color-indigo);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* Shimmer animation for tool calls */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+/* ---------------------------------------------------------------------------
+   Roles
+   --------------------------------------------------------------------------- */
+
+/* Uppercase micro-labels. The only place the sans appears. */
+.label {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
 
-.shimmer {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(49, 46, 129, 0.08) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
+.lede {
+  font-size: var(--t5);
+  line-height: var(--lh-body);
+  max-width: var(--measure-lede);
+  color: var(--ink-2);
+  text-wrap: pretty;
 }
 
-/* Fade up animation */
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.shell-container {
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--s5);
 }
 
-.animate-fade-up {
-  animation: fadeUp 0.3s ease-out forwards;
+/* Provenance line. Small, quiet, and always present under data. */
+.source-line {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-3);
+  max-width: var(--measure);
+  margin-block: var(--s2) 0;
 }
 
-/* Slide in from right */
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+/* ---------------------------------------------------------------------------
+   Shell chrome
+   --------------------------------------------------------------------------- */
+
+.masthead {
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
 }
 
-.animate-slide-in-right {
-  animation: slideInRight 0.3s ease-out forwards;
+/* The one use of laterite on the site. */
+.masthead-band {
+  height: var(--band);
+  background: var(--earth);
 }
 
-/* Mobile touch targets */
+.masthead-inner {
+  padding-block: var(--s5) var(--s4);
+}
+
+.masthead-title {
+  display: inline-block;
+  font-family: var(--font-serif);
+  font-size: var(--t6);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--track-head);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.masthead-sub {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  margin-block: var(--s1) 0;
+  max-width: var(--measure-lede);
+}
+
+/* The only sticky element. */
+.tabbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+.tabbar-inner {
+  display: flex;
+  gap: var(--s5);
+  overflow-x: auto;
+}
+
+.tab {
+  flex: none;
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-2);
+  text-decoration: none;
+  padding-block: var(--s3);
+  /* Reserves the active rule's space so the row does not shift on selection. */
+  border-bottom: 2px solid transparent;
+}
+
+.tab:hover {
+  color: var(--ink);
+}
+
+.tab-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Charts scale proportionally. A fixed pixel height with
+   preserveAspectRatio="none" stretches every glyph in the SVG horizontally, so
+   chart components set a viewBox and let this rule size them. */
+svg[data-chart] {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Mobile touch targets. */
 @media (pointer: coarse) {
   button,
   a,
@@ -131,93 +525,95 @@ body {
     min-height: 44px;
     min-width: 44px;
   }
-  
+
+  /* iOS zooms any field under 16px on focus; --t4 clears that. */
   input,
   textarea,
   select {
-    font-size: 16px;
+    font-size: var(--t4);
   }
 }
 
-/* Safe area insets for mobile */
 @supports (padding: env(safe-area-inset-bottom)) {
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
-/* Markdown prose styles for chat messages */
+/* ---------------------------------------------------------------------------
+   Markdown prose, used by the assistant's answers.
+   Relative sizes (em) are deliberate here: the block is sized once by its
+   container from the scale, and the internals hold their proportions to it.
+   --------------------------------------------------------------------------- */
 .prose-chat {
-  font-family: var(--font-body), "Noto Sans Malayalam", system-ui, sans-serif;
-  line-height: 1.7;
+  font-family: var(--font-serif), "Noto Sans Malayalam", serif;
+  font-size: var(--t4);
+  line-height: var(--lh-body);
   overflow-wrap: anywhere;
 }
-.prose-chat p { margin: 0.5em 0; }
+.prose-chat p { margin: var(--s2) 0; max-width: none; }
 .prose-chat p:first-child { margin-top: 0; }
 .prose-chat p:last-child { margin-bottom: 0; }
 .prose-chat strong { font-weight: 600; }
-.prose-chat ul, .prose-chat ol { margin: 0.5em 0; padding-left: 1.5em; }
-.prose-chat li { margin: 0.25em 0; }
+.prose-chat ul, .prose-chat ol { margin: var(--s2) 0; padding-left: var(--s5); }
+.prose-chat li { margin: var(--s1) 0; }
 .prose-chat code {
-  font-family: var(--font-mono);
-  font-size: 0.85em;
-  background: var(--color-surface-alt);
-  padding: 0.2em 0.4em;
-  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--t3);
+  background: var(--surface-2);
+  padding: var(--s1) var(--s2);
+  border-radius: var(--radius);
 }
 .prose-chat pre {
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 0.875em 1em;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s3) var(--s4);
   overflow-x: auto;
-  margin: 0.75em 0;
+  margin: var(--s3) 0;
 }
 .prose-chat pre code {
   background: none;
   padding: 0;
-  font-size: 0.8em;
+  font-size: var(--t3);
 }
 .prose-chat table {
   border-collapse: collapse;
   width: 100%;
-  margin: 0.75em 0;
-  font-size: 0.85em;
+  margin: var(--s3) 0;
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
 }
 .prose-chat th, .prose-chat td {
-  border: 1px solid var(--color-border);
-  padding: 0.5em 0.75em;
+  border: 1px solid var(--rule);
+  padding: var(--s2) var(--s3);
   text-align: left;
 }
 .prose-chat th {
-  background: var(--color-surface-alt);
+  background: var(--surface-2);
   font-weight: 600;
 }
 .prose-chat h1, .prose-chat h2, .prose-chat h3 {
-  font-family: var(--font-display);
-  margin: 0.75em 0 0.4em;
-  line-height: 1.3;
+  margin: var(--s5) 0 var(--s3);
+  max-width: none;
 }
-.prose-chat h1 { font-size: 1.25em; }
-.prose-chat h2 { font-size: 1.15em; }
-.prose-chat h3 { font-size: 1.05em; }
+.prose-chat h1 { font-size: var(--t6); }
+.prose-chat h2 { font-size: var(--t5); }
+.prose-chat h3 { font-size: var(--t4); }
 .prose-chat blockquote {
-  border-left: 3px solid var(--color-indigo);
-  padding-left: 1em;
-  margin: 0.75em 0;
-  color: var(--color-ink-muted);
+  border-left: 2px solid var(--accent);
+  padding-left: var(--s4);
+  margin: var(--s3) 0;
+  color: var(--ink-2);
   font-style: italic;
 }
 .prose-chat hr {
   border: none;
-  border-top: 1px solid var(--color-border);
-  margin: 1em 0;
+  border-top: 1px solid var(--rule);
+  margin: var(--s4) 0;
 }
 .prose-chat a {
-  color: var(--color-indigo);
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-.prose-chat a:hover {
-  color: var(--color-indigo-hover);
 }

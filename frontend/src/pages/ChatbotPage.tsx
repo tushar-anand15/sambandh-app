@@ -1,5 +1,4 @@
 import { useRef, useEffect, useCallback, useState } from "react";
-import { motion } from "framer-motion";
 import { MessageSquareText, Sparkles, History, Plus } from "lucide-react";
 import api from "@/lib/api";
 import type { ChatSource, ChatMessage, ChatDetail } from "@/types";
@@ -124,11 +123,8 @@ export default function ChatbotPage() {
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex h-full flex-col"
-      >
+      <div
+        className="flex h-full flex-col">
         {/* Header */}
         <div className="relative z-20 border-b border-border bg-gradient-to-r from-surface via-surface to-indigo-subtle/20 px-4 py-4 sm:px-6">
           <div className="flex items-center justify-between">
@@ -183,12 +179,8 @@ export default function ChatbotPage() {
                 <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-gradient-to-tr from-indigo-subtle to-transparent blur-3xl" />
               </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="relative z-10 flex flex-col items-center"
-              >
+              <div
+                className="relative z-10 flex flex-col items-center">
                 <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo to-indigo-light shadow-lg sm:h-20 sm:w-20">
                   <Sparkles size={32} className="text-white" strokeWidth={1.5} />
                 </div>
@@ -202,7 +194,7 @@ export default function ChatbotPage() {
                 <div className="mt-8 w-full max-w-xl">
                   <SuggestedPrompts onSelect={sendMessage} />
                 </div>
-              </motion.div>
+              </div>
             </div>
           ) : (
             <div className="mx-auto max-w-3xl space-y-4 px-4 py-6 sm:px-6">
@@ -226,7 +218,7 @@ export default function ChatbotPage() {
           disabled={false}
           isStreaming={isStreaming}
         />
-      </motion.div>
+      </div>
 
       {/* Source Drawer */}
       <SourceDrawer

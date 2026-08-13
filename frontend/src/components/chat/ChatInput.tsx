@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Send, Square, RotateCcw } from "lucide-react";
 
 interface ChatInputProps {
@@ -39,16 +38,10 @@ export default function ChatInput({ onSend, onStop, onClear, disabled, isStreami
   return (
     <div className="border-t border-border bg-gradient-to-t from-surface to-surface/80 px-3 py-3 backdrop-blur-sm sm:px-4 sm:py-4">
       <div className="mx-auto max-w-3xl">
-        <motion.div
-          animate={{
-            boxShadow: isFocused
-              ? "0 4px 20px rgba(49, 46, 129, 0.15)"
-              : "0 2px 8px rgba(0, 0, 0, 0.05)",
-          }}
+        <div
           className={`flex items-end gap-2 rounded-2xl border bg-surface p-2 transition-colors sm:gap-3 sm:p-3 ${
             isFocused ? "border-indigo/40" : "border-border"
-          }`}
-        >
+          }`}>
           <button
             onClick={onClear}
             className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-ink-faint transition-colors hover:bg-surface-alt hover:text-ink-muted sm:h-10 sm:w-10"
@@ -77,26 +70,21 @@ export default function ChatInput({ onSend, onStop, onClear, disabled, isStreami
           />
 
           {isStreaming ? (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
+            <button
               onClick={onStop}
               className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-error/30 bg-error/10 text-error transition-colors hover:bg-error/20 sm:h-10 sm:w-10"
-              title="Stop generating"
-            >
+              title="Stop generating">
               <Square size={14} className="sm:h-4 sm:w-4" />
-            </motion.button>
+            </button>
           ) : (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.95 }}
+            <button
               onClick={handleSubmit}
               disabled={!value.trim() || disabled}
-              className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo to-indigo-light text-white shadow-md transition-all hover:shadow-lg disabled:opacity-40 disabled:shadow-none sm:h-10 sm:w-10"
-            >
+              className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo to-indigo-light text-white shadow-md transition-all hover:shadow-lg disabled:opacity-40 disabled:shadow-none sm:h-10 sm:w-10">
               <Send size={16} className="sm:h-[18px] sm:w-[18px]" />
-            </motion.button>
+            </button>
           )}
-        </motion.div>
+        </div>
 
         <p className="mt-2 text-center text-[10px] text-ink-faint sm:text-[11px]">
           Press <kbd className="rounded bg-surface-alt px-1 py-0.5 font-mono text-[9px]">Enter</kbd> to send,{" "}

@@ -1,20 +1,6 @@
-import { motion } from "framer-motion";
 import { ArrowRight, Layers, Bot, User, MessageSquareText, Search, Send, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: i * 0.12,
-      duration: 0.7,
-      ease: [0.25, 0.4, 0.25, 1] as [number, number, number, number],
-    },
-  }),
-};
 
 const mockMessages = [
   {
@@ -83,11 +69,8 @@ function ChatPreview() {
             {/* Messages */}
             <div className="flex-1 space-y-3 overflow-hidden p-3">
               {visibleMessages >= 1 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-end"
-                >
+                <div
+                  className="flex justify-end">
                   <div className="flex items-start gap-1.5">
                     <div className="max-w-[200px] rounded-xl bg-gradient-to-br from-indigo to-indigo-light px-2.5 py-1.5 text-[9px] leading-relaxed text-white">
                       {mockMessages[0].content}
@@ -96,15 +79,12 @@ function ChatPreview() {
                       <User size={10} className="text-ink-muted" />
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {isTyping && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-start gap-1.5"
-                >
+                <div
+                  className="flex items-start gap-1.5">
                   <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo to-indigo-light">
                     <Bot size={10} className="text-white" />
                   </div>
@@ -115,15 +95,12 @@ function ChatPreview() {
                       <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo" style={{ animationDelay: "300ms" }} />
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {visibleMessages >= 2 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-start gap-1.5"
-                >
+                <div
+                  className="flex items-start gap-1.5">
                   <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo to-indigo-light">
                     <Bot size={10} className="text-white" />
                   </div>
@@ -142,7 +119,7 @@ function ChatPreview() {
                       ))}
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
             </div>
 
@@ -170,7 +147,7 @@ function ChatPreview() {
 
 export default function Hero() {
   return (
-    <section className="grain relative flex min-h-screen flex-col justify-center overflow-hidden">
+    <section className="relative flex min-h-screen flex-col justify-center overflow-hidden">
       {/* Subtle grid background */}
       <div
         className="absolute inset-0 opacity-[0.03]"
@@ -185,49 +162,29 @@ export default function Hero() {
         <div className="grid items-center gap-16 lg:grid-cols-[1fr,1.1fr]">
           {/* Left: Text content */}
           <div>
-            <motion.div
-              custom={0}
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5"
-            >
+            <div
+              className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5">
               <Layers size={14} className="text-indigo" />
               <span className="text-xs font-medium text-ink-muted">
                 Civic Data Infrastructure
               </span>
-            </motion.div>
+            </div>
 
-            <motion.h1
-              custom={1}
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              className="font-display text-5xl leading-[1.08] tracking-tight text-ink md:text-6xl"
-            >
+            <h1
+              className="font-display text-5xl leading-[1.08] tracking-tight text-ink md:text-6xl">
               Gram
               <span className="text-indigo">SAMBANDH</span>
-            </motion.h1>
+            </h1>
 
-            <motion.p
-              custom={2}
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              className="mt-5 max-w-md text-lg leading-relaxed text-ink-muted"
-            >
+            <p
+              className="mt-5 max-w-md text-lg leading-relaxed text-ink-muted">
               Explore local government project records through search, chat, and
               source documents. Making Kerala's Sulekha data searchable and
               understandable.
-            </motion.p>
+            </p>
 
-            <motion.div
-              custom={3}
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              className="mt-8 flex items-center gap-4"
-            >
+            <div
+              className="mt-8 flex items-center gap-4">
               <Link
                 to="/login"
                 className="inline-flex items-center gap-2 rounded-lg bg-indigo px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-hover"
@@ -241,18 +198,13 @@ export default function Hero() {
               >
                 How It Works
               </a>
-            </motion.div>
+            </div>
           </div>
 
           {/* Right: Live chat preview */}
-          <motion.div
-            custom={2}
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-          >
+          <div>
             <ChatPreview />
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

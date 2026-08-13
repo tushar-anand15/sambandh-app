@@ -1,16 +1,10 @@
-import { motion } from "framer-motion";
 import { ExternalLink, Linkedin, Github, Globe } from "lucide-react";
 
 export default function About() {
   return (
     <section className="border-t border-border py-24">
       <div className="mx-auto max-w-3xl px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6 }}
-        >
+        <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-indigo">
             About the project
           </p>
@@ -106,7 +100,7 @@ export default function About() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
