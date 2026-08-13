@@ -16,6 +16,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 
 from ..database import get_pool
+from ..geo_store import layer_status
 from ..public import provenance, public_json, rate_limit
 
 router = APIRouter(prefix="/api/maps", tags=["public"], dependencies=[Depends(rate_limit)])
@@ -128,7 +129,19 @@ async def map_inventory(request: Request):
     return public_json(
         request,
         {
-            "layers": [{**layer, "url": f"/geo/{layer['filename']}", "format": "geojson"} for layer in LAYERS],
+            "layers": [
+                {
+                    **layer,
+                    "url": f"/geo/{layer['filename']}",
+                    "format": "geojson",
+                    # Whether this server holds the file, and its size. A layer
+                    # the deployment has not mounted is named here with the
+                    # reason, so the page states it instead of offering a
+                    # download that 404s.
+                    **layer_status(layer["filename"]),
+                }
+                for layer in LAYERS
+            ],
             "count": len(LAYERS),
             "coverage": {
                 "bodies": coverage["bodies"],

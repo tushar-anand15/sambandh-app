@@ -15,6 +15,7 @@ from .routers.documents import router as documents_router
 from .routers.download import router as download_router
 from .routers.elections import router as elections_router
 from .routers.finances import router as finances_router
+from .routers.geo import router as geo_router
 from .routers.maps import router as maps_router
 from .routers.meetings import router as meetings_router
 from .routers.search import router as search_router
@@ -67,6 +68,8 @@ app.include_router(meetings_router)
 app.include_router(elections_router)
 app.include_router(maps_router)
 app.include_router(download_router)
+# The boundary layer files /api/maps points at.
+app.include_router(geo_router)
 
 app.include_router(auth_router)
 app.include_router(documents_router)

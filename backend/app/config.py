@@ -24,6 +24,13 @@ class Settings(BaseSettings):
 
     max_message_length: int = 2000
 
+    # Where the boundary GeoJSON layers are on disk. The layers are built by
+    # sulekha's `geo build` and are 7.5 MB to 57 MB each, so they are not in
+    # this repository: a deployment mounts the directory and points GEO_DIR at
+    # it. An unset or empty value means no layer is served, and /api/maps says
+    # so per layer rather than offering a download that would 404.
+    geo_dir: str = ""
+
     model_config = {"env_file": ".env"}
 
 

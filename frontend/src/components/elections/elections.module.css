@@ -1,0 +1,346 @@
+/* ---------------------------------------------------------------------------
+   Elections.
+
+   Co-located because these are the shapes a utility class cannot express: the
+   tile map and its hit targets, the front legend's swatches, the ward table,
+   and the boundary layer cards. Everything else on the page is a token utility.
+
+   The map is a tile map. One element per territory, so the browser's own event
+   dispatch does the hit-testing: no point-in-polygon test, no canvas redraw on
+   pointer move, and a body with 100 wards is 100 elements, which is what a
+   table of 100 rows already costs on the same page.
+   --------------------------------------------------------------------------- */
+
+/* The tile size is a column minimum rather than a count, so the same grid
+   holds fourteen districts and a hundred wards without either being told how
+   many columns it has. */
+.map {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: var(--s2);
+  margin-block: var(--s4) 0;
+}
+
+.mapWards {
+  grid-template-columns: repeat(auto-fill, minmax(3.25rem, 1fr));
+  gap: var(--s1);
+}
+
+/* One territory. The colour is its ruling front, set from data as the only
+   inline style this section writes. */
+.tile {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0;
+  padding: var(--s2);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--radius);
+  color: var(--ink);
+  text-align: left;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* The front colour sits behind the label at a strength that keeps text legible
+   in both themes; the tile itself carries the colour at full strength in a bar
+   along its foot, where nothing has to read on top of it. */
+.tileWash {
+  position: absolute;
+  inset: 0;
+  opacity: 0.22;
+}
+
+.tileBar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--s1);
+}
+
+.tileName {
+  position: relative;
+  font-family: var(--font-serif);
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  overflow-wrap: anywhere;
+}
+
+.tileNote {
+  position: relative;
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+}
+
+.tile:hover {
+  border-color: var(--ink-3);
+}
+
+.tileSelected {
+  border-color: var(--accent);
+  border-width: 2px;
+}
+
+/* A ward tile carries a number and nothing else, so it can be small. */
+.wardTile {
+  aspect-ratio: 1 / 1;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+
+.wardNumber {
+  position: relative;
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+}
+
+/* What the pointer is over, and what a click on it does. */
+.hoverLine {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  min-height: var(--s5);
+  margin-block: var(--s2) 0;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  list-style: none;
+  padding: 0;
+  margin-block: var(--s3) 0;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius);
+  display: inline-block;
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s2);
+  list-style: none;
+  padding: 0;
+  margin-block: 0 var(--s3);
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+}
+
+.breadcrumbHere {
+  color: var(--ink-2);
+}
+
+.crumbSeparator {
+  color: var(--ink-3);
+}
+
+/* The cycle slider. A range input, labelled by the four cycles under it. */
+.slider {
+  margin-block: var(--s5) 0;
+  max-width: var(--measure-lede);
+}
+
+.sliderInput {
+  width: 100%;
+  accent-color: var(--accent);
+  margin-block: var(--s2) 0;
+}
+
+.sliderTicks {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  margin-block: 0;
+}
+
+.sliderTickOn {
+  color: var(--accent);
+}
+
+/* Seats by front. Proportional by construction: the viewBox is 100 wide and
+   each segment is its own share of it, so nothing stretches with the container. */
+.seatBar {
+  margin-block: var(--s4) 0;
+  max-width: var(--measure);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  margin-block: var(--s4) 0;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--rule);
+  padding: var(--s2) var(--s3);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.row {
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--surface);
+}
+
+.rowSelected {
+  background: var(--accent-wash);
+}
+
+.partyDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-inline-end: var(--s2);
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--radius);
+  padding: var(--s4);
+  margin-block: var(--s4) 0;
+  max-width: var(--measure);
+}
+
+.panelTitle {
+  font-size: var(--t5);
+  line-height: var(--lh-snug);
+  margin-block: 0 var(--s3);
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--s4);
+  margin-block: 0;
+}
+
+.figureLabel {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-block: 0;
+}
+
+.figureValue {
+  font-size: var(--t6);
+  line-height: var(--lh-tight);
+  margin-block: var(--s1) 0;
+}
+
+.figureNote {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  margin-block: var(--s1) 0;
+}
+
+/* Boundary layers. */
+.layers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  gap: var(--s4);
+  list-style: none;
+  padding: 0;
+  margin-block: var(--s4) 0;
+}
+
+.layerCard {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--s4);
+  background: var(--surface);
+}
+
+.layerTitle {
+  font-size: var(--t4);
+  line-height: var(--lh-snug);
+  margin-block: 0 var(--s2);
+}
+
+.layerMeta {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  margin-block: 0 var(--s2);
+}
+
+.layerMeta:last-child {
+  margin-block-end: 0;
+}
+
+.absent {
+  color: var(--ink-3);
+}
+
+.missingList {
+  list-style: none;
+  padding: 0;
+  margin-block: var(--s3) 0;
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  columns: 2;
+}
+
+.missingList li {
+  margin-block: 0 var(--s1);
+  break-inside: avoid;
+}

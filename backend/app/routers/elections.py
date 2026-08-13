@@ -178,6 +178,97 @@ async def cycle_payload(conn, body, cycle: int) -> dict[str, Any]:
     }
 
 
+FRONTS_SQL = """
+    SELECT lb.lb_code,
+           lb.district_name,
+           lb.lb_type,
+           nullif(r.lb_ruling_front, '') AS ruling_front,
+           nullif(r.lb_control_type, '') AS control_type,
+           r.total_wards
+    FROM core.local_body lb
+    LEFT JOIN elections.body_result r
+           ON r.lb_key = lb.lb_key AND r.cycle = $1
+    WHERE lb.in_elections
+    ORDER BY lb.district_ord, lb.lb_name_en
+"""
+
+
+@router.get("/fronts/{cycle}")
+async def fronts(request: Request, cycle: int):
+    """Every body's ruling front for one cycle, for colouring the map.
+
+    Declared above ``/{lb_code}/{cycle}`` so the path resolves here rather than
+    to a body whose code is "fronts".
+
+    The map needs one colour per territory and nothing else, so this returns
+    the front and the control type and stops. Fetching the full cycle payload
+    per body instead would be a request per body — 1,238 of them statewide, each
+    carrying every ward and candidate row — to read one field from each.
+
+    A district's colour is its **district panchayat's** ruling front, which is
+    what `districts` carries. It is not an aggregate over the bodies inside the
+    district: those are separate elections to separate bodies, and a district
+    with a UDF district panchayat can hold a majority of LDF grama panchayats.
+
+    A body with no row for this cycle has a null front. The reason is the
+    body's own cycle range, which `/api/bodies` already carries, so it is not
+    repeated here.
+    """
+    if cycle not in VALID_CYCLES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{cycle} is not a local-body election cycle. "
+            f"Cycles are {', '.join(str(c) for c in VALID_CYCLES)}.",
+        )
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(FRONTS_SQL, cycle)
+
+    bodies = [
+        {
+            "lb_code": r["lb_code"],
+            "district_name": r["district_name"],
+            "lb_type": r["lb_type"],
+            "ruling_front": r["ruling_front"],
+            "control_type": r["control_type"],
+            "total_wards": as_int(r["total_wards"]),
+        }
+        for r in rows
+    ]
+
+    # District order follows district_ord, which the query preserves.
+    districts: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for body in bodies:
+        name = body["district_name"]
+        if name not in seen:
+            seen.add(name)
+            districts.append({"district_name": name, "bodies": 0})
+        entry = next(d for d in districts if d["district_name"] == name)
+        entry["bodies"] += 1
+        if body["lb_type"] == "District Panchayat":
+            entry["lb_code"] = body["lb_code"]
+            entry["ruling_front"] = body["ruling_front"]
+            entry["control_type"] = body["control_type"]
+
+    for entry in districts:
+        entry.setdefault("lb_code", None)
+        entry.setdefault("ruling_front", None)
+        entry.setdefault("control_type", None)
+
+    return public_json(
+        request,
+        {
+            "cycle": cycle,
+            "bodies": bodies,
+            "districts": districts,
+            "count": len(bodies),
+            "provenance": provenance("elections"),
+        },
+    )
+
+
 @router.get("/{lb_code}/{cycle}")
 async def elections_cycle(
     request: Request,

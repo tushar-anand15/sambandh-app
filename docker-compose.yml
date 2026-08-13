@@ -49,6 +49,10 @@ services:
       DATABASE_URL: postgresql://sambandh:sambandh@db:5432/sambandh
       JWT_SECRET: dev-secret-change-in-production-abc123xyz
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcs-credentials.json
+      # The boundary layers /api/maps points at, mounted below. An empty
+      # directory is a working state: every layer is then reported as absent
+      # with its reason rather than offered as a download that 404s.
+      GEO_DIR: /srv/geo
     command: >
       sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
@@ -56,6 +60,10 @@ services:
       - ./backend/alembic:/app/alembic
       - ./backend/alembic.ini:/app/alembic.ini
       - ./frontend/.secrets:/secrets:ro
+      # sulekha's `geo build` output. 7.5 MB to 57 MB per layer, so it is a
+      # deployment input, not repository content: point GEO_LAYERS_DIR at the
+      # directory holding them.
+      - ${GEO_LAYERS_DIR:-./backend/geo_layers}:/srv/geo:ro
     depends_on:
       db:
         condition: service_healthy
