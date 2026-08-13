@@ -25,15 +25,16 @@ const FONT_HOSTS = [
 ];
 
 /**
- * Not asserted here, and deliberately named rather than left as a surprise:
- * `react-pdf` still fetches its pdf.js worker from unpkg.com, in
- * components/viewer/DocumentViewer.tsx and components/chat/SourceDrawer.tsx.
- * That is a genuine external request and it survives this unit — it belongs to
- * the PDF viewer work, not to type. Vendoring it means importing
- * `pdfjs-dist/build/pdf.worker.min.mjs?url` and pointing workerSrc at that.
+ * The pdf.js worker is checked here too. It used to come from unpkg.com, which
+ * was the one request this site sent off its own origin;
+ * components/viewer/pdfWorker.ts now points workerSrc at the copy Vite emits
+ * from node_modules. components/viewer/DocumentViewer.tsx still carries the old
+ * line and is the one file that must not regain an importer while it does.
  */
 
 let bundle = "";
+/** Where the build under test landed, for assertions about emitted assets. */
+let BUILD_DIR = "";
 
 function readAll(dir: string): string {
   return readdirSync(dir)
@@ -53,6 +54,7 @@ beforeAll(() => {
     { cwd: ROOT, stdio: "pipe" },
   );
   bundle = readAll(out);
+  BUILD_DIR = out;
 }, 180_000);
 
 describe("the built bundle", () => {
@@ -60,6 +62,13 @@ describe("the built bundle", () => {
     for (const host of FONT_HOSTS) {
       expect(bundle, `bundle reaches out to ${host}`).not.toContain(host);
     }
+  });
+
+  it("loads the pdf.js worker from the bundle, not from a CDN", () => {
+    expect(bundle).not.toContain("unpkg.com");
+    expect(readdirSync(path.join(BUILD_DIR, "assets")).join(" ")).toMatch(
+      /pdf\.worker[.\w-]*\.mjs/,
+    );
   });
 
   it("carries no @font-face pointing off-origin", () => {

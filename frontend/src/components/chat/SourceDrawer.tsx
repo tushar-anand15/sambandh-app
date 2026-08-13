@@ -1,11 +1,10 @@
 import { useEffect, useCallback, useRef } from "react";
 import { X, FileText, MapPin, Calendar, Hash, ZoomIn, ZoomOut } from "lucide-react";
-import { Document, Page, pdfjs } from "react-pdf";
+import { Document, Page } from "react-pdf";
 import { useState } from "react";
+import "@/components/viewer/pdfWorker";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface SourceDrawerProps {
   isOpen: boolean;

@@ -5,7 +5,8 @@
  * component reads `:lb` and `:year` from the router and holds no selection
  * state of its own. A body with no year shows the fourteen-year series; a body
  * with a year shows that year's figures, its carry-forward, and every project
- * row behind the totals.
+ * row behind the totals. The project table is the page's centre: it is
+ * paginated, and a row with a scanned document opens it in a drawer.
  *
  * Three states a reader must be able to tell apart, and the endpoint keeps
  * them apart: a body Sulekha has no plan record for at all, a body-year that
@@ -16,7 +17,6 @@
 import { useParams } from "react-router-dom";
 
 import BodySelector from "@/components/select/BodySelector";
-import ClassificationNote from "@/components/finances/ClassificationNote";
 import ContinuityPanel from "@/components/finances/ContinuityPanel";
 import ProjectTable from "@/components/finances/ProjectTable";
 import YearFigures from "@/components/finances/YearFigures";
@@ -139,8 +139,6 @@ export default function FinancesSection() {
           </>
         ) : null}
       </div>
-
-      <ClassificationNote note={year.data?.classification_note} />
     </div>
   );
 }

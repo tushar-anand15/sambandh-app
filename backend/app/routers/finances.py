@@ -10,13 +10,20 @@ from taking the database down.
 What this section deliberately does not carry: any sector, sub-sector or
 category. Nothing in the source classifies a project, and no proxy is
 substituted (see the plan's scope boundaries).
+
+Each project row carries ``pdf_url``, a signed Cloud Storage URL good for an
+hour, alongside the stable ``pdf_path``. Where the deployment holds no signing
+key, ``pdf_url`` is null for every row and ``pdf_url_reason`` says so once. See
+``app/presign.py``.
 """
 
 from typing import Any
 
 from fastapi import APIRouter, Depends, Path, Request
+from starlette.concurrency import run_in_threadpool
 
 from ..database import get_pool
+from ..presign import document_signer
 from ..public import (
     NO_RECORD_FOR_YEAR,
     NOT_COVERED,
@@ -91,7 +98,17 @@ async def series_rows(conn, lb_key: int) -> list[dict[str, Any]]:
 
 
 async def project_rows(conn, lb_key: int, year_label: str) -> list[dict[str, Any]]:
-    """The on-screen table, unrounded. The CSV download reads this same list."""
+    """The on-screen table, unrounded. The CSV download reads this same list.
+
+    Each row carries both the object path and a signed URL for it. The path is
+    what the CSV keeps, because it is stable; the URL expires within the hour
+    and belongs only to the page that is open now.
+
+    Signing is RSA over a local key, so a 357-row body-year costs about a
+    quarter of a second of CPU. That runs in a worker thread: a public endpoint
+    that blocks the event loop for a quarter of a second blocks every other
+    request on the process for that quarter second too.
+    """
     rows = await conn.fetch(
         """
         SELECT project_no, project_name, formulation, expense, has_pdf, pdf_gcs_path
@@ -102,6 +119,11 @@ async def project_rows(conn, lb_key: int, year_label: str) -> list[dict[str, Any
         lb_key,
         year_label,
     )
+
+    signer = document_signer()
+    paths = [r["pdf_gcs_path"] for r in rows if r["pdf_gcs_path"]]
+    urls = await run_in_threadpool(signer.sign_paths, paths) if paths else {}
+
     return [
         {
             "project_no": r["project_no"],
@@ -112,6 +134,7 @@ async def project_rows(conn, lb_key: int, year_label: str) -> list[dict[str, Any
             # absent state, not a link that 404s.
             "has_pdf": bool(r["has_pdf"]),
             "pdf_path": r["pdf_gcs_path"],
+            "pdf_url": urls.get(r["pdf_gcs_path"]) if r["pdf_gcs_path"] else None,
         }
         for r in rows
     ]
@@ -150,6 +173,9 @@ async def year_payload(conn, body, year) -> dict[str, Any]:
             **base,
         )
 
+    rows = await project_rows(conn, body["lb_key"], year["year_label"])
+    signer = document_signer()
+
     return {
         **base,
         "available": True,
@@ -162,7 +188,11 @@ async def year_payload(conn, body, year) -> dict[str, Any]:
         "distinct_projects": as_number(summary["distinct_projects"]),
         "also_in_prev_year": as_number(summary["also_in_prev_year"]),
         "first_seen_this_year": as_number(summary["first_seen_this_year"]),
-        "project_rows": await project_rows(conn, body["lb_key"], year["year_label"]),
+        "project_rows": rows,
+        # Null where every document has an address. Where one does not, this is
+        # the sentence saying why, so the page states a cause instead of
+        # printing a dead column.
+        "pdf_url_reason": None if signer.available else signer.reason,
         # Stated on the page, not implied by its absence.
         "classification": None,
         "classification_note": "Sulekha publishes no sector or category for a project, and none is inferred here.",

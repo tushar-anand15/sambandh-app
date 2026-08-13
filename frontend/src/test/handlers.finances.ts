@@ -91,7 +91,29 @@ export interface ProjectRow {
   expense: number;
   has_pdf: boolean;
   pdf_path: string | null;
+  pdf_url: string | null;
 }
+
+/**
+ * The shape `app/presign.py` returns: a V4 signed URL against the object in
+ * `gs://sulekhasakarma-pdfs`. The signature is a placeholder, because nothing
+ * in the browser verifies it — what the page has to get right is that the
+ * address is the object's, and that an expiring URL never reaches the CSV.
+ */
+const SIGNED_HOST = "https://storage.googleapis.com/sulekhasakarma-pdfs";
+
+function signed(path: string): string {
+  return `${SIGNED_HOST}/${path}?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Expires=3600&X-Goog-Signature=fixture`;
+}
+
+/**
+ * What the endpoint publishes when the deployment holds no signing key. The
+ * sentence is `NO_KEY_REASON` in `backend/app/presign.py`; the operator-facing
+ * one naming the setting is logged there and never reaches a payload.
+ */
+export const NO_SIGNING_KEY_REASON =
+  "This site cannot produce an address for the project documents, so the " +
+  "scans Sulekha holds are named here without being reachable.";
 
 /** Splits a total across n rows so the rows sum to the total to the rupee. */
 function split(total: number, n: number): number[] {
@@ -115,13 +137,15 @@ function rows(options: {
   return names.map((name, index) => {
     const projectNo = String(index + 1);
     const hasPdf = index < withPdf;
+    const path = hasPdf ? `pdfs/${yearLabel}/${folder}/${projectNo}.pdf` : null;
     return {
       project_no: projectNo,
       project_name: name,
       formulation: formulations[index],
       expense: expenses[index],
       has_pdf: hasPdf,
-      pdf_path: hasPdf ? `pdfs/${yearLabel}/${folder}/${projectNo}.pdf` : null,
+      pdf_path: path,
+      pdf_url: path ? signed(path) : null,
     };
   });
 }
@@ -248,6 +272,7 @@ function fullYear(lbCode: string, yearLabel: string) {
         ? 0
         : distinct,
     project_rows: projectRows,
+    pdf_url_reason: null,
     classification: null,
     classification_note: CLASSIFICATION_NOTE,
     provenance: financeProvenance,
@@ -342,5 +367,25 @@ export const detailedHandlers = [
     const { lb, year } = params as { lb: string; year: string };
     if (!knownCode(lb)) return notFound(lb);
     return HttpResponse.json(yearPayload(lb, year));
+  }),
+];
+
+/**
+ * A deployment with no signing key: every document is held and none has an
+ * address. The page has to say so once and keep the rows, which is the state
+ * a local checkout without GOOGLE_APPLICATION_CREDENTIALS is actually in.
+ */
+export const unsignedHandlers = [
+  seriesHandler,
+  http.get("*/api/finances/:lb/:year", ({ params }) => {
+    const { lb, year } = params as { lb: string; year: string };
+    if (!knownCode(lb)) return notFound(lb);
+    const payload = yearPayload(lb, year);
+    if (!payload.available) return HttpResponse.json(payload);
+    return HttpResponse.json({
+      ...payload,
+      pdf_url_reason: NO_SIGNING_KEY_REASON,
+      project_rows: payload.project_rows.map((row) => ({ ...row, pdf_url: null })),
+    });
   }),
 ];

@@ -2,19 +2,10 @@ import uuid as _uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
-from google.cloud import storage as gcs
 
 from ..auth import get_current_user
 from ..database import get_pool
-
-_gcs_client: gcs.Client | None = None
-
-
-def _get_gcs_client() -> gcs.Client:
-    global _gcs_client
-    if _gcs_client is None:
-        _gcs_client = gcs.Client()
-    return _gcs_client
+from ..presign import storage_client
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -210,7 +201,15 @@ async def get_document(doc_id: str, _current_user: dict = Depends(get_current_us
 async def get_document_pdf(
     doc_id: str, _current_user: dict = Depends(get_current_user)
 ):
-    """Proxy the PDF from GCS to avoid CORS when loading in the browser."""
+    """Proxy the PDF from GCS to avoid CORS when loading in the browser.
+
+    The public Finances page does not come through here: it is handed a signed
+    Cloud Storage URL and fetches the file directly (``app/presign.py``). This
+    route stays a proxy because the assistant's viewer sends an Authorization
+    header with the request, and a redirect would carry that header on to Cloud
+    Storage, which rejects a signed request that also presents a bearer token.
+    Both paths now read GCS on one configured identity.
+    """
     pool = await get_pool()
     async with pool.acquire() as conn:
         doc = await conn.fetchrow(
@@ -221,8 +220,7 @@ async def get_document_pdf(
         raise HTTPException(status_code=404, detail="Document not found")
 
     try:
-        client = _get_gcs_client()
-        bucket = client.bucket(doc["gcs_bucket"])
+        bucket = storage_client().bucket(doc["gcs_bucket"])
         blob = bucket.blob(doc["gcs_path"])
         content = blob.download_as_bytes()
     except Exception as exc:

@@ -52,6 +52,43 @@ async def test_a_project_without_a_pdf_is_stated_not_omitted(client, chalakudy):
     assert all(r["pdf_path"] is None for r in rows if not r["has_pdf"])
 
 
+async def test_every_row_carries_a_pdf_url_field_signed_or_stated(client, chalakudy):
+    """A row with a document answers with a URL, or with a stated absence.
+
+    Whether the URL is there depends on the deployment holding a signing key,
+    so this asserts the pair rather than the value: a signed URL addresses the
+    object in the bucket, and a null one comes with the sentence saying why.
+    See ``app/presign.py`` and ``tests/test_presign.py``.
+    """
+    payload = (await client.get(f"/api/finances/{chalakudy}/2023-2024")).json()
+    rows = payload["project_rows"]
+
+    assert all("pdf_url" in row for row in rows)
+    assert all(row["pdf_url"] is None for row in rows if not row["has_pdf"])
+
+    with_document = [row for row in rows if row["has_pdf"]]
+    if payload["pdf_url_reason"] is None:
+        assert all(
+            row["pdf_url"].startswith("https://storage.googleapis.com/")
+            for row in with_document
+        )
+        assert all(row["pdf_path"] in row["pdf_url"] for row in with_document)
+    else:
+        assert all(row["pdf_url"] is None for row in with_document)
+        assert "scans Sulekha holds are named here" in payload["pdf_url_reason"]
+
+
+async def test_the_stable_object_path_survives_alongside_the_signed_url(
+    client, chalakudy
+):
+    """A signed URL expires within the hour. The path is what a CSV keeps."""
+    payload = (await client.get(f"/api/finances/{chalakudy}/2023-2024")).json()
+
+    paths = [row["pdf_path"] for row in payload["project_rows"] if row["has_pdf"]]
+    assert len(paths) == 351
+    assert all(path.startswith("pdfs/") for path in paths)
+
+
 async def test_continuity_counts_are_carried(client, chalakudy):
     payload = (await client.get(f"/api/finances/{chalakudy}/2023-2024")).json()
 

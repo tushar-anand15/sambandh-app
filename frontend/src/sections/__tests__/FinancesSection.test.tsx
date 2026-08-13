@@ -12,13 +12,24 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import FinancesSection from "../FinancesSection";
 import { resetBodiesCache } from "@/hooks/useBodies";
 import { server } from "@/test/setup";
-import { detailedHandlers } from "@/test/handlers.finances";
+import {
+  NO_SIGNING_KEY_REASON,
+  detailedHandlers,
+  unsignedHandlers,
+} from "@/test/handlers.finances";
 import { CSV_COLUMNS } from "@/components/finances/format";
+import { PAGE_SIZE } from "@/components/finances/ProjectTable";
+
+// pdf.js reaches for DOMMatrix, which jsdom does not implement. The rendered
+// page is not assertable here; the address handed to the renderer is.
+vi.mock("@/components/viewer/PdfPages", () => ({
+  default: ({ url }: { url: string }) => <p data-testid="pdf-pages">{url}</p>,
+}));
 
 function renderAt(path: string) {
   return render(
@@ -35,17 +46,20 @@ async function figures() {
   return screen.findByRole("region", { name: /^Chalakudy Municipality, 2023–24$/ });
 }
 
+/** Clicks Next until the table is on its last page. */
+async function lastPage() {
+  const user = userEvent.setup();
+  const next = screen.getByRole("button", { name: "Next" });
+  while (!next.hasAttribute("disabled")) {
+    await user.click(next);
+  }
+}
+
 beforeEach(() => {
   resetBodiesCache();
   // The full payload the endpoint returns. The default handler answers this
   // one body-year with the bare contract object harness.test.tsx compares to.
   server.use(...detailedHandlers);
-});
-
-afterEach(() => {
-  // The document base is set by one test only; without this it would leak into
-  // the next and turn a stated absence into a link.
-  vi.unstubAllEnvs();
 });
 
 describe("a body-year", () => {
@@ -90,14 +104,14 @@ describe("a body-year", () => {
     await waitFor(() => expect(screen.getAllByTestId("source-line")).toHaveLength(4));
   });
 
-  it("states that no sector classification is published", async () => {
+  it("carries no note about sector classification", async () => {
     renderAt("/finances/M08032/2023-2024");
-    const note = await screen.findByTestId("classification-note");
+    await figures();
 
-    expect(
-      within(note).getByText(/publishes no sector or category for a project/),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/sector breakdown/i)).not.toBeInTheDocument();
+    // The page draws no sector split, and it no longer explains that it does
+    // not. Nothing is claimed, so nothing needs defending.
+    expect(screen.queryByTestId("classification-note")).not.toBeInTheDocument();
+    expect(screen.queryByText(/sector/i)).not.toBeInTheDocument();
   });
 });
 
@@ -154,28 +168,44 @@ describe("the project table", () => {
     renderAt("/finances/M08032/2023-2024");
     const table = await screen.findByTestId("project-table");
 
-    // 351 of the 357 have a document; the other six still appear.
-    expect(within(table).getAllByText("None")).toHaveLength(6);
-    expect(within(table).getAllByText("Held, not linkable")).toHaveLength(351);
-    expect(within(table).queryAllByRole("link")).toHaveLength(0);
+    // 351 of the 357 have a document, and the first page holds fifty rows, all
+    // of them openable. The six without one sit on the last page.
+    expect(within(table).getAllByText("View")).toHaveLength(PAGE_SIZE);
     expect(
       screen.getByText(/351 of 357 projects have a scanned document/),
     ).toBeInTheDocument();
+
+    await lastPage();
+    expect(within(table).getAllByText("None")).toHaveLength(6);
   });
 
-  it("links the document where an address for the bucket is configured", async () => {
-    vi.stubEnv("VITE_PROJECT_PDF_BASE", "https://documents.example/sulekha");
+  it("pages through the year fifty rows at a time", async () => {
+    const user = userEvent.setup();
     renderAt("/finances/M08032/2023-2024");
     const table = await screen.findByTestId("project-table");
 
-    const links = within(table).getAllByRole("link", { name: "PDF" });
-    expect(links).toHaveLength(351);
-    expect(links[0]).toHaveAttribute(
-      "href",
-      "https://documents.example/sulekha/pdfs/2023-2024/Municipality/Thrissur/Chalakudy_Municipality/1.pdf",
+    expect(within(table).getAllByRole("row").slice(1)).toHaveLength(PAGE_SIZE);
+    expect(screen.getByTestId("page-position")).toHaveTextContent(
+      "Rows 1 to 50 of 357",
     );
-    // The six with no document keep their stated absence.
-    expect(within(table).getAllByText("None")).toHaveLength(6);
+    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByTestId("page-position")).toHaveTextContent(
+      "Rows 51 to 100 of 357",
+    );
+    expect(within(table).getAllByRole("row")[1]).toHaveAttribute(
+      "data-project-no",
+      "51",
+    );
+
+    await lastPage();
+    // 357 rows is seven pages of fifty and a last page of seven.
+    expect(screen.getByTestId("page-position")).toHaveTextContent(
+      "Rows 351 to 357 of 357",
+    );
+    expect(within(table).getAllByRole("row").slice(1)).toHaveLength(7);
+    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
   });
 
   it("renders every row with exact, unrounded figures", async () => {
@@ -183,11 +213,11 @@ describe("the project table", () => {
     const table = await screen.findByTestId("project-table");
     const rows = within(table).getAllByRole("row").slice(1);
 
-    expect(rows).toHaveLength(357);
+    expect(rows).toHaveLength(PAGE_SIZE);
     expect(rows[0]).toHaveTextContent("₹6,68,926");
   });
 
-  it("offers a CSV of exactly the rows on screen", async () => {
+  it("offers a CSV of the whole year, not of the page on screen", async () => {
     renderAt("/finances/M08032/2023-2024");
     const table = await screen.findByTestId("project-table");
     const link = screen.getByTestId("download-csv");
@@ -218,6 +248,82 @@ describe("the project table", () => {
       .slice(1)
       .reduce((total, line) => total + Number(line.split(",")[2]), 0);
     expect(formulation).toBe(238806688);
+  });
+
+  it("keeps the expiring signed URL out of the CSV", async () => {
+    renderAt("/finances/M08032/2023-2024");
+    await screen.findByTestId("project-table");
+
+    const csv = decodeURIComponent(
+      (screen.getByTestId("download-csv").getAttribute("href") ?? "").replace(
+        /^data:text\/csv;charset=utf-8,/,
+        "",
+      ),
+    );
+
+    // The file holds the stable object path. A signed URL in a downloaded file
+    // would be dead within the hour.
+    expect(csv).toContain("pdfs/2023-2024/Municipality/Thrissur");
+    expect(csv).not.toContain("X-Goog-Signature");
+  });
+});
+
+describe("the document drawer", () => {
+  it("opens the project's document when its row is clicked", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032/2023-2024");
+    const table = await screen.findByTestId("project-table");
+
+    expect(screen.queryByTestId("pdf-drawer")).not.toBeInTheDocument();
+
+    await user.click(within(table).getByRole("button", { name: "പദ്ധതി 1" }));
+
+    const drawer = await screen.findByTestId("pdf-drawer");
+    expect(within(drawer).getByRole("heading", { name: "പദ്ധതി 1" })).toBeInTheDocument();
+    expect(
+      within(drawer).getByText("Project 1, Chalakudy Municipality, 2023–24"),
+    ).toBeInTheDocument();
+
+    expect(await within(drawer).findByTestId("pdf-pages")).toHaveTextContent(
+      "X-Goog-Signature",
+    );
+
+    const link = within(drawer).getByRole("link", {
+      name: "Open the document in a new tab",
+    });
+    expect(link.getAttribute("href")).toContain(
+      "storage.googleapis.com/sulekhasakarma-pdfs/pdfs/2023-2024/Municipality/Thrissur/Chalakudy_Municipality/1.pdf",
+    );
+  });
+
+  it("closes on Escape", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032/2023-2024");
+    const table = await screen.findByTestId("project-table");
+
+    await user.click(within(table).getByRole("button", { name: "പദ്ധതി 1" }));
+    await screen.findByTestId("pdf-drawer");
+
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByTestId("pdf-drawer")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("states why there is no address where the deployment cannot sign one", async () => {
+    const user = userEvent.setup();
+    server.use(...unsignedHandlers);
+    renderAt("/finances/M08032/2023-2024");
+    const table = await screen.findByTestId("project-table");
+
+    // Every row keeps its stated absence, and the cause is given once above.
+    expect(within(table).getAllByText("Held, no address")).toHaveLength(PAGE_SIZE);
+    expect(within(table).queryAllByText("View")).toHaveLength(0);
+    expect(screen.getByText(new RegExp(NO_SIGNING_KEY_REASON.slice(0, 60)))).toBeInTheDocument();
+
+    // A row with no address cannot be opened.
+    await user.click(within(table).getAllByRole("row")[1]);
+    expect(screen.queryByTestId("pdf-drawer")).not.toBeInTheDocument();
   });
 });
 

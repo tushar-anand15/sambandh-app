@@ -29,7 +29,14 @@ export interface ProjectRow {
   expense: number | null;
   /** Roughly 54% of projects statewide. The rest need a stated absence. */
   has_pdf: boolean;
+  /** The object path inside Sulekha's bucket. Stable, and what the CSV keeps. */
   pdf_path: string | null;
+  /**
+   * A signed Cloud Storage URL, good for an hour from the moment the endpoint
+   * answered. Null where the row has no document, and null for every row where
+   * the deployment holds no signing key — `pdf_url_reason` says which.
+   */
+  pdf_url: string | null;
 }
 
 /** One financial year in the fourteen-year series, present or absent. */
@@ -76,6 +83,8 @@ export interface YearPayload {
   also_in_prev_year?: number;
   first_seen_this_year?: number;
   project_rows?: ProjectRow[];
+  /** Null where every document has an address. A sentence where none does. */
+  pdf_url_reason?: string | null;
   /** Always null. The field exists so its absence is a statement, not a gap. */
   classification?: null;
   classification_note?: string;
