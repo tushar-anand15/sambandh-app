@@ -71,7 +71,7 @@ export const bodies: BodySummary[] = [
   {
     lb_code: "M13057",
     lb_name_en: "Mattannur",
-    lb_name_ml: "മട്ടന്നൂർ",
+    lb_name_ml: null,
     district_name: "KANNUR",
     lb_type: "Municipality",
     has_meetings: true,
@@ -153,7 +153,7 @@ export const chalakudyMeetings = {
   standing_committee: 46,
   ordinary: 31,
   special: 33,
-  first_meeting: "2023-04-05",
+  first_meeting: "2023-10-12",
   last_meeting: "2024-03-27",
   provenance,
 };
