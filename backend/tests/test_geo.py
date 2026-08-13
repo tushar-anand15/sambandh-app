@@ -1,16 +1,29 @@
-"""`/geo/{filename}` and the availability the inventory reports for it.
+"""`/geo/*`: the whole layers, and the slice one map level asks for.
 
 The layer files are a deployment input, not repository content — 7.5 MB to
-57 MB each, built by sulekha's `geo build`. So the two states worth testing are
-the mounted one and the unmounted one, and the second has to state its cause:
-a zero-byte 200 would be saved by the browser and fail in a GeoJSON parser far
-from the reason it failed.
+57 MB each, built by sulekha's `geo build`. So the two states worth testing for
+a download are the mounted one and the unmounted one, and the second has to
+state its cause: a zero-byte 200 would be saved by the browser and fail in a
+GeoJSON parser far from the reason it failed.
+
+The slicing endpoints are tested against a fixture layer small enough to write
+here and shaped like the real one: `lb_code` and `lb_type` on every feature,
+`district_name` on the local bodies, `ward_no` on the wards, and a `provenance`
+foreign member the slice has to carry forward, because two of the real layers
+are ODbL and the attribution travels with anything cut out of them.
+
+Two properties matter beyond the shape of the answer. The 57 MB file is walked
+once, not once per request — asserted by counting index builds, since a
+regression there is invisible in the payload and fatal in production. And a
+cycle with no geometry at that level answers 404 with the reason, so the page
+can draw its fallback instead of an empty map.
 """
 
 import json
 
 import pytest
 
+from app import geo_store
 from app.config import settings
 
 LAYER = "local_bodies_2020.geojson"
@@ -25,6 +38,14 @@ SAMPLE = {
     },
     "features": [],
 }
+
+
+@pytest.fixture(autouse=True)
+def clean_geo_cache():
+    """No index or slice survives into the next test."""
+    geo_store.reset_geo_cache()
+    yield
+    geo_store.reset_geo_cache()
 
 
 @pytest.fixture
@@ -103,3 +124,311 @@ async def test_the_inventory_names_seven_layers(client, unmounted):
     assert payload["count"] == 7
     assert len(payload["layers"]) == 7
     assert sum(1 for layer in payload["layers"] if layer["source"].startswith("KSMART")) == 4
+
+
+# ---------------------------------------------------------------------------
+# The fixture layers the slicing endpoints read
+# ---------------------------------------------------------------------------
+
+
+def square(x: float, y: float) -> list[list[list[float]]]:
+    """A unit square as a Polygon ring, closed."""
+    return [[[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1], [x, y]]]
+
+
+def feature(properties: dict, rings: list) -> dict:
+    return {
+        "type": "Feature",
+        "properties": properties,
+        "geometry": {"type": "Polygon", "coordinates": rings},
+    }
+
+
+# Two districts, two Grama Panchayats each, side by side. Each district's pair
+# shares one edge, so a dissolve that works drops that edge and leaves a single
+# rectangle. The Block Panchayat covers ALPHA a second time and must not be
+# drawn: the real 2015 and 2020 layers carry 152 of them.
+LOCAL_BODIES = {
+    "type": "FeatureCollection",
+    "provenance": {"licence": "© OpenStreetMap contributors, ODbL 1.0"},
+    "features": [
+        feature(
+            {
+                "lb_code": "G01001",
+                "lb_name": "Alpha West",
+                "lb_type": "Grama Panchayat",
+                "district_name": "ALPHA",
+            },
+            square(0, 0),
+        ),
+        feature(
+            {
+                "lb_code": "G01002",
+                "lb_name": "Alpha East",
+                "lb_type": "Grama Panchayat",
+                "district_name": "ALPHA",
+            },
+            square(1, 0),
+        ),
+        feature(
+            {
+                "lb_code": "B01001",
+                "lb_name": "Alpha Block",
+                "lb_type": "Block Panchayat",
+                "district_name": "ALPHA",
+            },
+            [[[0, 0], [2, 0], [2, 1], [0, 1], [0, 0]]],
+        ),
+        feature(
+            {
+                "lb_code": "M02001",
+                "lb_name": "Beta Town",
+                "lb_type": "Municipality",
+                "district_name": "BETA",
+            },
+            square(2, 0),
+        ),
+        feature(
+            {
+                "lb_code": "C02001",
+                "lb_name": "Beta City",
+                "lb_type": "Corporation",
+                "district_name": "BETA",
+            },
+            square(3, 0),
+        ),
+    ],
+}
+
+WARDS = {
+    "type": "FeatureCollection",
+    "provenance": {"licence": "KSMART wardmap, no open licence published"},
+    "features": [
+        feature(
+            {
+                "ward_code": "G01001001",
+                "lb_code": "G01001",
+                "lb_name": "Alpha West",
+                "lb_type": "Grama Panchayat",
+                "district_name": "ALPHA",
+                "ward_no": "1",
+                "ward_name": "KANWATHIRTHA",
+                "winner_name": "ഭവ്യഷ് ആർ",
+            },
+            [[[0, 0], [0.5, 0], [0.5, 1], [0, 1], [0, 0]]],
+        ),
+        feature(
+            {
+                "ward_code": "G01001002",
+                "lb_code": "G01001",
+                "lb_name": "Alpha West",
+                "lb_type": "Grama Panchayat",
+                "district_name": "ALPHA",
+                "ward_no": "2",
+                "ward_name": "PAIVALIKE",
+            },
+            [[[0.5, 0], [1, 0], [1, 1], [0.5, 1], [0.5, 0]]],
+        ),
+        feature(
+            {
+                "ward_code": "G01002001",
+                "lb_code": "G01002",
+                "lb_name": "Alpha East",
+                "lb_type": "Grama Panchayat",
+                "district_name": "ALPHA",
+                "ward_no": "1",
+                "ward_name": "MANGALPADY",
+            },
+            square(1, 0),
+        ),
+    ],
+}
+
+
+@pytest.fixture
+def layers(tmp_path, monkeypatch):
+    """A directory holding a 2025 ward layer and three local-body layers."""
+    (tmp_path / "wards_2025.geojson").write_text(
+        json.dumps(WARDS, ensure_ascii=False), encoding="utf-8"
+    )
+    for year in (2015, 2020, 2025):
+        (tmp_path / f"local_bodies_{year}.geojson").write_text(
+            json.dumps(LOCAL_BODIES), encoding="utf-8"
+        )
+    monkeypatch.setattr(settings, "geo_dir", str(tmp_path))
+    return tmp_path
+
+
+# ---------------------------------------------------------------------------
+# Slicing
+# ---------------------------------------------------------------------------
+
+
+async def test_a_bodys_wards_come_back_alone(client, layers):
+    response = await client.get("/geo/wards/G01001.geojson?cycle=2025")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/geo+json")
+    payload = response.json()
+    assert payload["level"] == "ward"
+    assert payload["key_property"] == "ward_no"
+    assert [f["properties"]["ward_no"] for f in payload["features"]] == ["1", "2"]
+    # The neighbouring body's ward is in the same file and not in this answer.
+    assert all(f["properties"]["lb_code"] == "G01001" for f in payload["features"])
+
+
+async def test_a_slice_carries_the_layers_own_provenance(client, layers):
+    """Two of the real layers are ODbL. The attribution travels with the slice."""
+    payload = (await client.get("/geo/wards/G01001.geojson?cycle=2025")).json()
+
+    assert "KSMART" in payload["provenance"]["licence"]
+
+    bodies = (await client.get("/geo/local-bodies/ALPHA.geojson?cycle=2020")).json()
+    assert "OpenStreetMap" in bodies["provenance"]["licence"]
+
+
+async def test_a_slice_drops_the_result_columns_the_api_already_carries(client, layers):
+    payload = (await client.get("/geo/wards/G01001.geojson?cycle=2025")).json()
+
+    properties = payload["features"][0]["properties"]
+    assert properties["ward_name"] == "KANWATHIRTHA"
+    assert "winner_name" not in properties
+
+
+async def test_a_district_slice_leaves_out_the_overlapping_levels(client, layers):
+    payload = (await client.get("/geo/local-bodies/ALPHA.geojson?cycle=2020")).json()
+
+    codes = sorted(f["properties"]["lb_code"] for f in payload["features"])
+    assert codes == ["G01001", "G01002"]
+
+
+async def test_a_district_name_is_matched_case_insensitively(client, layers):
+    payload = (await client.get("/geo/local-bodies/alpha.geojson?cycle=2025")).json()
+
+    assert len(payload["features"]) == 2
+
+
+async def test_district_outlines_dissolve_the_shared_border(client, layers):
+    """Two panchayats sharing an edge come back as one rectangle, not two squares."""
+    payload = (await client.get("/geo/districts/2025.geojson")).json()
+
+    districts = {f["properties"]["district_name"]: f for f in payload["features"]}
+    assert sorted(districts) == ["ALPHA", "BETA"]
+
+    alpha = districts["ALPHA"]
+    assert alpha["properties"]["bodies"] == 2
+    assert alpha["geometry"]["type"] == "MultiPolygon"
+    assert len(alpha["geometry"]["coordinates"]) == 1
+
+    ring = alpha["geometry"]["coordinates"][0][0]
+    corners = {(x, y) for x, y in ring}
+    assert corners == {(0.0, 0.0), (2.0, 0.0), (2.0, 1.0), (0.0, 1.0)}
+
+
+async def test_a_cycle_with_no_ward_geometry_says_so(client, layers):
+    response = await client.get("/geo/wards/G01001.geojson?cycle=2020")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == (
+        "No ward geometry has been published for the 2020 cycle."
+    )
+
+
+async def test_2010_has_no_local_body_layer_either(client, layers):
+    response = await client.get("/geo/districts/2010.geojson")
+
+    assert response.status_code == 404
+    assert "2010" in response.json()["detail"]
+
+
+async def test_a_year_that_is_not_a_cycle_is_unprocessable(client, layers):
+    response = await client.get("/geo/districts/2023.geojson")
+
+    assert response.status_code == 422
+    assert "2010, 2015, 2020, 2025" in response.json()["detail"]
+
+
+async def test_an_unknown_body_answers_an_empty_collection(client, layers):
+    """A body with no polygon is a stated absence, not a 404: the code is real,
+    the geometry is what is missing."""
+    payload = (await client.get("/geo/wards/G09999.geojson?cycle=2025")).json()
+
+    assert payload["features"] == []
+    assert payload["lb_code"] == "G09999"
+
+
+async def test_slicing_an_unmounted_server_states_the_cause(client, layers, unmounted):
+    response = await client.get("/geo/wards/G01001.geojson?cycle=2025")
+
+    assert response.status_code == 404
+    assert "GEO_DIR" in response.json()["detail"]
+
+
+# ---------------------------------------------------------------------------
+# Caching
+# ---------------------------------------------------------------------------
+
+
+async def test_a_slice_revalidates_with_an_etag(client, layers):
+    first = await client.get("/geo/wards/G01001.geojson?cycle=2025")
+    etag = first.headers["etag"]
+    assert first.headers["cache-control"].startswith("public, max-age=")
+
+    again = await client.get(
+        "/geo/wards/G01001.geojson?cycle=2025", headers={"If-None-Match": etag}
+    )
+    assert again.status_code == 304
+    assert again.content == b""
+
+
+async def test_the_layer_is_walked_once_however_many_slices_are_cut(client, layers, monkeypatch):
+    """The point of the index. Re-parsing 57 MB per request is the failure this
+    endpoint exists to avoid, and it is invisible in the payload."""
+    builds = []
+    original = geo_store._build_index
+
+    def counted(path):
+        builds.append(str(path))
+        return original(path)
+
+    monkeypatch.setattr(geo_store, "_build_index", counted)
+
+    for url in (
+        "/geo/wards/G01001.geojson?cycle=2025",
+        "/geo/wards/G01002.geojson?cycle=2025",
+        "/geo/wards/G01001.geojson?cycle=2025",
+    ):
+        assert (await client.get(url)).status_code == 200
+
+    assert len(builds) == 1
+
+
+async def test_a_rebuilt_layer_is_re_indexed(client, layers):
+    """The index is held for the life of the process, so a redeployed layer has
+    to invalidate it. Size and mtime are what say it changed."""
+    before = (await client.get("/geo/wards/G01001.geojson?cycle=2025")).json()
+    assert len(before["features"]) == 2
+
+    trimmed = {**WARDS, "features": WARDS["features"][:1]}
+    path = layers / "wards_2025.geojson"
+    path.write_text(json.dumps(trimmed, ensure_ascii=False), encoding="utf-8")
+    geo_store._slice_cache.clear()
+
+    after = (await client.get("/geo/wards/G01001.geojson?cycle=2025")).json()
+    assert len(after["features"]) == 1
+
+
+# ---------------------------------------------------------------------------
+# The geometry helpers
+# ---------------------------------------------------------------------------
+
+
+def test_simplify_drops_a_point_on_the_line_and_keeps_the_corner():
+    line = [(0.0, 0.0), (1.0, 0.0001), (2.0, 0.0), (2.0, 2.0)]
+
+    assert geo_store.simplify(line, 0.01) == [(0.0, 0.0), (2.0, 0.0), (2.0, 2.0)]
+    assert len(geo_store.simplify(line, 0.00001)) == 4
+
+
+def test_simplify_keeps_the_ends_of_a_two_point_ring():
+    assert geo_store.simplify([(0.0, 0.0), (1.0, 1.0)], 10.0) == [(0.0, 0.0), (1.0, 1.0)]

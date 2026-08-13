@@ -222,3 +222,25 @@ export function wardLabel(ward: WardRow): string {
   if (ward.ward_name && number) return `${number} ${ward.ward_name}`;
   return ward.ward_name ?? number ?? "";
 }
+
+// ---------------------------------------------------------------------------
+// The map's own unit
+// ---------------------------------------------------------------------------
+
+/**
+ * One territory on the map, whichever way it is drawn.
+ *
+ * The polygon map and the tile fallback take the same list, so the two never
+ * disagree about what a click does or what a hover says.
+ */
+export interface MapUnit {
+  /** What a click selects: a district name, an lb_code, a ward number. */
+  key: string;
+  name: string;
+  /** The result in one clause: "UDF majority, 36 wards". */
+  note: string | null;
+  front: string | null;
+  /** What a click does, in a sentence. Shown on hover and on focus. */
+  action: string;
+  selected: boolean;
+}

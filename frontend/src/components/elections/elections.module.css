@@ -5,11 +5,54 @@
    tile map and its hit targets, the front legend's swatches, the ward table,
    and the boundary layer cards. Everything else on the page is a token utility.
 
-   The map is a tile map. One element per territory, so the browser's own event
+   The map is one element per territory, an SVG path where the boundary was
+   published and a tile where it was not. Either way the browser's own event
    dispatch does the hit-testing: no point-in-polygon test, no canvas redraw on
    pointer move, and a body with 100 wards is 100 elements, which is what a
-   table of 100 rows already costs on the same page.
+   table of 100 rows already costs on the same page. The hover outline is a
+   :hover rule below rather than React state, so crossing the map re-renders
+   nothing.
    --------------------------------------------------------------------------- */
+
+/* The drawn map. The viewBox is 1,000 units wide and as tall as the extent
+   needs, so the height cap is what stops a state that is two and a half times
+   taller than it is wide from filling the screen. */
+.polygonMap {
+  display: block;
+  width: 100%;
+  max-height: 32rem;
+  margin-block: var(--s4) 0;
+}
+
+/* One territory. The fill is its ruling front, set from data as the only
+   inline style this section writes; the hairline between neighbours is the
+   page ground, so borders read as gaps rather than as ink. */
+.area {
+  fill: var(--surface-2);
+  fill-rule: evenodd;
+  stroke: var(--paper);
+  stroke-width: 0.75;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+  outline: none;
+}
+
+.area:hover,
+.area:focus-visible {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.areaSelected {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+/* A shape the results do not cover. It keeps its place on the map and takes no
+   front colour, because it has no result to colour it with. */
+.areaBlank {
+  cursor: default;
+}
 
 /* The tile size is a column minimum rather than a count, so the same grid
    holds fourteen districts and a hundred wards without either being told how

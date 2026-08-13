@@ -2,8 +2,10 @@
  * The Elections section.
  *
  * The map is the interface, three levels deep: Kerala's districts, one
- * district's local bodies, one body's wards. Clicking a ward fills the result
- * panel. Every level is an address — `/elections?cycle=2025&district=THRISSUR`,
+ * district's local bodies, one body's wards. Each level is drawn from the
+ * boundary layer the cycle has, cut to that level by `/geo/*`, and from tiles
+ * where the cycle has no layer. Clicking a ward fills the result panel. Every
+ * level is an address — `/elections?cycle=2025&district=THRISSUR`,
  * `/elections/M08032/2025?ward=7` — so a view can be linked, and the breadcrumb
  * walks back out without dropping the cycle.
  *
@@ -23,7 +25,7 @@ import BodySelector from "@/components/select/BodySelector";
 import Breadcrumb, { type Crumb } from "@/components/elections/Breadcrumb";
 import BoundaryLayers from "@/components/elections/BoundaryLayers";
 import CycleSlider from "@/components/elections/CycleSlider";
-import DrillMap, { type MapUnit } from "@/components/elections/DrillMap";
+import DrillMap from "@/components/elections/DrillMap";
 import ResultPanel from "@/components/elections/ResultPanel";
 import SeatsBar from "@/components/elections/SeatsBar";
 import WardTable from "@/components/elections/WardTable";
@@ -33,23 +35,36 @@ import {
   formatCount,
   type CycleResult,
   type FrontsPayload,
+  type MapUnit,
 } from "@/components/elections/payload";
 import { electionsPath, readSelection } from "@/components/elections/selection";
-import { useCycleResult, useFronts, useMaps } from "@/components/elections/useElections";
+import {
+  geometryUrl,
+  useCycleResult,
+  useFronts,
+  useGeometry,
+  useMaps,
+} from "@/components/elections/useElections";
 import { useBodies, type BodySummary } from "@/hooks/useBodies";
+import { track } from "@/lib/telemetry";
 
 const DISTRICT_CAPTION =
-  "Each tile is one district, in the LSGD's own district order from Thiruvananthapuram to Kasaragod. " +
-  "The colour is the district panchayat's ruling front, which is a separate election from the bodies inside the district. " +
-  "Tiles carry no geography; the published boundary polygons are below.";
+  "District outlines dissolved from the cycle's own local-body layer. " +
+  "The colour is the district panchayat's ruling front, which is a separate election from the bodies inside the district.";
 
 const BODY_CAPTION =
-  "Each tile is one local body, coloured by the front that holds it. " +
-  "Tiles carry no geography; the published boundary polygons are below.";
+  "Grama Panchayat, Municipality and Corporation boundaries, coloured by the front that holds each. " +
+  "Block and District Panchayats cover the same ground again and are left off.";
+
+/**
+ * The three levels that tile the state exactly once. Block and District
+ * Panchayats cover the same ground a second and third time, so the boundary
+ * layers draw them nowhere and they are not counted as missing from the map.
+ */
+const DIRECT_TYPES = new Set(["Grama Panchayat", "Municipality", "Corporation"]);
 
 const WARD_CAPTION =
-  "Each tile is one ward, coloured by the winning candidate's front. " +
-  "Ward polygons exist for 2025 only and are downloadable below.";
+  "Ward boundaries as delimited for 2025, from KSMART's tiles, coloured by the winning candidate's front.";
 
 /** Districts, from the fronts payload, which returns them in LSGD order. */
 function districtUnits(fronts: FrontsPayload): MapUnit[] {
@@ -63,6 +78,14 @@ function districtUnits(fronts: FrontsPayload): MapUnit[] {
   }));
 }
 
+/**
+ * The Grama Panchayats, Municipalities and Corporations of one district.
+ *
+ * Which of them is drawn is decided by the boundary layer; the ones it holds no
+ * polygon for are named under the map with the reason. Block and District
+ * Panchayat results are reached through the dropdown, because their territory
+ * is these bodies' territory counted again.
+ */
 function bodyUnits(
   fronts: FrontsPayload,
   bodies: BodySummary[],
@@ -72,7 +95,7 @@ function bodyUnits(
   const byCode = new Map(bodies.map((body) => [body.lb_code, body]));
   return fronts.bodies
     .filter((entry) => entry.district_name === district)
-    .filter((entry) => byCode.get(entry.lb_code)?.has_geometry)
+    .filter((entry) => DIRECT_TYPES.has(entry.lb_type))
     .map((entry) => {
       const body = byCode.get(entry.lb_code);
       const name = body ? body.lb_name_en : entry.lb_code;
@@ -117,8 +140,18 @@ export default function ElectionsSection() {
   const fronts = useFronts(cycle);
   const result = useCycleResult(lbCode ?? "", cycle);
   const maps = useMaps();
+  const geometry = useGeometry(geometryUrl(level, cycle, district, lbCode));
 
   const go = (next: Parameters<typeof electionsPath>[0]) => navigate(electionsPath(next));
+
+  /** A step down the map, and the level it lands on. */
+  const drill = (
+    into: "district" | "body" | "ward",
+    next: Parameters<typeof electionsPath>[0],
+  ) => {
+    track({ name: "map_drill", level: into, cycle });
+    go(next);
+  };
 
   const crumbs: Crumb[] = [
     { label: "Kerala", to: level === "state" ? undefined : electionsPath({ cycle }) },
@@ -147,12 +180,21 @@ export default function ElectionsSection() {
       ? (cycleResult.wards.find((row) => row.ward_no === ward) ?? null)
       : null;
 
-  // Bodies in the open district that no boundary layer holds a polygon for.
+  // Bodies in the open district the drawn layer holds no polygon for. Stated
+  // only where a map was drawn: a tile map claims no geography, so nothing is
+  // missing from it.
+  const drawnCodes =
+    geometry.status === "ready"
+      ? new Set(geometry.collection.features.map((f) => String(f.properties.lb_code)))
+      : null;
   const missingGeometry =
-    district && bodies.data
+    district && bodies.data && drawnCodes && geometry.status === "ready" && geometry.collection.level === "local_body"
       ? bodies.data.bodies.filter(
           (body) =>
-            body.district_name === district && body.in_elections && !body.has_geometry,
+            body.district_name === district &&
+            body.in_elections &&
+            DIRECT_TYPES.has(body.lb_type) &&
+            !drawnCodes.has(body.lb_code),
         )
       : [];
 
@@ -193,7 +235,9 @@ export default function ElectionsSection() {
               title={`Districts of Kerala by ruling front, ${cycle}`}
               units={districtUnits(fronts.payload)}
               variant="area"
-              onSelect={(name) => go({ cycle, district: name })}
+              unitNoun="district"
+              geometry={geometry}
+              onSelect={(name) => drill("district", { cycle, district: name })}
               caption={DISTRICT_CAPTION}
             />
           ) : null}
@@ -203,7 +247,9 @@ export default function ElectionsSection() {
               title={`Local bodies in ${district} by ruling front, ${cycle}`}
               units={bodyUnits(fronts.payload, bodies.data?.bodies ?? [], district, lbCode)}
               variant="area"
-              onSelect={(code) => go({ cycle, lbCode: code })}
+              unitNoun="local body"
+              geometry={geometry}
+              onSelect={(code) => drill("body", { cycle, lbCode: code })}
               caption={BODY_CAPTION}
             />
           ) : null}
@@ -232,7 +278,9 @@ export default function ElectionsSection() {
               title={`Wards of ${bodyName} by winning front, ${cycle}`}
               units={wardUnits(cycleResult, ward)}
               variant="ward"
-              onSelect={(wardNo) => go({ cycle, lbCode, ward: Number(wardNo) })}
+              unitNoun="ward"
+              geometry={geometry}
+              onSelect={(wardNo) => drill("ward", { cycle, lbCode, ward: Number(wardNo) })}
               caption={WARD_CAPTION}
             />
           ) : null}

@@ -1,96 +1,41 @@
 /**
  * The map, three levels deep: Kerala, one district, one local body.
  *
- * It is a tile map. Each territory is one element, coloured by the front that
- * holds it, and the browser's own event dispatch does the hit-testing — there
- * is no point-in-polygon test and no canvas to redraw when the pointer moves.
- * A body with 100 wards is 100 elements, and only the two tiles whose
- * selection changed re-render on a click, because each tile is memoised on
- * props that do not change when the hovered unit does.
+ * Which of two things gets drawn depends on what has been published. Where the
+ * cycle has boundaries — districts and local bodies for 2015, 2020 and 2025,
+ * wards for 2025 — the shapes are the real ones, cut to this level by
+ * `/geo/*` and projected to SVG paths. Where it does not, the same units are
+ * drawn as tiles and the map says that is what they are, because a reader who
+ * took a tile for a boundary would be reading a shape that is not one.
  *
- * The tiles carry no geography. Territory is drawn from the published boundary
- * layers nowhere on this page: those files are 7.5 MB to 57 MB and are offered
- * as downloads below instead. What the tiles are faithful to is the result —
- * which unit, which front, which margin — and the caption says so, because a
- * reader who takes a tile for a boundary would be reading a shape that is not
- * one.
+ * The legend, the line naming the unit under the pointer, and the selection are
+ * the same either way, so stepping from a cycle with boundaries to one without
+ * changes the picture and nothing else.
  */
 
-import { memo, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 
 import styles from "./elections.module.css";
-import { frontLabel, frontToken } from "./payload";
+import PolygonMap from "./PolygonMap";
+import TileMap from "./TileMap";
+import type { GeometryState } from "./useElections";
+import { frontLabel, frontToken, type MapUnit } from "./payload";
 
-export interface MapUnit {
-  /** What a click selects: a district name, an lb_code, a ward number. */
-  key: string;
-  name: string;
-  /** The result in one clause: "UDF majority, 36 wards". */
-  note: string | null;
-  front: string | null;
-  /** What a click does, in a sentence. Shown on hover and on focus. */
-  action: string;
-  selected: boolean;
-}
+export type { MapUnit };
 
 interface DrillMapProps {
-  /** Names what the tiles are, with the cycle: "Local bodies in THRISSUR, 2025". */
+  /** Names what is drawn, with the cycle: "Local bodies in THRISSUR, 2025". */
   title: string;
   units: MapUnit[];
   /** Ward tiles carry a number and nothing else, so they are smaller. */
   variant: "area" | "ward";
+  /** What one unit is called, for the sentence under a tile map. */
+  unitNoun: string;
+  geometry: GeometryState;
   onSelect: (key: string) => void;
-  /** Stated under the map: what the tiles are and what they are not. */
+  /** Stated under a drawn map: what the boundaries are. */
   caption: string;
 }
-
-interface TileProps {
-  unit: MapUnit;
-  variant: "area" | "ward";
-  onSelect: (key: string) => void;
-  onHover: (unit: MapUnit | null) => void;
-}
-
-const Tile = memo(function Tile({ unit, variant, onSelect, onHover }: TileProps) {
-  const ward = variant === "ward";
-  const classes = [styles.tile, ward ? styles.wardTile : "", unit.selected ? styles.tileSelected : ""]
-    .filter(Boolean)
-    .join(" ");
-
-  return (
-    <button
-      type="button"
-      className={classes}
-      aria-pressed={unit.selected}
-      // The label carries the result too, so a screen reader gets what the
-      // colour carries for everyone else.
-      aria-label={[unit.name, unit.note, unit.action].filter(Boolean).join(". ")}
-      title={unit.action}
-      onClick={() => onSelect(unit.key)}
-      onMouseEnter={() => onHover(unit)}
-      onMouseLeave={() => onHover(null)}
-      onFocus={() => onHover(unit)}
-      onBlur={() => onHover(null)}
-    >
-      <span
-        className={styles.tileWash}
-        style={{ backgroundColor: `var(--${frontToken(unit.front)})` }}
-      />
-      <span
-        className={styles.tileBar}
-        style={{ backgroundColor: `var(--${frontToken(unit.front)})` }}
-      />
-      {ward ? (
-        <span className={styles.wardNumber}>{unit.name}</span>
-      ) : (
-        <>
-          <span className={styles.tileName}>{unit.name}</span>
-          <span className={styles.tileNote}>{unit.note}</span>
-        </>
-      )}
-    </button>
-  );
-});
 
 /** The four colours, and the fronts the commission names beyond them. */
 function Legend() {
@@ -113,33 +58,66 @@ function Legend() {
   );
 }
 
-export default function DrillMap({ title, units, variant, onSelect, caption }: DrillMapProps) {
+export default function DrillMap({
+  title,
+  units,
+  variant,
+  unitNoun,
+  geometry,
+  onSelect,
+  caption,
+}: DrillMapProps) {
   const [hovered, setHovered] = useState<MapUnit | null>(null);
 
-  // Stable, so the memoised tiles do not re-render when the hovered unit does.
+  // Stable, so the memoised shapes and tiles do not re-render when the hovered
+  // unit does.
   const handleHover = useCallback((unit: MapUnit | null) => setHovered(unit), []);
   const handleSelect = useCallback((key: string) => onSelect(key), [onSelect]);
+
+  const drawn = geometry.status === "ready" && geometry.collection.features.length > 0;
+
+  // Why the tiles are on screen instead of a map. Three causes, three
+  // sentences: the cycle has no published layer at this level, the layer holds
+  // no polygon for this unit, or the request for it failed.
+  let fallback: string | null = null;
+  if (geometry.status === "absent") {
+    fallback = `${geometry.reason} Maps for it are under active work and will be updated soon.`;
+  } else if (geometry.status === "error") {
+    fallback = geometry.message;
+  } else if (geometry.status === "ready" && !drawn) {
+    fallback = "No published boundary layer holds a polygon for this level.";
+  }
 
   return (
     <section aria-label={title}>
       <h2>{title}</h2>
       <Legend />
-      <div
-        className={[styles.map, variant === "ward" ? styles.mapWards : ""]
-          .filter(Boolean)
-          .join(" ")}
-        data-testid="drill-map"
-      >
-        {units.map((unit) => (
-          <Tile
-            key={unit.key}
-            unit={unit}
-            variant={variant}
-            onSelect={handleSelect}
-            onHover={handleHover}
-          />
-        ))}
-      </div>
+
+      {geometry.status === "loading" ? (
+        <p className={styles.hoverLine} aria-busy="true">
+          Drawing the boundaries…
+        </p>
+      ) : null}
+
+      {drawn && geometry.status === "ready" ? (
+        <PolygonMap
+          title={title}
+          units={units}
+          geometry={geometry.collection}
+          onSelect={handleSelect}
+          onHover={handleHover}
+        />
+      ) : null}
+
+      {fallback !== null ? (
+        <TileMap
+          units={units}
+          variant={variant}
+          onSelect={handleSelect}
+          onHover={handleHover}
+        />
+      ) : null}
+
       <p className={styles.hoverLine} role="status" data-testid="map-hover">
         {hovered
           ? [hovered.name, hovered.note ?? frontLabel(hovered.front), hovered.action]
@@ -147,7 +125,15 @@ export default function DrillMap({ title, units, variant, onSelect, caption }: D
               .join(". ")
           : ""}
       </p>
-      <p className={styles.hoverLine}>{caption}</p>
+
+      {drawn ? <p className={styles.hoverLine}>{caption}</p> : null}
+
+      {fallback !== null ? (
+        <p className={styles.hoverLine}>
+          {fallback} Each tile is one {unitNoun}, coloured by front and carrying no
+          geography.
+        </p>
+      ) : null}
     </section>
   );
 }

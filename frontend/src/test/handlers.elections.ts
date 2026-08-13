@@ -333,6 +333,59 @@ function geojson(filename: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Geometry, cut to one map level
+// ---------------------------------------------------------------------------
+
+/**
+ * The slices `/geo/districts`, `/geo/local-bodies` and `/geo/wards` answer.
+ *
+ * The shapes are squares on a grid, because what the page has to get right is
+ * which feature belongs to which unit and which cycle has no layer at all —
+ * not the outline of Kerala. The 404s are the real ones: 2010 has no
+ * local-body layer in the current build, and no cycle but 2025 has ward
+ * polygons.
+ */
+const DIRECT_TYPES = new Set(["Grama Panchayat", "Municipality", "Corporation"]);
+
+function square(index: number, properties: Record<string, string | number>) {
+  const x = 76 + (index % 6) * 0.1;
+  const y = 10 + Math.floor(index / 6) * 0.1;
+  return {
+    type: "Feature",
+    properties,
+    geometry: {
+      type: "MultiPolygon",
+      coordinates: [
+        [
+          [
+            [x, y],
+            [x + 0.09, y],
+            [x + 0.09, y + 0.09],
+            [x, y + 0.09],
+            [x, y],
+          ],
+        ],
+      ],
+    },
+  };
+}
+
+function noLayer(level: string, cycle: number) {
+  return HttpResponse.json(
+    { detail: `No ${level} geometry has been published for the ${cycle} cycle.` },
+    { status: 404 },
+  );
+}
+
+const LOCAL_BODY_CYCLES = [2015, 2020, 2025];
+
+/**
+ * Panoor. No layer holds a polygon for it, which is the case the page has to
+ * name under the map rather than leave as a gap in the drawing.
+ */
+const NO_POLYGON = new Set(["G13064"]);
+
+// ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
 
@@ -399,6 +452,77 @@ export const handlers = [
       provenance: mapsProvenance,
     }),
   ),
+
+  http.get("*/geo/districts/:cycle.geojson", ({ params }) => {
+    const cycle = Number((params as { cycle: string }).cycle);
+    if (!LOCAL_BODY_CYCLES.includes(cycle)) return noLayer("local body", cycle);
+
+    const names = [...new Set(bodies.map((body) => body.district_name))].sort();
+    return HttpResponse.json({
+      type: "FeatureCollection",
+      level: "district",
+      cycle,
+      key_property: "district_name",
+      features: names.map((name, i) =>
+        square(i, {
+          district_name: name,
+          bodies: bodies.filter((body) => body.district_name === name).length,
+        }),
+      ),
+    });
+  }),
+
+  http.get("*/geo/local-bodies/:district.geojson", ({ params, request }) => {
+    const cycle = Number(new URL(request.url).searchParams.get("cycle"));
+    if (!LOCAL_BODY_CYCLES.includes(cycle)) return noLayer("local body", cycle);
+
+    const district = (params as { district: string }).district.toUpperCase();
+    const drawn = bodies.filter(
+      (body) =>
+        body.district_name === district &&
+        DIRECT_TYPES.has(body.lb_type) &&
+        !NO_POLYGON.has(body.lb_code),
+    );
+
+    return HttpResponse.json({
+      type: "FeatureCollection",
+      level: "local_body",
+      cycle,
+      district_name: district,
+      key_property: "lb_code",
+      features: drawn.map((body, i) =>
+        square(i, {
+          lb_code: body.lb_code,
+          lb_name: body.lb_name_en,
+          lb_type: body.lb_type,
+          district_name: body.district_name,
+        }),
+      ),
+    });
+  }),
+
+  http.get("*/geo/wards/:lb.geojson", ({ params, request }) => {
+    const cycle = Number(new URL(request.url).searchParams.get("cycle"));
+    if (cycle !== 2025) return noLayer("ward", cycle);
+
+    const lb = (params as { lb: string }).lb.toUpperCase();
+    const total = NO_POLYGON.has(lb) ? 0 : (WARD_COUNTS[lb]?.[2025] ?? 0);
+
+    return HttpResponse.json({
+      type: "FeatureCollection",
+      level: "ward",
+      cycle,
+      lb_code: lb,
+      key_property: "ward_no",
+      features: Array.from({ length: total }, (_, i) =>
+        square(i, {
+          lb_code: lb,
+          ward_no: String(i + 1),
+          ward_name: `Ward ${i + 1}`,
+        }),
+      ),
+    });
+  }),
 
   http.get("*/geo/:filename", ({ params }) => {
     const { filename } = params as { filename: string };

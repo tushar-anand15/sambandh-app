@@ -17,12 +17,21 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ElectionsSection from "../ElectionsSection";
 import { resetBodiesCache } from "@/hooks/useBodies";
+import { track } from "@/lib/telemetry";
 import { provenance } from "@/test/handlers";
 import { server } from "@/test/setup";
+
+// `track` is a no-op unless Umami is configured, so what a test can hold is
+// which drills it was called for, not what it sent.
+vi.mock("@/lib/telemetry", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/telemetry")>()),
+  track: vi.fn(),
+}));
+const tracked = vi.mocked(track);
 
 /** The address bar, as a testable node. */
 function Address() {
@@ -61,6 +70,7 @@ async function wardRows() {
 
 beforeEach(() => {
   resetBodiesCache();
+  tracked.mockClear();
 });
 
 describe("the map, three levels deep", () => {
@@ -132,6 +142,54 @@ describe("the map, three levels deep", () => {
     expect(screen.getByTestId("map-hover")).toHaveTextContent(
       /THRISSUR.*Click to open the .* local bodies in THRISSUR\./,
     );
+  });
+});
+
+describe("what the drill-down reports", () => {
+  it("counts a step down the map, and the level it lands on", async () => {
+    const user = userEvent.setup();
+    renderAt("/elections?cycle=2025");
+
+    await user.click(await screen.findByRole("button", { name: /open the .* in THRISSUR/ }));
+    expect(tracked).toHaveBeenCalledWith({
+      name: "map_drill",
+      level: "district",
+      cycle: 2025,
+    });
+
+    await user.click(await screen.findByRole("button", { name: /open the wards of Chalakudy/ }));
+    expect(tracked).toHaveBeenLastCalledWith({
+      name: "map_drill",
+      level: "body",
+      cycle: 2025,
+    });
+
+    await user.click(await screen.findByRole("button", { name: /result in ward 7\./ }));
+    expect(tracked).toHaveBeenLastCalledWith({
+      name: "map_drill",
+      level: "ward",
+      cycle: 2025,
+    });
+    expect(tracked).toHaveBeenCalledTimes(3);
+  });
+
+  it("counts nothing when the breadcrumb walks back out", async () => {
+    const user = userEvent.setup();
+    renderAt("/elections/M08032/2025");
+
+    const crumbs = await screen.findByRole("navigation", { name: "Map level" });
+    await user.click(within(crumbs).getByRole("link", { name: "THRISSUR" }));
+
+    expect(tracked).not.toHaveBeenCalled();
+  });
+
+  it("counts nothing for a hover", async () => {
+    const user = userEvent.setup();
+    renderAt("/elections?cycle=2025");
+
+    await user.hover(await screen.findByRole("button", { name: /open the .* in THRISSUR/ }));
+
+    expect(tracked).not.toHaveBeenCalled();
   });
 });
 
@@ -221,19 +279,31 @@ describe("what is missing, stated", () => {
 });
 
 describe("the boundary layers", () => {
-  it("states the ward-geometry gap and the reused snapshot", async () => {
+  it("carries each layer's own vintage and licence, and no account of the vintages", async () => {
     renderAt("/elections?cycle=2025");
 
     const layers = await screen.findByRole("region", { name: "Boundary layers" });
+
+    // The vintage sentence belongs to the layer that has that vintage.
     expect(
-      within(layers).getByText(/No ward-level geometry exists for 2010, 2015 or 2020/),
-    ).toBeInTheDocument();
+      within(layers).getAllByText(/Boundary vintage: November 2020 snapshot/).length,
+    ).toBe(3);
     expect(
-      within(layers).getByText(
-        /single opendatakerala snapshot taken in November\s+2020, reused for all three cycles/,
-      ),
+      within(layers).getAllByText(/© OpenStreetMap contributors/).length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(layers).getByText(/1,033 of 1,238 local bodies have a polygon/),
     ).toBeInTheDocument();
-    expect(within(layers).getByText(/7 layers: four from KSMART/)).toBeInTheDocument();
+
+    // The page-level essay about which cycle was delimited when is the method
+    // page's, and is not repeated at the foot of this one.
+    expect(
+      within(layers).queryByText(/No ward-level geometry exists for 2010, 2015 or 2020/),
+    ).not.toBeInTheDocument();
+    expect(
+      within(layers).queryByRole("table", { name: /changed between cycles/ }),
+    ).not.toBeInTheDocument();
+    expect(within(layers).queryByText(/What changed between cycles/)).not.toBeInTheDocument();
   });
 
   it("offers a layer this server holds and states why it cannot offer the other", async () => {
