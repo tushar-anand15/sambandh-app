@@ -2,8 +2,9 @@
  * Two names, their roles, and where to find them.
  *
  * The names, roles and links are exactly those the previous site carried, and
- * are the authors' own words about themselves — recovered from
- * `components/landing/About.tsx` rather than rewritten.
+ * are the authors' own words about themselves — recovered from the About
+ * section deleted in 5d02df4 rather than rewritten. How someone describes their
+ * own work is not copy for this site to improve.
  *
  * The five source portals used to be listed here. They belong on the home page,
  * under "Where the records come from", where a reader deciding whether to trust

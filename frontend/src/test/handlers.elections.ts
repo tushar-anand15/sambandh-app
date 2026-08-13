@@ -98,6 +98,91 @@ function wardRow(lb: string, cycle: number, index: number, ruling: string | null
   };
 }
 
+/**
+ * The candidates of one ward, consistent with the ward row above it.
+ *
+ * The winner and the runner-up carry the ward row's own names and votes, so a
+ * test that reads the card and a test that reads the candidates table are
+ * reading the same result. The other two are below the runner-up, which is
+ * what makes the ward's `candidates` count of 4 true.
+ */
+function candidateRows(ward: ReturnType<typeof wardRow>) {
+  const base = {
+    ward_no: ward.ward_no,
+    ward_name: ward.ward_name,
+    gender: null,
+    age: null,
+  };
+
+  const rows: {
+    ward_no: number;
+    ward_name: string;
+    gender: string | null;
+    age: number | null;
+    candidate_name: string | null;
+    candidate_name_en: string | null;
+    party: string | null;
+    front: string | null;
+    votes: number | null;
+    status: string;
+    role: string | null;
+  }[] = [
+    {
+      ...base,
+      candidate_name: ward.winner_name,
+      candidate_name_en: ward.winner_name,
+      party: ward.winner_party,
+      front: ward.winner_front,
+      votes: ward.winner_votes,
+      status: "won",
+      role: "Member",
+    },
+  ];
+
+  if (ward.uncontested) return rows;
+
+  const others = ["LDF", "UDF", "NDA", "OTH"].filter(
+    (front) => front !== ward.winner_front,
+  );
+
+  rows.push({
+    ...base,
+    candidate_name: ward.runnerup_name,
+    candidate_name_en: ward.runnerup_name,
+    party: PARTIES[others[0]],
+    front: others[0],
+    votes: ward.runnerup_votes,
+    status: "lost",
+    role: null,
+  });
+
+  const runnerup = ward.runnerup_votes ?? 0;
+  rows.push(
+    {
+      ...base,
+      candidate_name: `Third ${ward.ward_no}`,
+      candidate_name_en: `Third ${ward.ward_no}`,
+      party: PARTIES[others[1]],
+      front: others[1],
+      votes: Math.max(0, runnerup - 90),
+      status: "lost",
+      role: null,
+    },
+    {
+      ...base,
+      candidate_name: `Fourth ${ward.ward_no}`,
+      candidate_name_en: `Fourth ${ward.ward_no}`,
+      party: PARTIES[others[2]],
+      front: others[2],
+      votes: Math.max(0, runnerup - 150),
+      status: "lost",
+      role: null,
+    },
+  );
+
+  return rows;
+}
+
 function seatsFrom(wards: ReturnType<typeof wardRow>[]) {
   const seats: Record<string, number> = { LDF: 0, UDF: 0, NDA: 0, OTH: 0 };
   for (const ward of wards) seats[ward.winner_front] += 1;
@@ -181,7 +266,7 @@ export function cyclePayload(lb: string, cycle: number) {
     control_type: ruling ? "majority" : "hung",
     head: null,
     wards,
-    candidates: [],
+    candidates: wards.flatMap(candidateRows),
     provenance: electionsProvenance,
   };
 }

@@ -115,6 +115,39 @@ export interface WardRow {
   tie: boolean;
 }
 
+/**
+ * One candidate in one ward. The endpoint returns every candidate of the body
+ * in one array, which is why the ward table can be clicked through without a
+ * request per ward: the rows for a ward are a filter over what is already here.
+ *
+ * `candidate_name` is the commission's own field, Malayalam where it published
+ * Malayalam. `candidate_name_en` is filled for some rows and not others, so the
+ * name shown is the transliteration where there is one and the original where
+ * there is not.
+ */
+export interface CandidateRow {
+  ward_no: number | null;
+  ward_name: string | null;
+  candidate_name: string | null;
+  candidate_name_en: string | null;
+  party: string | null;
+  front: string | null;
+  votes: number | null;
+  /** "won" or "lost", as the commission publishes it. */
+  status: string | null;
+  gender: string | null;
+  age: number | null;
+  role: string | null;
+}
+
+export function candidateName(candidate: CandidateRow): string {
+  return (
+    candidate.candidate_name_en ??
+    candidate.candidate_name ??
+    "Not named in the source"
+  );
+}
+
 export interface BodyBlock {
   lb_name_en?: string;
   lb_name_ml?: string | null;
@@ -136,7 +169,20 @@ export interface CycleResult {
   ruling_front: string | null;
   control_type: string | null;
   wards: WardRow[];
+  /** Every candidate of every ward, in one array. Grouped by ward on arrival. */
+  candidates: CandidateRow[];
   provenance: Provenance;
+}
+
+/** The candidates of one ward, highest vote first. */
+export function candidatesInWard(
+  candidates: CandidateRow[],
+  ward: number | null,
+): CandidateRow[] {
+  if (ward === null) return [];
+  return candidates
+    .filter((candidate) => candidate.ward_no === ward)
+    .sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0));
 }
 
 /**

@@ -2,8 +2,9 @@
    Elections.
 
    Co-located because these are the shapes a utility class cannot express: the
-   tile map and its hit targets, the front legend's swatches, the ward table,
-   and the boundary layer cards. Everything else on the page is a token utility.
+   drawn map and the names written on it, the tile fallback and its hit
+   targets, the two columns the map and the tables sit in, and the tables
+   themselves. Everything else on the page is a token utility.
 
    The map is one element per territory, an SVG path where the boundary was
    published and a tile where it was not. Either way the browser's own event
@@ -20,17 +21,23 @@
 .polygonMap {
   display: block;
   width: 100%;
-  max-height: 32rem;
+  max-height: 42rem;
   margin-block: var(--s4) 0;
+}
+
+/* In the sticky column the map has to be shorter than the window, or it
+   scrolls the table out of reach of the thing it is stuck to. */
+.mapColumn .polygonMap {
+  max-height: 32rem;
 }
 
 /* One territory. The fill is its ruling front, set from data as the only
    inline style this section writes; the hairline between neighbours is the
-   page ground, so borders read as gaps rather than as ink. */
+   surface colour, so borders read as gaps rather than as ink. */
 .area {
   fill: var(--surface-2);
   fill-rule: evenodd;
-  stroke: var(--paper);
+  stroke: var(--surface);
   stroke-width: 0.75;
   vector-effect: non-scaling-stroke;
   cursor: pointer;
@@ -52,6 +59,30 @@
    front colour, because it has no result to colour it with. */
 .areaBlank {
   cursor: default;
+}
+
+/* A territory's name, written inside it.
+
+   The halo is what lets one colour of text sit on four front colours and on
+   the empty-shape grey: paint-order draws the stroke first, so the surface
+   colour is laid down around every letter and the ink reads on any fill. The
+   labels take no clicks, so the polygon under a name is still the target. */
+.mapLabels {
+  pointer-events: none;
+}
+
+.mapLabel {
+  font-family: var(--font-sans);
+  fill: var(--ink);
+  stroke: var(--surface);
+  paint-order: stroke;
+  stroke-linejoin: round;
+  text-anchor: middle;
+  letter-spacing: var(--track-head);
+}
+
+.mapLabelSecondary {
+  fill: var(--ink-2);
 }
 
 /* The tile size is a column minimum rather than a count, so the same grid
@@ -231,7 +262,6 @@
    each segment is its own share of it, so nothing stretches with the container. */
 .seatBar {
   margin-block: var(--s4) 0;
-  max-width: var(--measure);
 }
 
 .table {
@@ -245,7 +275,7 @@
 .table th,
 .table td {
   border-bottom: 1px solid var(--rule);
-  padding: var(--s2) var(--s3);
+  padding: var(--s2);
   text-align: left;
   vertical-align: top;
 }
@@ -260,6 +290,12 @@
   white-space: nowrap;
 }
 
+/* A party keeps its dot and its name on one line: "CPI(M)" broken across two
+   rows in a narrow column reads as two parties. */
+.nowrap {
+  white-space: nowrap;
+}
+
 .numeric {
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -269,12 +305,20 @@
   overflow-x: auto;
 }
 
+/* A row is the keyboard path to a ward. The map's polygons take a click and a
+   pointer; a reader on a keyboard tabs down this table, and the focused row has
+   to be as visible as the selected one. */
 .row {
   cursor: pointer;
 }
 
 .row:hover {
   background: var(--surface);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .rowSelected {
@@ -293,15 +337,17 @@
   background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--radius);
-  padding: var(--s4);
-  margin-block: var(--s4) 0;
-  max-width: var(--measure);
+  padding: var(--s5);
+  margin-block: 0;
 }
 
 .panelTitle {
   font-size: var(--t5);
   line-height: var(--lh-snug);
   margin-block: 0 var(--s3);
+  /* Full width. The 28ch measure the page gives an h2 breaks "Ward 8
+     PALLIKKUNNU, Thondernadu Grama Panchayat, 2025" across three lines. */
+  max-width: var(--measure);
 }
 
 .figures {
@@ -334,27 +380,86 @@
   margin-block: var(--s1) 0;
 }
 
-/* Boundary layers. */
-.layers {
+/* ---------------------------------------------------------------------------
+   The two columns.
+
+   The map holds still in the left column while the ward table and the
+   candidates scroll past it in the right, because the reason to click a ward in
+   the table is to see where it is. Under 900px there is no room for two
+   columns of numbers, so they stack with the map first and the map stops being
+   sticky: a sticky map in a single column is a map that covers the table.
+   --------------------------------------------------------------------------- */
+.split {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
-  gap: var(--s4);
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  gap: var(--s6);
+  align-items: start;
+}
+
+.mapColumn {
+  position: sticky;
+  top: var(--s4);
+}
+
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mapColumn {
+    position: static;
+  }
+}
+
+/* The card and the candidates are replaced, not moved: a new ward fades its
+   own figures in over one frame's worth of ground. Reduced motion gets the new
+   figures with no fade at all. */
+.swap {
+  animation: swapIn 220ms ease-out both;
+}
+
+@keyframes swapIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swap {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Sources.
+   --------------------------------------------------------------------------- */
+.sources {
   list-style: none;
   padding: 0;
-  margin-block: var(--s4) 0;
+  margin-block: var(--s4) var(--s4);
+  border-block-start: 1px solid var(--rule);
 }
 
-.layerCard {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  padding: var(--s4);
-  background: var(--surface);
+.sourceItem {
+  border-block-end: 1px solid var(--rule);
+  padding: var(--s3) 0;
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  align-items: baseline;
 }
 
-.layerTitle {
-  font-size: var(--t4);
-  line-height: var(--lh-snug);
-  margin-block: 0 var(--s2);
+.sourceName {
+  color: var(--ink);
+  min-width: 14rem;
 }
 
 .layerMeta {

@@ -9,8 +9,14 @@
  * `/elections/M08032/2025?ward=7` — so a view can be linked, and the breadcrumb
  * walks back out without dropping the cycle.
  *
- * The map and the ward table are one selection. A click on a tile and a click
- * on a row write the same URL, and both read it back.
+ * The map and the ward table are one selection. A click on the map and a click
+ * on a row write the same URL, and both read it back. One selection has three
+ * views: the card at the top, the map's zoom, and the candidates listed beside
+ * the ward table. Clicking a ward moves all three.
+ *
+ * The card is above the map because it answers the click. Below it the map and
+ * the tables sit in two columns, the map sticky in its own, so a reader can
+ * work down 100 wards without losing sight of where they are.
  *
  * Three empty cases are kept apart, because a reader should be able to tell
  * them apart: the commission published no result for the body at all
@@ -23,14 +29,16 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import BodySelector from "@/components/select/BodySelector";
 import Breadcrumb, { type Crumb } from "@/components/elections/Breadcrumb";
-import BoundaryLayers from "@/components/elections/BoundaryLayers";
+import CandidatesTable from "@/components/elections/CandidatesTable";
 import CycleSlider from "@/components/elections/CycleSlider";
 import DrillMap from "@/components/elections/DrillMap";
-import ResultPanel from "@/components/elections/ResultPanel";
 import SeatsBar from "@/components/elections/SeatsBar";
+import SelectedCard from "@/components/elections/SelectedCard";
+import Sources from "@/components/elections/Sources";
 import WardTable from "@/components/elections/WardTable";
 import styles from "@/components/elections/elections.module.css";
 import {
+  candidatesInWard,
   controlSentence,
   formatCount,
   type CycleResult,
@@ -99,10 +107,12 @@ function bodyUnits(
     .map((entry) => {
       const body = byCode.get(entry.lb_code);
       const name = body ? body.lb_name_en : entry.lb_code;
+      const wards =
+        entry.total_wards === null ? "" : `, ${formatCount(entry.total_wards)} wards`;
       return {
         key: entry.lb_code,
         name,
-        note: `${entry.lb_type}. ${controlSentence(entry.ruling_front, entry.control_type)}`,
+        note: `${entry.lb_type}. ${controlSentence(entry.ruling_front, entry.control_type)}${wards}`,
         front: entry.ruling_front,
         action: `Click to open the wards of ${name}.`,
         selected: entry.lb_code === selectedCode,
@@ -110,15 +120,31 @@ function bodyUnits(
     });
 }
 
+/**
+ * The wards of one body. The note is what hover and a screen reader get: the
+ * ward's name, who won it and by how much, which is the reading the colour
+ * alone cannot carry.
+ */
 function wardUnits(result: CycleResult, selectedWard: number | null): MapUnit[] {
-  return result.wards.map((ward) => ({
-    key: String(ward.ward_no),
-    name: String(ward.ward_no ?? ""),
-    note: [ward.ward_name, ward.winner_party].filter(Boolean).join(", "),
-    front: ward.winner_front,
-    action: `Click for the result in ward ${ward.ward_no}.`,
-    selected: ward.ward_no !== null && ward.ward_no === selectedWard,
-  }));
+  return result.wards.map((ward) => {
+    const party = [ward.winner_party, ward.winner_front ? `(${ward.winner_front})` : ""]
+      .filter(Boolean)
+      .join(" ");
+    const margin = ward.uncontested
+      ? "uncontested"
+      : ward.margin === null
+        ? ""
+        : `margin ${formatCount(ward.margin)}`;
+
+    return {
+      key: String(ward.ward_no),
+      name: String(ward.ward_no ?? ""),
+      note: [ward.ward_name, party, margin].filter(Boolean).join(", "),
+      front: ward.winner_front,
+      action: `Click for the result in ward ${ward.ward_no}.`,
+      selected: ward.ward_no !== null && ward.ward_no === selectedWard,
+    };
+  });
 }
 
 export default function ElectionsSection() {
@@ -215,9 +241,77 @@ export default function ElectionsSection() {
           />
         </div>
 
-        <div>
-          <Breadcrumb crumbs={crumbs} />
+        <Breadcrumb crumbs={crumbs} />
 
+        {result.status === "loading" ? (
+          <p className="selector-status" aria-busy="true">
+            Loading the {cycle} result…
+          </p>
+        ) : null}
+
+        {result.status === "not-found" ? (
+          <p className="notice" role="alert">
+            No local body has the code {result.lbCode}.
+          </p>
+        ) : null}
+
+        {result.status === "error" ? (
+          <p className="notice" role="alert">
+            {result.message}
+          </p>
+        ) : null}
+
+        {result.status === "ready" && !result.payload.available ? (
+          <p className="notice" role="status">
+            {result.payload.reason}
+          </p>
+        ) : null}
+
+        {cycleResult ? (
+          <>
+            <SelectedCard
+              key={ward ?? "body"}
+              result={cycleResult}
+              ward={selectedWardRow}
+              bodyName={bodyName}
+              cycle={cycle}
+            />
+
+            <SeatsBar result={cycleResult} />
+
+            <div className={styles.split}>
+              <div className={styles.mapColumn}>
+                <DrillMap
+                  title={`Wards of ${bodyName} by winning front, ${cycle}`}
+                  units={wardUnits(cycleResult, ward)}
+                  variant="ward"
+                  unitNoun="ward"
+                  geometry={geometry}
+                  onSelect={(wardNo) =>
+                    drill("ward", { cycle, lbCode, ward: Number(wardNo) })
+                  }
+                  caption={WARD_CAPTION}
+                />
+              </div>
+
+              <div className="flex flex-col gap-s7">
+                <WardTable
+                  result={cycleResult}
+                  selectedWard={ward}
+                  onSelect={(wardNo) => go({ cycle, lbCode, ward: wardNo })}
+                />
+                <CandidatesTable
+                  key={ward ?? "none"}
+                  candidates={candidatesInWard(cycleResult.candidates, ward)}
+                  ward={selectedWardRow}
+                  cycle={cycle}
+                />
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        <div>
           {fronts.status === "loading" ? (
             <p className="selector-status" aria-busy="true">
               Loading the {cycle} results…
@@ -273,59 +367,9 @@ export default function ElectionsSection() {
             </div>
           ) : null}
 
-          {cycleResult && (level === "body" || level === "ward") ? (
-            <DrillMap
-              title={`Wards of ${bodyName} by winning front, ${cycle}`}
-              units={wardUnits(cycleResult, ward)}
-              variant="ward"
-              unitNoun="ward"
-              geometry={geometry}
-              onSelect={(wardNo) => drill("ward", { cycle, lbCode, ward: Number(wardNo) })}
-              caption={WARD_CAPTION}
-            />
-          ) : null}
         </div>
 
-        {result.status === "loading" ? (
-          <p className="selector-status" aria-busy="true">
-            Loading the {cycle} result…
-          </p>
-        ) : null}
-
-        {result.status === "not-found" ? (
-          <p className="notice" role="alert">
-            No local body has the code {result.lbCode}.
-          </p>
-        ) : null}
-
-        {result.status === "error" ? (
-          <p className="notice" role="alert">
-            {result.message}
-          </p>
-        ) : null}
-
-        {result.status === "ready" && !result.payload.available ? (
-          <p className="notice" role="status">
-            {result.payload.reason}
-          </p>
-        ) : null}
-
-        {selectedWardRow ? (
-          <ResultPanel ward={selectedWardRow} bodyName={bodyName} cycle={cycle} />
-        ) : null}
-
-        {cycleResult ? (
-          <>
-            <SeatsBar result={cycleResult} />
-            <WardTable
-              result={cycleResult}
-              selectedWard={ward}
-              onSelect={(wardNo) => go({ cycle, lbCode, ward: wardNo })}
-            />
-          </>
-        ) : null}
-
-        {maps.status === "ready" ? <BoundaryLayers maps={maps.payload} /> : null}
+        {maps.status === "ready" ? <Sources maps={maps.payload} /> : null}
 
         {maps.status === "error" ? (
           <p className="notice" role="alert">

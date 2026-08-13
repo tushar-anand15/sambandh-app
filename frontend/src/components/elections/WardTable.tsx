@@ -1,10 +1,10 @@
 /**
  * Every ward of one body-cycle, in the order the commission numbers them.
  *
- * The table and the map are one selection, not two. A row click selects the
- * same ward a tile click does, and the selected row carries `aria-selected`,
- * so a reader working down the table and a reader working across the map end
- * up at the same result panel.
+ * The table and the map are one selection. A row click selects the same ward a
+ * click on the map does, and the selected row carries `aria-selected`, so a
+ * reader working down the table and a reader working across the map end up at
+ * the same card.
  *
  * A ward the commission recorded as uncontested has no runner-up and so no
  * margin. That cell says uncontested rather than showing a zero, which would
@@ -36,16 +36,27 @@ function Row({
   selected: boolean;
   onSelect: (ward: number) => void;
 }) {
+  const select = () => ward.ward_no !== null && onSelect(ward.ward_no);
+
   return (
     <tr
       className={[styles.row, selected ? styles.rowSelected : ""].filter(Boolean).join(" ")}
       aria-selected={selected}
-      onClick={() => ward.ward_no !== null && onSelect(ward.ward_no)}
+      // The map's polygons take a pointer. The keyboard path to a ward is this
+      // row, so every ward is reachable by tabbing down the table.
+      tabIndex={0}
+      onClick={select}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          select();
+        }
+      }}
     >
       <td className={styles.numeric}>{formatCount(ward.ward_no)}</td>
       <td>{ward.ward_name ?? <span className={styles.absent}>Unnamed in the source</span>}</td>
       <td>{ward.winner_name ?? <span className={styles.absent}>Not named in the source</span>}</td>
-      <td>
+      <td className={styles.nowrap}>
         <span
           className={styles.partyDot}
           style={{ backgroundColor: `var(--${frontToken(ward.winner_front)})` }}
@@ -111,7 +122,7 @@ export default function WardTable({ result, selectedWard, onSelect }: WardTableP
         </table>
       </div>
       <p className={styles.layerMeta}>
-        The margin as a share of valid votes is in the result panel. The commission
+        The margin as a share of valid votes is in the card above. The commission
         publishes no turnout figure per ward, so that share is of the votes counted.
       </p>
       <SourceLine

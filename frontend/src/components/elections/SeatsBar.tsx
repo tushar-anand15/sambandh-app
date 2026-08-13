@@ -38,9 +38,9 @@ export default function SeatsBar({ result }: { result: CycleResult }) {
 
   return (
     <section className={styles.seatBar} aria-label={`Seats by front, ${name}, ${result.cycle}`}>
-      <h3 className={styles.panelTitle}>
+      <h2 className={styles.panelTitle}>
         Seats by front, {name}, {result.cycle} (of {formatCount(total)} wards)
-      </h3>
+      </h2>
       <svg data-chart viewBox="0 0 100 6" role="img" aria-label={
         segments.map((s) => `${s.front} ${s.count}`).join(", ")
       }>
