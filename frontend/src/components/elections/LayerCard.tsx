@@ -15,6 +15,7 @@
 
 import styles from "./elections.module.css";
 import { formatBytes, type MapLayer } from "./payload";
+import { track } from "@/lib/telemetry";
 
 export default function LayerCard({ layer }: { layer: MapLayer }) {
   return (
@@ -36,7 +37,13 @@ export default function LayerCard({ layer }: { layer: MapLayer }) {
       </p>
       {layer.available ? (
         <p className={styles.layerMeta}>
-          <a href={layer.url} download={layer.filename}>
+          <a
+            href={layer.url}
+            download={layer.filename}
+            onClick={() =>
+              track({ name: "layer_download", layer: layer.filename, format: "geojson" })
+            }
+          >
             Download GeoJSON
           </a>{" "}
           · {formatBytes(layer.bytes)}

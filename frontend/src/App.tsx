@@ -12,6 +12,7 @@ import MethodSection from "@/sections/MethodSection";
 import Masthead from "@/components/shell/Masthead";
 import SiteFooter from "@/components/shell/SiteFooter";
 import TabBar from "@/components/shell/TabBar";
+import { useRouteTelemetry } from "@/lib/telemetry";
 
 /**
  * The route tree.
@@ -42,6 +43,10 @@ import TabBar from "@/components/shell/TabBar";
  */
 
 export default function App() {
+  // Client-side routing means the collector never sees a section change
+  // unless something fires on it. Mounted once, here, at the root.
+  useRouteTelemetry();
+
   return (
     <>
       <Masthead />

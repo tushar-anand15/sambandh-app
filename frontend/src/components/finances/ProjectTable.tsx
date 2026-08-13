@@ -22,6 +22,7 @@ import {
   projectsCsv,
 } from "./format";
 import type { ProjectRow, YearPayload } from "./types";
+import { track } from "@/lib/telemetry";
 
 interface ProjectTableProps {
   payload: YearPayload;
@@ -102,6 +103,15 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
           href={csvHref(csv)}
           download={csvFilename(payload.lb_code, payload.year_label)}
           data-testid="download-csv"
+          onClick={() =>
+            track({
+              name: "csv_download",
+              section: "finances",
+              lb_code: payload.lb_code,
+              year: payload.year_label,
+              rows: payload.project_rows?.length ?? 0,
+            })
+          }
         >
           Download CSV
         </a>
