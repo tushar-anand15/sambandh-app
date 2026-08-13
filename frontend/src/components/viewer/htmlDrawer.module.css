@@ -1,0 +1,144 @@
+/* ---------------------------------------------------------------------------
+   The document panel.
+
+   Sakarma's registers are tables of Malayalam prose, and the fragment the API
+   returns carries no styling of its own — every attribute is stripped before it
+   leaves the server. So everything a reader sees here is set below, and the
+   `.document` rules are written against tags rather than classes for that
+   reason.
+   --------------------------------------------------------------------------- */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(0 0 0 / 0.32);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.panel {
+  background: var(--paper);
+  border-left: 1px solid var(--rule-2);
+  width: min(78ch, 100%);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+
+.panel:focus {
+  outline: none;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s5);
+  border-bottom: 1px solid var(--rule);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: var(--t5);
+  line-height: var(--lh-tight);
+  color: var(--ink);
+  margin-block: 0;
+}
+
+.subtitle {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  margin-block: var(--s1) 0;
+}
+
+.close {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--radius);
+  padding: var(--s2) var(--s3);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.close:hover {
+  color: var(--ink);
+}
+
+.body {
+  overflow-y: auto;
+  padding: var(--s5);
+}
+
+/* The document itself. */
+.document {
+  font-family: var(--font-serif);
+  font-size: var(--t3);
+  line-height: var(--lh-body);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.document p {
+  margin-block: 0 var(--s3);
+}
+
+/* Sakarma lays its registers out in nested tables, which is the document's own
+   structure and is kept. They are wider than the panel often enough that each
+   one carries its own horizontal scroll rather than pushing the page sideways. */
+.document table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-block: 0 var(--s3);
+  display: block;
+  overflow-x: auto;
+}
+
+.document td,
+.document th {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--rule);
+}
+
+.document th {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.document ul,
+.document ol {
+  margin-block: 0 var(--s3);
+  padding: 0 0 0 var(--s5);
+}
+
+.document h1,
+.document h2,
+.document h3,
+.document h4 {
+  font-size: var(--t4);
+  line-height: var(--lh-ui);
+  margin-block: var(--s4) var(--s2);
+}
+
+.document hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin-block: var(--s4);
+}
+
+@media (max-width: 40rem) {
+  .panel {
+    width: 100%;
+  }
+}

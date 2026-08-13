@@ -31,6 +31,17 @@ export interface BodySummary {
   in_elections: boolean;
   first_cycle: number | null;
   last_cycle: number | null;
+  /**
+   * The financial years this body has a record for, in each section. Which
+   * years, not how many: the year control offers these and disables the rest,
+   * so a visitor is never handed a selection the endpoint can only answer with
+   * an absence. Sorted ascending, as `2016-2017`.
+   *
+   * Optional because a payload built before `/api/bodies` carried them has
+   * neither, and a control with no list falls back to offering every year.
+   */
+  meeting_years?: string[];
+  finance_years?: string[];
   years_with_finance: number;
   years_with_meetings: number;
 }
@@ -164,6 +175,21 @@ export function coverageOf(body: BodySummary): Coverage[] {
       reason: available ? null : NOT_COVERED[section],
     };
   });
+}
+
+/**
+ * The financial years this body has a record for in this section, or null when
+ * the payload does not say.
+ *
+ * Null and `[]` are different answers and the caller renders them differently:
+ * null is "the list did not travel with this payload", and the year control
+ * then offers every year rather than none. Elections has no per-body year list
+ * — the four cycles are the same set for every body — so it is null too.
+ */
+export function yearsFor(body: BodySummary, section: Section): string[] | null {
+  if (section === "meetings") return body.meeting_years ?? null;
+  if (section === "finances") return body.finance_years ?? null;
+  return null;
 }
 
 /** The reason a single section is unavailable, or null when it is not. */

@@ -14,6 +14,12 @@
  * which is not a view, has nothing to restore, and disappears the moment a body
  * is picked.
  *
+ * **A year with no record is shown and not offered.** `/api/bodies` names the
+ * financial years each body has a record for, section by section. A year
+ * outside that list stays in the control, labelled "no record", and cannot be
+ * chosen. Offering it and then answering with an explanation put the reader
+ * through an interaction whose only outcome was a paragraph about absence.
+ *
  * **A missing section is stated, never hidden.** Panoor has no Sakarma record.
  * Dropping Meetings from its coverage list would leave a visitor to conclude
  * the body holds no meetings; naming the portal that published nothing is the
@@ -27,9 +33,11 @@ import {
   coverageOf,
   unavailableReason,
   useBodies,
+  yearsFor,
   type BodySummary,
   type Section,
 } from "@/hooks/useBodies";
+import { track } from "@/lib/telemetry";
 import YearControl, { formatYearLabel, type YearOption } from "./YearControl";
 
 interface BodySelectorProps {
@@ -96,14 +104,28 @@ export default function BodySelector({ section }: BodySelectorProps) {
     ? data.bodies.filter((body) => body.district_name === district)
     : [];
 
+  // Which years this body has a record for in this section. Null means the
+  // question does not apply — no body chosen, or a section with no per-body
+  // year list — and every year is then offered.
+  const recorded = selected ? yearsFor(selected, section) : null;
+  const hasRecord = recorded === null ? null : new Set(recorded);
+
   const yearOptions: YearOption[] =
     section === "elections"
       ? data.cycles.map((cycle) => ({ value: String(cycle), label: String(cycle) }))
-      : data.financial_years.map((year) => ({
-          value: year.year_label,
-          label: formatYearLabel(year.year_label),
-          note: year.is_complete ? undefined : "in progress",
-        }));
+      : data.financial_years.map((year) => {
+          const unavailable = hasRecord !== null && !hasRecord.has(year.year_label);
+          return {
+            value: year.year_label,
+            label: formatYearLabel(year.year_label),
+            unavailable,
+            note: unavailable
+              ? "no record"
+              : year.is_complete
+                ? undefined
+                : "in progress",
+          };
+        });
 
   const chooseDistrict = (value: string) => {
     setPendingDistrict(value);
@@ -118,13 +140,35 @@ export default function BodySelector({ section }: BodySelectorProps) {
       navigate(sectionPath(section));
       return;
     }
-    // The period survives a change of body: years and cycles are the same set
-    // for every body, so re-picking one would be an interaction that bought
-    // the reader nothing.
+    const body = data.bodies.find((b) => b.lb_code === value);
+    if (body) {
+      track({
+        name: "body_opened",
+        lb_code: body.lb_code,
+        lb_type: body.lb_type,
+        district: body.district_name,
+        section,
+      });
+    }
+    // The period survives a change of body: a year is not a property of the
+    // body, so re-picking one would be an interaction that bought the reader
+    // nothing. A year the new body has no record for is disabled in the
+    // control below and answered in one sentence by the page.
     navigate(sectionPath(section, value, period));
   };
 
   const choosePeriod = (value: string) => {
+    // Only a real change. The control is populated from the URL on every
+    // render, and counting that as a choice would report a year change for
+    // every page load of a pasted link.
+    if (value !== period) {
+      track({
+        name: "year_changed",
+        section,
+        from: period === "" ? null : period,
+        to: value === "" ? null : value,
+      });
+    }
     navigate(sectionPath(section, lbCode, value));
   };
 

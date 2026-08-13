@@ -169,9 +169,8 @@ describe("attribution", () => {
     );
 
     const footer = screen.getByRole("contentinfo");
-    expect(footer).toHaveTextContent(
-      "Gram Sambandh is built by Abishek Choutagunta and Tushar Anand.",
-    );
+    expect(footer).toHaveTextContent("Abishek Choutagunta");
+    expect(footer).toHaveTextContent("Tushar Anand");
 
     // The fellowship proposal describes an arrangement being applied for. None
     // of these built this site, and a name in a footer reads as an endorsement.
@@ -196,15 +195,14 @@ describe("attribution", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("carries the OpenStreetMap attribution the licence requires", () => {
-    render(
-      <MemoryRouter>
-        <SiteFooter />
-      </MemoryRouter>,
-    );
+  // The ODbL attribution sits with the sources on the home page rather than in
+  // the footer, where a reader deciding whether to trust a boundary will see it.
+  // The layer cards carry it a second time, next to each download.
+  it("carries the OpenStreetMap attribution the licence requires", async () => {
+    renderHome();
 
-    expect(screen.getByRole("contentinfo")).toHaveTextContent(
-      "© OpenStreetMap contributors",
-    );
+    expect(
+      await screen.findByText(/OpenStreetMap contributors/),
+    ).toBeInTheDocument();
   });
 });

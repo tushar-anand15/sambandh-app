@@ -59,10 +59,13 @@ async def test_first_and_last_meeting_bound_the_list(client, chalakudy):
     assert payload["meeting_rows"][-1]["meeting_date"] == payload["last_meeting"]
 
 
-async def test_the_unparsed_record_is_stated_rather_than_implied(client, chalakudy):
+async def test_the_scope_note_says_what_is_served_and_what_is_not(client, chalakudy):
     payload = (await client.get(f"/api/meetings/{chalakudy}/2023-2024")).json()
 
-    assert "not yet parsed" in payload["scope_note"]
+    assert "decision register and minutes" in payload["scope_note"]
+    assert "attachments are named in the manifest and are not served" in (
+        payload["scope_note"].lower()
+    )
 
 
 async def test_mattannur_meetings_are_ordinary(client, mattannur):
@@ -110,7 +113,9 @@ async def test_a_covered_body_in_a_year_before_its_record_starts(client):
     assert response.status_code == 200
     assert payload["available"] is False
     assert payload["reason_code"] == "no_record_for_year"
-    assert "2023-2024" in payload["reason"]
+    # One sentence. The year control no longer offers this combination, so the
+    # long explanation this state used to carry has nothing left to do.
+    assert payload["reason"] == "Sakarma holds no meeting record for 2016-2017."
 
 
 async def test_the_two_empty_cases_are_distinguishable(client):

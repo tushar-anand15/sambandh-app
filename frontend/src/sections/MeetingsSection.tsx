@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 
 import BodySelector from "@/components/select/BodySelector";
@@ -5,7 +6,10 @@ import CoverageNote from "@/components/meetings/CoverageNote";
 import MeetingCounts from "@/components/meetings/MeetingCounts";
 import MeetingList from "@/components/meetings/MeetingList";
 import MeetingsUnavailable from "@/components/meetings/MeetingsUnavailable";
+import RegisterDrawer from "@/components/meetings/RegisterDrawer";
 import ScopeNote from "@/components/meetings/ScopeNote";
+import { formatDate, type DocumentKind, type MeetingRow } from "@/components/meetings/payload";
+import type { RegisterRequest } from "@/components/meetings/useRegister";
 import { useMeetingsYear } from "@/components/meetings/useMeetingsYear";
 
 /**
@@ -18,15 +22,32 @@ import { useMeetingsYear } from "@/components/meetings/useMeetingsYear";
  * cheap version of this page treats the last three as an empty list, which
  * publishes the claim that the local body did not meet.
  *
- * Resolutions are the other half of the register and are not in this release.
- * The scope note says so on every state of the page, not only where figures
- * appear.
+ * What was decided is the other half of the register, and it is here: each row
+ * of the list opens the decision register or the minutes Sakarma published for
+ * that meeting, in a panel. The documents are fetched one at a time — a
+ * body-year runs to a few hundred meetings and each file is 100 to 400 KB.
  */
 export default function MeetingsSection() {
   const params = useParams();
   const lbCode = params.lb ?? "";
   const yearLabel = params.year ?? "";
   const state = useMeetingsYear(lbCode, yearLabel);
+
+  // Which document is open, and the words naming it. Held here rather than in
+  // the list so closing the panel does not re-render the table.
+  const [open, setOpen] = useState<{ request: RegisterRequest; label: string } | null>(
+    null,
+  );
+
+  const openDocument = (row: MeetingRow, kind: DocumentKind) => {
+    const date = formatDate(row.meeting_date);
+    setOpen({
+      request: { meetingId: row.meeting_id, kind },
+      label: [date, row.meeting_no ? `meeting ${row.meeting_no}` : null]
+        .filter(Boolean)
+        .join(", "),
+    });
+  };
 
   return (
     <div className="shell-container section-page">
@@ -70,9 +91,15 @@ export default function MeetingsSection() {
         <>
           <MeetingCounts payload={state.payload} />
           <CoverageNote />
-          <MeetingList payload={state.payload} />
+          <MeetingList payload={state.payload} onOpen={openDocument} />
         </>
       ) : null}
+
+      <RegisterDrawer
+        request={open?.request ?? null}
+        label={open?.label ?? ""}
+        onClose={() => setOpen(null)}
+      />
     </div>
   );
 }

@@ -89,11 +89,14 @@ describe("a body-year with meetings", () => {
     ).toBeInTheDocument();
   });
 
-  it("says the decision register is not published in this release", async () => {
+  it("says what the section serves and what it does not", async () => {
     renderAt("/meetings/M08032/2023-2024");
 
     expect(await screen.findByTestId("scope-note")).toHaveTextContent(
-      /decision registers and meeting attachments are published but not yet parsed/,
+      "Sakarma publishes a decision register and minutes for 420,561 of the 443,235 meetings in the manifest.",
+    );
+    expect(screen.getByTestId("scope-note")).toHaveTextContent(
+      /attachments are named in the manifest and are not served here/,
     );
   });
 
@@ -160,12 +163,10 @@ describe("a year the portal holds no record for", () => {
     renderAt("/meetings/M07025/2016-2017");
 
     const reason = await screen.findByTestId("unavailable-reason");
-    expect(reason).toHaveTextContent(
-      "Sakarma holds no meeting record for 2016–17. This body's record runs from 2023–24 to 2025–26.",
-    );
-    expect(
-      screen.getByText(/does not report that Aluva Municipality held no meetings/),
-    ).toBeInTheDocument();
+    // One sentence. The year control does not offer 2016-17 for this body, so
+    // the three paragraphs this page used to print have nothing left to argue.
+    expect(reason).toHaveTextContent("Sakarma holds no meeting record for 2016–17.");
+    expect(reason.textContent!.split(".").filter((p) => p.trim()).length).toBe(1);
 
     // Nothing that could be read as a count of meetings held.
     expect(screen.queryByTestId("meetings-total")).not.toBeInTheDocument();
@@ -173,12 +174,11 @@ describe("a year the portal holds no record for", () => {
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
-  it("explains that Sakarma's coverage grows year on year", async () => {
+  it("does not restate the coverage argument the year control now settles", async () => {
     renderAt("/meetings/M07025/2016-2017");
 
-    expect(await screen.findByTestId("coverage-note")).toHaveTextContent(
-      /8,989 meetings across 545 local bodies in 2016–17/,
-    );
+    await screen.findByTestId("unavailable-reason");
+    expect(screen.queryByTestId("coverage-note")).not.toBeInTheDocument();
   });
 });
 

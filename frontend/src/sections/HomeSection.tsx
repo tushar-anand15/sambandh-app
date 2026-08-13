@@ -13,6 +13,7 @@
  * ones are in the table and in the CSV downloads each section offers.
  */
 
+import { Link } from "react-router-dom";
 import CoverageTable from "@/components/home/CoverageTable";
 
 import styles from "@/components/home/home.module.css";
@@ -87,6 +88,56 @@ export default function HomeSection() {
         are the people present or absent at the assembly that plans the
         spending, and their access to information about their own local
         government has been opaque.
+      </p>
+
+      <h2>Where the records come from</h2>
+      <p>
+        Five sources, all of them public. This site copies them, joins them on
+        one identifier for every local body, and publishes the result. It adds
+        no figure of its own.
+      </p>
+      <ul className={styles.sources}>
+        <li>
+          <a href="https://plan.lsgkerala.gov.in" target="_blank" rel="noopener noreferrer">
+            Sulekha
+          </a>
+          , the Kerala LSGD plan monitoring portal &mdash; the projects a local
+          body formulated and what it spent
+        </li>
+        <li>
+          <a href="https://meeting.lsgkerala.gov.in" target="_blank" rel="noopener noreferrer">
+            Sakarma
+          </a>
+          , the Kerala LSGD meeting portal &mdash; when each council met and
+          what it recorded
+        </li>
+        <li>
+          <a href="https://www.sec.kerala.gov.in" target="_blank" rel="noopener noreferrer">
+            Kerala State Election Commission
+          </a>{" "}
+          &mdash; candidates and results for four cycles
+        </li>
+        <li>
+          <a
+            href="https://github.com/opendatakerala/lsg-kerala-data"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            opendatakerala
+          </a>{" "}
+          &mdash; local body boundaries for 2015 and 2020
+        </li>
+        <li>
+          <a href="https://wardmap.ksmart.live" target="_blank" rel="noopener noreferrer">
+            KSMART ward maps
+          </a>
+          , Government of Kerala &mdash; ward boundaries for 2025
+        </li>
+      </ul>
+      <p>
+        Boundary layers for 2015 and 2020 are &copy; OpenStreetMap contributors,
+        redistributed by opendatakerala under the Open Database License 1.0.{" "}
+        <Link to="/method">How the data was built</Link>.
       </p>
     </div>
   );

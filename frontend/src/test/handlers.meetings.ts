@@ -23,16 +23,20 @@ import { http, HttpResponse } from "msw";
 
 import type {
   BodyBlock,
+  DocumentKind,
   MeetingRow,
   MeetingsMissing,
   MeetingsYear,
+  RegisterMissing,
+  RegisterDocument,
 } from "@/components/meetings/payload";
-import { bodies, knownCode, notFound, provenance } from "./handlers";
+import { bodies, cycles, districts, financialYears, knownCode, notFound, provenance } from "./handlers";
 
 /** `backend/app/routers/meetings.py`, verbatim. */
 export const SCOPE_NOTE =
-  "Sakarma's decision registers and meeting attachments are published but not " +
-  "yet parsed, so this page shows meeting metadata only.";
+  "Sakarma publishes a decision register and minutes for 420,561 of the " +
+  "443,235 meetings in the manifest. Both open from the list below. PDF " +
+  "attachments are named in the manifest and are not served here.";
 
 export const NOT_COVERED_REASON = "Sakarma holds no meeting record for this body.";
 
@@ -40,6 +44,23 @@ const meetingsProvenance = { ...provenance, source: "Sakarma meeting manifest" }
 
 /** The open year. Everything else in the fixture set is closed. */
 const OPEN_YEAR = "2025-2026";
+
+/**
+ * The rows as the fixture holds them, with the two fields the endpoint adds
+ * from `meetings.artifact`. Every meeting in this slice published both
+ * documents except the last, which published neither — the case the list has
+ * to render as an absence rather than a button.
+ */
+function withDocuments(rows: Omit<MeetingRow, "meeting_id" | "documents">[]): MeetingRow[] {
+  return rows.map((row, index) => ({
+    ...row,
+    meeting_id: 9000 + index,
+    documents:
+      rows.length > 1 && index === rows.length - 1
+        ? []
+        : (["dr", "minutes"] as DocumentKind[]),
+  }));
+}
 
 function bodyBlock(lbCode: string): BodyBlock {
   const body = bodies.find((b) => b.lb_code === lbCode)!;
@@ -53,7 +74,7 @@ function bodyBlock(lbCode: string): BodyBlock {
 }
 
 /** Chalakudy Municipality, 2023-24. Sixty-four rows, in the register's order. */
-export const chalakudyMeetingRows: MeetingRow[] = [
+export const chalakudyMeetingRows: MeetingRow[] = withDocuments([
   {
     meeting_date: "2023-10-12",
     meeting_no: "2",
@@ -566,10 +587,10 @@ export const chalakudyMeetingRows: MeetingRow[] = [
     venue: "സ്റ്റാന്റിംഗ് കമ്മിറ്റി ചെയർമാന്റെ ചേംബർ",
     category_code: "2",
   },
-];
+]);
 
 /** Muttar Grama Panchayat, 2015-16: the earliest year Sakarma holds anything for. */
-export const muttarMeetingRows: MeetingRow[] = [
+export const muttarMeetingRows: MeetingRow[] = withDocuments([
   {
     meeting_date: "2016-01-27",
     meeting_no: "2",
@@ -578,7 +599,7 @@ export const muttarMeetingRows: MeetingRow[] = [
     venue: "പഞ്ചായത്ത് കമ്മിറ്റി ഹാള്‍",
     category_code: "43",
   },
-];
+]);
 
 /**
  * The first year each covered body has a record for. A year before it is
@@ -640,7 +661,111 @@ function missing(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Which years each body has a record for
+// ---------------------------------------------------------------------------
+
+/**
+ * `/api/bodies` with the per-body year lists the year control reads.
+ *
+ * The shared handler in `handlers.ts` predates them, and a body with no list
+ * falls back to offering every year — which is the old behaviour, and not what
+ * these tests are about. A test that cares about year availability installs
+ * this with `server.use`.
+ *
+ * The lists are the fixture slice's own: Aluva's meeting record starts in
+ * 2023-24, Muttar's in 2015-16, and Panoor has none.
+ */
+export const MEETING_YEARS: Record<string, string[]> = {
+  M08032: ["2016-2017", "2023-2024", "2024-2025", "2025-2026"],
+  M13057: ["2023-2024", "2024-2025"],
+  B03024: ["2023-2024"],
+  M07025: ["2023-2024", "2024-2025", "2025-2026"],
+  G04036: ["2015-2016", "2023-2024"],
+  G13064: [],
+  D12001: ["2023-2024"],
+};
+
+export const bodiesWithYears = http.get("*/api/bodies", () =>
+  HttpResponse.json({
+    bodies: bodies.map((body) => ({
+      ...body,
+      meeting_years: MEETING_YEARS[body.lb_code] ?? [],
+      finance_years: financialYears.map((y) => y.year_label),
+      years_with_meetings: (MEETING_YEARS[body.lb_code] ?? []).length,
+      years_with_finance: financialYears.length,
+    })),
+    count: bodies.length,
+    districts,
+    financial_years: financialYears,
+    cycles,
+    provenance,
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// The documents themselves
+// ---------------------------------------------------------------------------
+
+/** A fragment shaped like the one `backend/app/artifacts.py` returns. */
+export const REGISTER_HTML =
+  "<table><tr><td>1</td><td>അജണ്ട :- </td></tr>" +
+  "<tr><td colspan=\"2\"><p>Tender awarded at 88,500 rupees.</p></td></tr></table>";
+
+function registerDocument(meetingId: number, kind: DocumentKind): RegisterDocument {
+  return {
+    meeting_id: meetingId,
+    kind,
+    kind_label: kind === "dr" ? "Decision register" : "Minutes",
+    year_label: "2023-2024",
+    meeting_date: "2023-10-12",
+    meeting_no: "2",
+    meeting_type: "ഭരണസമിതി യോഗം",
+    meeting_nature: "സാധാരണ യോഗം",
+    body: bodyBlock("M08032"),
+    available: true,
+    reason_code: null,
+    html: REGISTER_HTML,
+    source_path: `8/2/124/2023/245/${meetingId}/${kind === "dr" ? "dr" : "minutes"}.html`,
+    byte_size: 448767,
+    provenance: meetingsProvenance,
+  };
+}
+
+export function registerMissing(
+  meetingId: number,
+  kind: DocumentKind,
+): RegisterMissing {
+  const label = kind === "dr" ? "Decision register" : "Minutes";
+  return {
+    meeting_id: meetingId,
+    kind,
+    kind_label: label,
+    body: bodyBlock("M08032"),
+    available: false,
+    reason_code: "no_document_published",
+    reason: `Sakarma published no ${label.toLowerCase()} for this meeting.`,
+    provenance: meetingsProvenance,
+  };
+}
+
 export const handlers = [
+  http.get("*/api/meetings/register/:meetingId/:kind", ({ params }) => {
+    const { meetingId, kind } = params as { meetingId: string; kind: string };
+    if (kind !== "dr" && kind !== "minutes") {
+      return HttpResponse.json(
+        { detail: `${kind} is not a document type. Ask for dr or minutes.` },
+        { status: 422 },
+      );
+    }
+    const id = Number(meetingId);
+    // The row the fixture gives no documents to. Asking for one anyway is what
+    // a stale page would do, and the endpoint answers it rather than 404ing.
+    const last = chalakudyMeetingRows[chalakudyMeetingRows.length - 1];
+    if (id === last.meeting_id) return HttpResponse.json(registerMissing(id, kind));
+    return HttpResponse.json(registerDocument(id, kind));
+  }),
+
   http.get("*/api/meetings/:lb/:year", ({ params }) => {
     const { lb, year } = params as { lb: string; year: string };
     if (!knownCode(lb)) return notFound(lb);
@@ -657,8 +782,7 @@ export const handlers = [
           lb,
           year,
           "no_record_for_year",
-          `Sakarma holds no meeting record for ${year}. This body's record runs ` +
-            `from ${starts} to ${OPEN_YEAR}.`,
+          `Sakarma holds no meeting record for ${year}.`,
         ),
       );
     }

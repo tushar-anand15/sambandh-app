@@ -22,6 +22,13 @@ export interface YearOption {
    * beside a closed year without saying so.
    */
   note?: string;
+  /**
+   * The selected body has no record for this year, so choosing it could only
+   * produce a page explaining an absence. The option stays in the list and
+   * stays unselectable: removing it would leave a reader unable to see that
+   * the year exists and that this body has nothing in it.
+   */
+  unavailable?: boolean;
 }
 
 interface YearControlProps {
@@ -71,7 +78,11 @@ export default function YearControl({
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option
+            key={option.value}
+            value={option.value}
+            disabled={option.unavailable}
+          >
             {option.note ? `${option.label} (${option.note})` : option.label}
           </option>
         ))}

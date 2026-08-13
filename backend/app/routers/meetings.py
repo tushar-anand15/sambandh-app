@@ -1,20 +1,32 @@
-"""Meetings — counts by category and by nature, and the meeting list.
+"""Meetings — counts by category and by nature, the meeting list, and the
+documents each meeting published.
 
-Manifest metadata only. Sakarma publishes a decision register (``dr.html``) and
-attachments for each meeting; neither is parsed, so nothing here reports agenda
-items, decisions or funding. The page says so; this endpoint carries the note
-so the page does not have to hardcode it.
+Sakarma publishes a decision register (``dr.html``) and minutes
+(``minutes.html``) per meeting, in ``gs://sulekhasakarma-meetings``. Both are
+already readable documents, so this router serves them rather than parsing
+them: ``/register/{meeting_id}/{kind}`` fetches the object and returns it
+sanitised, and ``app/artifacts.py`` holds that rewrite.
 
-The distinction this endpoint exists to preserve: Sakarma's coverage grows from
-8,989 meetings across 545 bodies in 2016-17 to 91,478 across 1,197 in 2024-25.
-A body-year with no row is almost always a thin record, not a council that
-never met, and the payload has to let the page say which.
+The distinction the year endpoint exists to preserve: Sakarma's coverage grows
+from 8,989 meetings across 545 bodies in 2016-17 to 91,478 across 1,197 in
+2024-25. A body-year with no row is almost always a thin record, not a council
+that never met. ``/api/bodies`` now names which years each body has, so the
+year control can stop offering the empty combinations, and this endpoint
+answers the few that remain in one sentence.
 """
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Path, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 
+from ..artifacts import (
+    KIND_LABEL,
+    KINDS,
+    ArtifactUnavailable,
+    download,
+    is_empty,
+    sanitise,
+)
 from ..database import get_pool
 from ..public import (
     NO_RECORD_FOR_YEAR,
@@ -35,35 +47,50 @@ router = APIRouter(prefix="/api/meetings", tags=["public"], dependencies=[Depend
 
 NOT_COVERED_REASON = "Sakarma holds no meeting record for this body."
 
+# What the section holds and what it does not, counted from the master
+# database. Attachments are the one part of the manifest still unserved.
 SCOPE_NOTE = (
-    "Sakarma's decision registers and meeting attachments are published but not "
-    "yet parsed, so this page shows meeting metadata only."
+    "Sakarma publishes a decision register and minutes for 420,561 of the "
+    "443,235 meetings in the manifest. Both open from the list below. PDF "
+    "attachments are named in the manifest and are not served here."
 )
 
+# A document named in the manifest that the bucket has nothing for.
+NO_DOCUMENT = "no_document_published"
 
-def _no_record_reason(year_label: str, first: str | None, last: str | None) -> str:
-    if first and last:
-        return (
-            f"Sakarma holds no meeting record for {year_label}. "
-            f"This body's record runs from {first} to {last}."
-        )
+
+def _no_record_reason(year_label: str) -> str:
     return f"Sakarma holds no meeting record for {year_label}."
 
 
 async def meeting_rows(conn, lb_key: int, year_label: str) -> list[dict[str, Any]]:
+    """The register's rows, each naming the documents it published.
+
+    The artifact join is one grouped scan over ``artifact_meeting_id_...idx``
+    for the body-year's meetings, so the list costs one query however many
+    meetings it holds.
+    """
     rows = await conn.fetch(
         """
-        SELECT meeting_date, meeting_no_label, meeting_type, meeting_nature,
-               meeting_venue, category
-        FROM meetings.meeting
-        WHERE lb_key = $1 AND year_label = $2
-        ORDER BY meeting_date, meeting_id
+        SELECT m.meeting_id, m.meeting_date, m.meeting_no_label, m.meeting_type,
+               m.meeting_nature, m.meeting_venue, m.category,
+               coalesce(
+                   array_agg(DISTINCT a.artifact_type)
+                       FILTER (WHERE a.artifact_type IS NOT NULL),
+                   '{}'
+               ) AS artifact_types
+        FROM meetings.meeting m
+        LEFT JOIN meetings.artifact a ON a.meeting_id = m.meeting_id
+        WHERE m.lb_key = $1 AND m.year_label = $2
+        GROUP BY m.meeting_id
+        ORDER BY m.meeting_date, m.meeting_id
         """,
         lb_key,
         year_label,
     )
     return [
         {
+            "meeting_id": r["meeting_id"],
             "meeting_date": r["meeting_date"].isoformat() if r["meeting_date"] else None,
             "meeting_no": r["meeting_no_label"],
             "meeting_type": r["meeting_type"],
@@ -71,6 +98,13 @@ async def meeting_rows(conn, lb_key: int, year_label: str) -> list[dict[str, Any
             # Null often enough to matter; the page renders an absence, not "—".
             "venue": r["meeting_venue"],
             "category_code": r["category"],
+            # The URL segments the register endpoint takes, for the documents
+            # this meeting actually has.
+            "documents": [
+                kind
+                for kind, artifact_type in KINDS.items()
+                if artifact_type in r["artifact_types"]
+            ],
         }
         for r in rows
     ]
@@ -95,15 +129,10 @@ async def year_payload(conn, body, year) -> dict[str, Any]:
     )
 
     if summary is None:
-        bounds = await conn.fetchrow(
-            "SELECT min(year_label) AS first, max(year_label) AS last "
-            "FROM meetings.lb_year_summary WHERE lb_key = $1",
-            body["lb_key"],
-        )
         return unavailable(
             "meetings",
             NO_RECORD_FOR_YEAR,
-            _no_record_reason(year["year_label"], bounds["first"], bounds["last"]),
+            _no_record_reason(year["year_label"]),
             **base,
         )
 
@@ -124,6 +153,116 @@ async def year_payload(conn, body, year) -> dict[str, Any]:
         "scope_note": SCOPE_NOTE,
         "provenance": provenance("meetings"),
     }
+
+
+# ---------------------------------------------------------------------------
+# The documents themselves
+# ---------------------------------------------------------------------------
+
+# Declared before ``/{lb_code}/{year_label}`` for readability only: the two
+# never collide, because a body-year is two path segments and this is three.
+@router.get("/register/{meeting_id}/{kind}")
+async def meeting_document(request: Request, meeting_id: int, kind: str):
+    """One meeting's decision register or minutes, sanitised.
+
+    The bytes are proxied rather than signed for. Signing needs a service
+    account with access to ``gs://sulekhasakarma-meetings``, and the rewrite in
+    ``app/artifacts.py`` has to run server-side whether or not one is available,
+    so a signed URL would move the same bytes through a second hop.
+    """
+    if kind not in KINDS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{kind} is not a document type. Ask for dr or minutes.",
+        )
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        meeting = await conn.fetchrow(
+            """
+            SELECT m.meeting_id, m.meeting_date, m.meeting_no_label, m.meeting_type,
+                   m.meeting_nature, m.year_label, lb.lb_code, lb.lb_name_en,
+                   lb.lb_name_ml, lb.district_name, lb.lb_type
+            FROM meetings.meeting m
+            JOIN core.local_body lb USING (lb_key)
+            WHERE m.meeting_id = $1
+            """,
+            meeting_id,
+        )
+        if meeting is None:
+            raise HTTPException(
+                status_code=404, detail=f"No meeting with id {meeting_id}"
+            )
+
+        artifact = await conn.fetchrow(
+            "SELECT gcs_path, byte_size FROM meetings.artifact "
+            "WHERE meeting_id = $1 AND artifact_type = $2 "
+            "ORDER BY artifact_id LIMIT 1",
+            meeting_id,
+            KINDS[kind],
+        )
+
+    head = {
+        "meeting_id": meeting_id,
+        "kind": kind,
+        "kind_label": KIND_LABEL[kind],
+        "year_label": meeting["year_label"],
+        "meeting_date": meeting["meeting_date"].isoformat()
+        if meeting["meeting_date"]
+        else None,
+        "meeting_no": meeting["meeting_no_label"],
+        "meeting_type": meeting["meeting_type"],
+        "meeting_nature": meeting["meeting_nature"],
+        "body": body_block(meeting),
+    }
+
+    if artifact is None:
+        return public_json(
+            request,
+            unavailable(
+                "meetings",
+                NO_DOCUMENT,
+                f"Sakarma published no {KIND_LABEL[kind].lower()} for this meeting.",
+                **head,
+            ),
+        )
+
+    try:
+        raw = download(artifact["gcs_path"])
+    except ArtifactUnavailable as err:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"The {KIND_LABEL[kind].lower()} is named in the manifest at "
+                f"{artifact['gcs_path']} and could not be read from the bucket: {err}"
+            ),
+        ) from err
+
+    html = sanitise(raw)
+    if is_empty(html):
+        return public_json(
+            request,
+            unavailable(
+                "meetings",
+                NO_DOCUMENT,
+                f"The {KIND_LABEL[kind].lower()} Sakarma published for this "
+                "meeting is an empty document.",
+                **head,
+            ),
+        )
+
+    return public_json(
+        request,
+        {
+            **head,
+            "available": True,
+            "reason_code": None,
+            "html": html,
+            "source_path": artifact["gcs_path"],
+            "byte_size": as_number(artifact["byte_size"]),
+            "provenance": provenance("meetings"),
+        },
+    )
 
 
 @router.get("/{lb_code}/{year_label}")

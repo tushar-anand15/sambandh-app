@@ -8,6 +8,11 @@
  *
  * A venue the register left blank is named as such. An empty cell would read as
  * a rendering fault, and a dash would read as a value.
+ *
+ * The last column opens what the council published. Sakarma holds a decision
+ * register and minutes for 420,561 of the 443,235 meetings in the manifest; a
+ * meeting it holds neither for says so in the cell rather than showing a button
+ * that would open an empty panel.
  */
 
 import SourceLine from "@/components/shell/SourceLine";
@@ -16,14 +21,19 @@ import { formatYearLabel } from "@/components/select/YearControl";
 import styles from "./meetings.module.css";
 import {
   categoryOf,
+  DOCUMENT_LABEL,
   formatCount,
   formatDate,
   natureOf,
+  type DocumentKind,
   type MeetingRow,
   type MeetingsYear,
 } from "./payload";
 
 const NOT_RECORDED = "Not recorded in the register";
+
+/** Sakarma published neither document for this meeting. */
+const NO_DOCUMENT = "None published";
 
 function Term({ source, gloss }: { source: string; gloss: string }) {
   return (
@@ -34,7 +44,12 @@ function Term({ source, gloss }: { source: string; gloss: string }) {
   );
 }
 
-function Row({ row }: { row: MeetingRow }) {
+interface RowProps {
+  row: MeetingRow;
+  onOpen: (row: MeetingRow, kind: DocumentKind) => void;
+}
+
+function Row({ row, onOpen }: RowProps) {
   const date = formatDate(row.meeting_date);
 
   return (
@@ -62,11 +77,35 @@ function Row({ row }: { row: MeetingRow }) {
           <span className={styles.absent}>{NOT_RECORDED}</span>
         )}
       </td>
+      <td>
+        {row.documents.length === 0 ? (
+          <span className={styles.absent}>{NO_DOCUMENT}</span>
+        ) : (
+          <span className={styles.documents}>
+            {row.documents.map((kind) => (
+              <button
+                key={kind}
+                type="button"
+                className={styles.documentButton}
+                onClick={() => onOpen(row, kind)}
+              >
+                Read the {DOCUMENT_LABEL[kind].toLowerCase()}
+              </button>
+            ))}
+          </span>
+        )}
+      </td>
     </tr>
   );
 }
 
-export default function MeetingList({ payload }: { payload: MeetingsYear }) {
+interface MeetingListProps {
+  payload: MeetingsYear;
+  /** Opens the panel holding one meeting's own document. */
+  onOpen: (row: MeetingRow, kind: DocumentKind) => void;
+}
+
+export default function MeetingList({ payload, onOpen }: MeetingListProps) {
   const year = formatYearLabel(payload.year_label);
   const first = formatDate(payload.first_meeting);
   const last = formatDate(payload.last_meeting);
@@ -90,11 +129,16 @@ export default function MeetingList({ payload }: { payload: MeetingsYear }) {
               <th scope="col">Nature</th>
               <th scope="col">Venue</th>
               <th scope="col">Number in the register</th>
+              <th scope="col">Published document</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <Row key={`${row.meeting_date}-${row.meeting_no}-${index}`} row={row} />
+              <Row
+                key={`${row.meeting_id}-${index}`}
+                row={row}
+                onOpen={onOpen}
+              />
             ))}
           </tbody>
         </table>

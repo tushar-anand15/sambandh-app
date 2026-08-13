@@ -76,3 +76,44 @@ async def test_carries_its_provenance(client):
 
     assert payload["provenance"]["dataset"]
     assert payload["provenance"]["build_date"]
+
+
+# ---------------------------------------------------------------------------
+# Which years, not how many
+# ---------------------------------------------------------------------------
+
+
+async def test_each_body_names_the_years_it_has_a_record_for(client):
+    """The year control is built from these lists, so a body that has nothing
+    for 2015-16 must not be offered 2015-16."""
+    payload = (await client.get("/api/bodies")).json()
+    by_code = {b["lb_code"]: b for b in payload["bodies"]}
+
+    # Aluva's meeting record starts in 2023-24; Muttar's in 2015-16.
+    assert by_code["M07025"]["meeting_years"][0] == "2023-2024"
+    assert by_code["G04036"]["meeting_years"][0] == "2015-2016"
+    assert "2016-2017" not in by_code["M07025"]["meeting_years"]
+
+    # Panoor has no Sakarma record at all, so it has no meeting years.
+    assert by_code["G13064"]["meeting_years"] == []
+    assert by_code["G13064"]["has_meetings"] is False
+
+
+async def test_the_year_lists_are_sorted_and_hold_real_financial_years(client):
+    payload = (await client.get("/api/bodies")).json()
+    known = {y["year_label"] for y in payload["financial_years"]}
+
+    for body in payload["bodies"]:
+        for field in ("meeting_years", "finance_years"):
+            years = body[field]
+            assert years == sorted(years), f"{body['lb_code']} {field} is unsorted"
+            assert set(years) <= known, f"{body['lb_code']} {field} has an unknown year"
+
+
+async def test_the_counts_are_the_lengths_of_the_lists(client):
+    """Both are published, so a page reading either reads the same fact."""
+    payload = (await client.get("/api/bodies")).json()
+
+    for body in payload["bodies"]:
+        assert body["years_with_meetings"] == len(body["meeting_years"])
+        assert body["years_with_finance"] == len(body["finance_years"])

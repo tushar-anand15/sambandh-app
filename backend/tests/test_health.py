@@ -202,9 +202,10 @@ async def test_the_incomplete_financial_year_is_flagged(db):
 async def test_a_table_outside_the_slice_fails_loudly(db):
     """Absent tables must raise, not return nothing.
 
-    ``meetings.artifact`` is real in the master database and deliberately left
-    out here. A query against it should be a missing-relation error a developer
-    can act on, never an empty result that reads as "no attachments".
+    ``sakarma.scrape_run`` is real in the master database and deliberately left
+    out here, along with the rest of the crawler's own schema. A query against
+    it should be a missing-relation error a developer can act on, never an
+    empty result that reads as "the crawl never ran".
     """
     with pytest.raises(asyncpg.UndefinedTableError):
-        await db.fetch("SELECT * FROM meetings.artifact LIMIT 1")
+        await db.fetch("SELECT * FROM sakarma.scrape_run LIMIT 1")

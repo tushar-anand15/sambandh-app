@@ -69,6 +69,12 @@ TABLES: list[tuple[str, str]] = [
     ("finance.lb_year_summary", "lb_key = ANY($1)"),
     ("finance.lb_year_continuity", "lb_key = ANY($1)"),
     ("meetings.meeting", "lb_key = ANY($1)"),
+    # The documents each meeting published. The Meetings page serves the two
+    # HTML ones, so a slice without them could not test the endpoint that does.
+    (
+        "meetings.artifact",
+        "meeting_id IN (SELECT meeting_id FROM meetings.meeting WHERE lb_key = ANY($1))",
+    ),
     ("meetings.lb_year_summary", "lb_key = ANY($1)"),
     ("elections.candidate", "lb_key = ANY($1)"),
     ("elections.ward", "lb_key = ANY($1)"),
@@ -168,9 +174,9 @@ async def build() -> str:
             out.append(f"--   {code} (lb_key {by_code[code]}) — {why}")
         out += [
             "--",
-            "-- meetings.artifact, src_* and sakarma are deliberately absent: nothing in",
-            "-- the public site reads them, and a test that queries one should fail with a",
-            "-- missing-relation error rather than an empty result.",
+            "-- src_* and sakarma are deliberately absent: nothing in the public site reads",
+            "-- them, and a test that queries one should fail with a missing-relation error",
+            "-- rather than an empty result.",
             "",
             "SET client_min_messages = warning;",
             "",

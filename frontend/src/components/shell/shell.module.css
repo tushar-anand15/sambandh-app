@@ -12,33 +12,73 @@
   background: var(--surface);
 }
 
+
+
+
+
+
+
+/* Two columns: what this is on the left, who made it on the right. Collapses
+   to one on a narrow screen, where two columns of four lines each read worse
+   than one of eight. */
 .footerInner {
-  padding-block: var(--s5) var(--s7);
-  font-size: var(--t2);
-  line-height: var(--lh-body);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--s6);
+  padding-block: var(--s6) var(--s7);
+}
+
+.footerCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.footerHeading {
+  font-family: var(--sans);
+  font-size: var(--t1);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0;
+  max-width: none;
+}
+
+.footerText {
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
   color: var(--ink-2);
+  margin: 0;
+  max-width: 42ch;
 }
 
-.footerInner p {
-  max-width: var(--measure);
-  margin-block: 0 var(--s3);
-}
-
-.footerInner p:last-child {
-  margin-block-end: 0;
-}
-
-.credit {
+.names {
+  font-size: var(--t4);
+  line-height: var(--lh-snug);
   color: var(--ink);
+  margin: 0;
 }
 
-.sources {
+.links {
   list-style: none;
+  margin: var(--s2) 0 0;
   padding: 0;
-  margin-block: var(--s3) 0;
-  max-width: var(--measure);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  font-size: var(--t2);
 }
 
-.sources li {
-  margin-block: var(--s1) 0;
+.links a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  stroke-width: 1.25;
 }

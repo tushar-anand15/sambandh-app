@@ -125,3 +125,42 @@
 .absent {
   color: var(--ink-3);
 }
+
+/* The last column of the meeting list: what the council published, as a way in
+   rather than a link out. Sakarma's own URLs are postbacks and cannot be
+   linked to, so these open the document in a panel on this page. */
+.documents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  align-items: flex-start;
+}
+
+.documentButton {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--accent);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rule-2);
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.documentButton:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* Above the document in the panel: whose meeting it was, and what was done to
+   the file before it was shown. */
+.registerHead {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  margin-block: 0 var(--s4);
+}

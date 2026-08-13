@@ -86,3 +86,22 @@
   max-width: var(--measure);
   margin-block: var(--s4) 0;
 }
+
+/* The source list. Each line names the portal and what it supplies, because a
+   bare list of five government portals tells a reader nothing about which one
+   answers their question. */
+.sources {
+  list-style: none;
+  margin-block: var(--s4) 0;
+  padding: 0;
+  max-width: var(--measure);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  color: var(--ink-2);
+}
+
+.sources li {
+  border-left: 2px solid var(--rule);
+  padding-left: var(--s3);
+}

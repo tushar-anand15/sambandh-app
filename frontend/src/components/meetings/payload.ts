@@ -29,8 +29,13 @@ export interface BodyBlock {
   lb_type: string;
 }
 
+/** The two documents Sakarma publishes per meeting, by URL segment. */
+export type DocumentKind = "dr" | "minutes";
+
 /** One row of the register, exactly as `meetings.meeting` holds it. */
 export interface MeetingRow {
+  /** The key `/api/meetings/register/{meeting_id}/{kind}` takes. */
+  meeting_id: number;
   meeting_date: string | null;
   /** The register's own number for the meeting. Null on rows it left unnumbered. */
   meeting_no: string | null;
@@ -39,6 +44,11 @@ export interface MeetingRow {
   /** Null often enough to matter: the register leaves the venue blank. */
   venue: string | null;
   category_code: string | null;
+  /**
+   * Which documents this meeting published, of the two the site serves. Empty
+   * for the 22,674 meetings of 443,235 the crawl found neither for.
+   */
+  documents: DocumentKind[];
 }
 
 export interface MeetingsYear {
@@ -149,3 +159,54 @@ export function shareOf(value: number, total: number): string {
 export function bodyLabel(body: BodyBlock): string {
   return `${body.lb_name_en} ${body.lb_type}`;
 }
+
+// ---------------------------------------------------------------------------
+// One meeting's own document
+// ---------------------------------------------------------------------------
+
+/**
+ * The `/api/meetings/register/{meeting_id}/{kind}` payload.
+ *
+ * `html` is a fragment the API has already rewritten: `backend/app/artifacts.py`
+ * keeps a fixed list of tags, drops every attribute except colspan and rowspan,
+ * and discards the ASP.NET page and the Word paste around the document. It is
+ * put on the page with `dangerouslySetInnerHTML`, which is safe only because
+ * that rewrite happens server-side.
+ */
+export interface RegisterDocument {
+  meeting_id: number;
+  kind: DocumentKind;
+  /** "Decision register" or "Minutes". */
+  kind_label: string;
+  year_label: string;
+  meeting_date: string | null;
+  meeting_no: string | null;
+  meeting_type: string;
+  meeting_nature: string;
+  body: BodyBlock;
+  available: true;
+  reason_code: null;
+  html: string;
+  /** The object in `gs://sulekhasakarma-meetings` this was read from. */
+  source_path: string;
+  byte_size: number | null;
+  provenance: Provenance;
+}
+
+export interface RegisterMissing {
+  meeting_id: number;
+  kind: DocumentKind;
+  kind_label: string;
+  body: BodyBlock;
+  available: false;
+  reason_code: "no_document_published";
+  reason: string;
+  provenance: Provenance;
+}
+
+export type RegisterPayload = RegisterDocument | RegisterMissing;
+
+export const DOCUMENT_LABEL: Record<DocumentKind, string> = {
+  dr: "Decision register",
+  minutes: "Minutes",
+};
