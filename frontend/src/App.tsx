@@ -1,5 +1,4 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -7,10 +6,12 @@ import ChatbotPage from "@/pages/ChatbotPage";
 import ProtectedRoute from "@/components/dashboard/ProtectedRoute";
 import ElectionsSection from "@/sections/ElectionsSection";
 import FinancesSection from "@/sections/FinancesSection";
+import HomeSection from "@/sections/HomeSection";
 import MeetingsSection from "@/sections/MeetingsSection";
+import MethodSection from "@/sections/MethodSection";
 import Masthead from "@/components/shell/Masthead";
+import SiteFooter from "@/components/shell/SiteFooter";
 import TabBar from "@/components/shell/TabBar";
-import type { Section } from "@/hooks/useBodies";
 
 /**
  * The route tree.
@@ -31,6 +32,10 @@ import type { Section } from "@/hooks/useBodies";
  * the map already is, so `/maps` sends the reader there rather than 404ing a
  * link that was reasonable to guess.
  *
+ * `/method` has no tab either. It is linked from the home page and from the
+ * footer, which is where a reader goes after a figure surprises them, and a
+ * sixth tab would put a page about the build alongside four pages of data.
+ *
  * The shell is chrome, so it sits outside <Routes> and is not re-mounted on
  * navigation. There is no AnimatePresence: a page transition that fades in a
  * table of public spending buys nothing and delays the number.
@@ -43,7 +48,8 @@ export default function App() {
       <TabBar />
       <main>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<HomeSection />} />
+          <Route path="/method" element={<MethodSection />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
@@ -84,6 +90,7 @@ export default function App() {
           <Route path="/dashboard/*" element={<Navigate to="/ask" replace />} />
         </Routes>
       </main>
+      <SiteFooter />
     </>
   );
 }

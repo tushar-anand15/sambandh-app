@@ -102,7 +102,14 @@ async def list_documents(
 
 @router.get("/filters")
 async def get_filters(_current_user: dict = Depends(get_current_user)):
-    """Return distinct values for each filter dimension."""
+    """Distinct values for each filter dimension, and the index's own extent.
+
+    ``local_bodies`` and ``documents`` are read from the corpus rather than
+    declared, because the assistant page states its coverage in a banner and
+    restricts its body selector to what has been indexed. A hand-kept list would
+    outlive an ingest and offer a body the retrieval cannot answer for, which is
+    the one failure the scoping work exists to prevent.
+    """
     pool = await get_pool()
     async with pool.acquire() as conn:
         districts = await conn.fetch(
@@ -114,11 +121,32 @@ async def get_filters(_current_user: dict = Depends(get_current_user)):
         years = await conn.fetch(
             "SELECT DISTINCT year_label FROM documents WHERE year_label IS NOT NULL ORDER BY 1"
         )
+        local_bodies = await conn.fetch(
+            """
+            SELECT lb_name, min(lb_type) AS lb_type, min(district_name) AS district_name,
+                   count(*) AS documents
+            FROM documents
+            WHERE lb_name IS NOT NULL
+            GROUP BY lb_name
+            ORDER BY lb_name
+            """
+        )
+        total = await conn.fetchval("SELECT count(*) FROM documents")
 
     return {
         "districts": [r["district_name"] for r in districts],
         "lb_types": [r["lb_type"] for r in lb_types],
         "years": [r["year_label"] for r in years],
+        "local_bodies": [
+            {
+                "lb_name": r["lb_name"],
+                "lb_type": r["lb_type"],
+                "district_name": r["district_name"],
+                "documents": r["documents"],
+            }
+            for r in local_bodies
+        ],
+        "documents": total,
     }
 
 

@@ -1,5 +1,11 @@
 name: Deploy to Production
 
+# Until 13 August 2026 this workflow was the whole of CI: every push to main
+# ran `git pull && docker compose build && up -d` on the production VM, with no
+# test run in front of it. The `needs: test` below is the gate. The deploy job
+# does not start unless every job in test.yml passed on this same commit, and a
+# skipped or failed test job leaves the site serving the previous build.
+
 on:
   push:
     branches:
@@ -7,9 +13,15 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    # Same workflow the pull request ran, called as a job so it runs on this
+    # commit rather than being looked up after the fact.
+    uses: ./.github/workflows/test.yml
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Deploy to production server
         uses: appleboy/ssh-action@v1.0.3
@@ -19,15 +31,15 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
             cd ~/sambandh-app
-            
+
             # Pull latest code
             git pull origin main
-            
+
             # Rebuild and restart services
             docker compose build --no-cache
             docker compose up -d
-            
+
             # Clean up old images
             docker image prune -f
-            
-            echo "Deployment complete!"
+
+            echo "Deployment complete"

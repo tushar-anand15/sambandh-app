@@ -60,6 +60,10 @@ TABLES: list[tuple[str, str]] = [
     # Every financial year, unconditionally: fourteen rows, and the site's year
     # controls are meaningless without the full list.
     ("core.financial_year", "true"),
+    # One row, naming the dumps the master database was built from. The method
+    # page reads it, so a slice without it would let that page pass its tests
+    # while showing nothing.
+    ("core.build_manifest", "true"),
     ("core.lb_sulekha_year", "lb_key = ANY($1)"),
     ("finance.project", "lb_key = ANY($1)"),
     ("finance.lb_year_summary", "lb_key = ANY($1)"),

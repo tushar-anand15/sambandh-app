@@ -92,7 +92,11 @@ test.describe("public routes", () => {
     await page.goto("/elections");
     await expect(page.getByRole("heading", { name: "Elections" })).toBeVisible();
     // Cycles, not financial years — the same selector, a different period.
-    await expect(page.getByLabel("Election cycle")).toBeVisible();
+    // Scoped to the selector: the cycle slider under the map carries the same
+    // label, deliberately, and both being called "Election cycle" is correct.
+    await expect(
+      page.getByRole("region", { name: "Selection" }).getByLabel("Election cycle"),
+    ).toBeVisible();
   });
 
   test("/maps folds into elections rather than 404ing", async ({ page }) => {
@@ -120,7 +124,7 @@ test.describe("three interactions", () => {
 
     await page.getByLabel("District").selectOption("THRISSUR");
     await page.getByLabel("Local body").selectOption("M08032");
-    await page.getByLabel("Financial year").selectOption("2023-2024");
+    await page.getByLabel("Financial year", { exact: true }).selectOption("2023-2024");
 
     await expect(page).toHaveURL(/\/finances\/M08032\/2023-2024$/);
     // The page is populated in the sense this unit owns: all three selections
@@ -137,7 +141,9 @@ test.describe("three interactions", () => {
 
     await expect(page.getByLabel("District")).toHaveValue("THRISSUR");
     await expect(page.getByLabel("Local body")).toHaveValue("M08032");
-    await expect(page.getByLabel("Financial year")).toHaveValue("2023-2024");
+    await expect(page.getByLabel("Financial year", { exact: true })).toHaveValue(
+      "2023-2024",
+    );
   });
 
   test("back undoes one selection", async ({ page }) => {
@@ -146,11 +152,11 @@ test.describe("three interactions", () => {
 
     await page.getByLabel("District").selectOption("THRISSUR");
     await page.getByLabel("Local body").selectOption("M08032");
-    await page.getByLabel("Financial year").selectOption("2023-2024");
+    await page.getByLabel("Financial year", { exact: true }).selectOption("2023-2024");
     await page.goBack();
 
     await expect(page).toHaveURL(/\/finances\/M08032$/);
-    await expect(page.getByLabel("Financial year")).toHaveValue("");
+    await expect(page.getByLabel("Financial year", { exact: true })).toHaveValue("");
   });
 
   test("a body a section has no record of says who published nothing", async ({
@@ -172,6 +178,8 @@ test.describe("three interactions", () => {
 
     await page.goto("/finances/M99999");
 
-    await expect(page.getByRole("alert")).toContainText("M99999");
+    // Two alerts name it: the selector's and the section's. Either one
+    // answers the question this test asks.
+    await expect(page.getByRole("alert").first()).toContainText("M99999");
   });
 });

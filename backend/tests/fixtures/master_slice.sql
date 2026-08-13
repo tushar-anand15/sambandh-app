@@ -65,6 +65,7 @@ CREATE TABLE core.lb_coverage (
     "lb_name_ml" text,
     "first_cycle" integer,
     "last_cycle" integer,
+    "in_elections" boolean,
     "has_meetings" boolean,
     "has_geometry" boolean,
     "years_with_finance" bigint,
@@ -76,14 +77,14 @@ CREATE TABLE core.lb_coverage (
 );
 ALTER TABLE core.lb_coverage ADD CONSTRAINT "lb_coverage_pkey" PRIMARY KEY (lb_key);
 
-INSERT INTO core.lb_coverage ("lb_key", "lb_code", "district_name", "lb_type", "lb_name_en", "lb_name_ml", "first_cycle", "last_cycle", "has_meetings", "has_geometry", "years_with_finance", "projects_total", "formulation_total", "expense_total", "years_with_meetings", "meetings_total") VALUES
-('1020', 'M08032', 'THRISSUR', 'Municipality', 'Chalakudy', 'ചാലക്കുടി', '2010', '2025', 'true', 'true', '14', '4136', '3012343266', '1707867506', '3', '268'),
-('1070', 'B03024', 'PATHANAMTHITTA', 'Block Panchayat', 'Pulikkeezhu', 'പുളിക്കീഴ്', '2010', '2025', 'true', 'false', '14', '902', '710537297', '393643690', '9', '234'),
-('1238', 'M13057', 'KANNUR', 'Municipality', 'Mattannur', NULL, NULL, NULL, 'true', 'false', '14', '3870', '3391563083', '1456449401', '3', '366'),
-('191', 'G04036', 'ALAPPUZHA', 'Grama Panchayat', 'Muttar', 'മുട്ടാര്‍', '2010', '2025', 'true', 'true', '14', '1631', '550524235', '285680406', '11', '450'),
-('382', 'M07025', 'ERNAKULAM', 'Municipality', 'Aluva', 'ആലുവ', '2010', '2025', 'true', 'true', '14', '2487', '1313019447', '644663609', '3', '244'),
-('540', 'G13064', 'KANNUR', 'Grama Panchayat', 'Panoor', NULL, '2010', '2010', 'false', 'false', '3', '252', '55765091', '41115640', NULL, NULL),
-('977', 'D12001', 'WAYANAD', 'District Panchayat', 'WAYANAD', NULL, '2010', '2025', 'true', 'false', '14', '6381', '10174399275', '5245683776', '10', '237');
+INSERT INTO core.lb_coverage ("lb_key", "lb_code", "district_name", "lb_type", "lb_name_en", "lb_name_ml", "first_cycle", "last_cycle", "in_elections", "has_meetings", "has_geometry", "years_with_finance", "projects_total", "formulation_total", "expense_total", "years_with_meetings", "meetings_total") VALUES
+('1020', 'M08032', 'THRISSUR', 'Municipality', 'Chalakudy', 'ചാലക്കുടി', '2010', '2025', 'true', 'true', 'true', '14', '4136', '3012343266', '1707867506', '3', '268'),
+('1070', 'B03024', 'PATHANAMTHITTA', 'Block Panchayat', 'Pulikkeezhu', 'പുളിക്കീഴ്', '2010', '2025', 'true', 'true', 'false', '14', '902', '710537297', '393643690', '9', '234'),
+('1238', 'M13057', 'KANNUR', 'Municipality', 'Mattannur', NULL, NULL, NULL, 'false', 'true', 'false', '14', '3870', '3391563083', '1456449401', '3', '366'),
+('191', 'G04036', 'ALAPPUZHA', 'Grama Panchayat', 'Muttar', 'മുട്ടാര്‍', '2010', '2025', 'true', 'true', 'true', '14', '1631', '550524235', '285680406', '11', '450'),
+('382', 'M07025', 'ERNAKULAM', 'Municipality', 'Aluva', 'ആലുവ', '2010', '2025', 'true', 'true', 'true', '14', '2487', '1313019447', '644663609', '3', '244'),
+('540', 'G13064', 'KANNUR', 'Grama Panchayat', 'Panoor', NULL, '2010', '2010', 'true', 'false', 'false', '3', '252', '55765091', '41115640', NULL, NULL),
+('977', 'D12001', 'WAYANAD', 'District Panchayat', 'WAYANAD', NULL, '2010', '2025', 'true', 'true', 'false', '14', '6381', '10174399275', '5245683776', '10', '237');
 
 -- core.financial_year: 14 rows
 CREATE TABLE core.financial_year (
@@ -109,6 +110,23 @@ INSERT INTO core.financial_year ("year_label", "start_date", "end_date", "is_com
 ('2023-2024', '2023-04-01', '2024-03-31', 'true'),
 ('2024-2025', '2024-04-01', '2025-03-31', 'true'),
 ('2025-2026', '2025-04-01', '2026-03-31', 'false');
+
+-- core.build_manifest: 1 rows
+CREATE TABLE core.build_manifest (
+    "dataset" text NOT NULL,
+    "built_at" timestamp with time zone NOT NULL,
+    "master_version" text NOT NULL,
+    "fingerprint" text NOT NULL,
+    "source_dumps" text[] NOT NULL,
+    "bodies" integer NOT NULL,
+    "projects" integer NOT NULL,
+    "meetings" integer NOT NULL,
+    "candidates" integer NOT NULL
+);
+ALTER TABLE core.build_manifest ADD CONSTRAINT "build_manifest_pkey" PRIMARY KEY (dataset);
+
+INSERT INTO core.build_manifest ("dataset", "built_at", "master_version", "fingerprint", "source_dumps", "bodies", "projects", "meetings", "candidates") VALUES
+('Gram Sambandh master database', '2026-08-13 06:56:01.7511+00', '0.1.0', '3761b865f6980990fe64972d9491abe20118b507176f939d088c5fd2170f1aaf', '{sulekha_backup_20260507_patched.dump,sakarma_backup_20260812.dump}', '1238', '3605452', '443235', '296095');
 
 -- core.lb_sulekha_year: 87 rows
 CREATE TABLE core.lb_sulekha_year (

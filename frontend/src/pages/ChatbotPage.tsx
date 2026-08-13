@@ -8,6 +8,8 @@ import ChatInput from "@/components/chat/ChatInput";
 import MessageBubble from "@/components/chat/MessageBubble";
 import SourceDrawer from "@/components/chat/SourceDrawer";
 import ChatHistoryPanel from "@/components/chat/ChatHistoryPanel";
+import CoverageBanner, { useAssistantIndex } from "@/components/chat/CoverageBanner";
+import ScopeSelector, { scopedQuestion } from "@/components/chat/ScopeSelector";
 
 interface DrawerState {
   isOpen: boolean;
@@ -24,6 +26,12 @@ export default function ChatbotPage() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [currentTitle, setCurrentTitle] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  // The local body a question is about, empty when the reader has not narrowed
+  // it. Restricted to the indexed bodies; see ScopeSelector.
+  const [scopeBody, setScopeBody] = useState("");
+
+  const index = useAssistantIndex();
+  const indexedBodies = index.status === "ready" ? index.index.local_bodies : [];
 
   const {
     messages,
@@ -119,6 +127,11 @@ export default function ChatbotPage() {
     clearHistory();
   }, [clearHistory]);
 
+  const askScoped = useCallback(
+    (text: string) => sendMessage(scopedQuestion(scopeBody, text)),
+    [scopeBody, sendMessage],
+  );
+
   const hasMessages = messages.length > 0;
 
   return (
@@ -169,6 +182,18 @@ export default function ChatbotPage() {
           </div>
         </div>
 
+        {/* What the assistant has read, before the first question. */}
+        <CoverageBanner state={index} />
+
+        <div className="border-b border-border bg-surface px-s4 py-s3">
+          <ScopeSelector
+            bodies={indexedBodies}
+            value={scopeBody}
+            onChange={setScopeBody}
+            disabled={isStreaming}
+          />
+        </div>
+
         {/* Messages area */}
         <div ref={scrollRef} className="flex-1 overflow-auto">
           {!hasMessages ? (
@@ -188,11 +213,13 @@ export default function ChatbotPage() {
                   What would you like to know?
                 </h3>
                 <p className="mt-3 max-w-md text-center text-sm leading-relaxed text-ink-muted">
-                  Ask questions about Kerala's local government project records.
-                  Answers are sourced from Sulekha documents with citations.
+                  Answers come from the indexed Sulekha project documents, with
+                  the project number and local body each figure came from. A
+                  question about a local body or a year outside the index is
+                  declined.
                 </p>
                 <div className="mt-8 w-full max-w-xl">
-                  <SuggestedPrompts onSelect={sendMessage} />
+                  <SuggestedPrompts onSelect={askScoped} />
                 </div>
               </div>
             </div>
@@ -212,7 +239,7 @@ export default function ChatbotPage() {
 
         {/* Input */}
         <ChatInput
-          onSend={sendMessage}
+          onSend={askScoped}
           onStop={stopGeneration}
           onClear={clearHistory}
           disabled={false}

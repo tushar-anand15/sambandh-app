@@ -26,12 +26,13 @@ import { describe, expect, it } from "vitest";
 
 const SRC = path.resolve(__dirname, "..");
 
-/** Cleared by: Unit 6 (explorer), Unit 10 (landing), later units (chat, dashboard). */
+/**
+ * Cleared by: Unit 10 (landing and explorer, both deleted), later units (chat,
+ * dashboard, viewer, layouts, and the three pages that remain under `pages/`).
+ */
 const QUARANTINE = [
   "components/chat",
   "components/dashboard",
-  "components/explorer",
-  "components/landing",
   "components/viewer",
   "layouts",
   "pages",

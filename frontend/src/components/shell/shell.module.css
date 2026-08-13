@@ -1,0 +1,44 @@
+/* ---------------------------------------------------------------------------
+   The site footer.
+
+   Ruled off rather than boxed, and set at --t2: it carries attribution and a
+   licence obligation, which a reader needs to be able to find and does not
+   need to read on the way to a number.
+   --------------------------------------------------------------------------- */
+
+.footer {
+  border-top: 1px solid var(--rule);
+  margin-block: var(--s8) 0;
+  background: var(--surface);
+}
+
+.footerInner {
+  padding-block: var(--s5) var(--s7);
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+}
+
+.footerInner p {
+  max-width: var(--measure);
+  margin-block: 0 var(--s3);
+}
+
+.footerInner p:last-child {
+  margin-block-end: 0;
+}
+
+.credit {
+  color: var(--ink);
+}
+
+.sources {
+  list-style: none;
+  padding: 0;
+  margin-block: var(--s3) 0;
+  max-width: var(--measure);
+}
+
+.sources li {
+  margin-block: var(--s1) 0;
+}
