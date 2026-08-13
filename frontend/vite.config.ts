@@ -17,6 +17,12 @@ export default defineConfig({
         target: process.env.API_URL || "http://localhost:8000",
         changeOrigin: true,
       },
+      // Boundary layers come from the backend, not the bundle. Without this the
+      // SPA fallback answers a layer download with index.html.
+      "/geo": {
+        target: process.env.API_URL || "http://localhost:8000",
+        changeOrigin: true,
+      },
     },
   },
 });

@@ -69,12 +69,45 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Self-hosted analytics. It exists so the project can answer which sections
+  # and which local bodies are actually used, and it is self-hosted so that
+  # answering those questions sends nothing to anybody else.
+  #
+  # It adds no datastore: Prisma is pointed at the `umami` schema inside the
+  # Postgres already running above, and creates its own tables there on first
+  # boot. Nothing it writes touches the application's schemas.
+  #
+  # Umami is cookieless and stores no personal data, which is why this site has
+  # no consent banner. `frontend/src/lib/telemetry.ts` sends the fixed event set
+  # and nothing else; the allowed properties are enforced there.
+  #
+  # APP_SECRET signs Umami's own dashboard sessions. Change it in deployment.
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-v2.13.0
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_TYPE: postgresql
+      DATABASE_URL: postgresql://sambandh:sambandh@db:5432/sambandh?schema=umami
+      APP_SECRET: ${UMAMI_APP_SECRET:-dev-umami-secret-change-in-production}
+      # No usage reporting back to the project that publishes the image. The
+      # point of self-hosting is that the traffic stops here.
+      DISABLE_TELEMETRY: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
   frontend:
     build: ./frontend
     ports:
       - "5173:5173"
     environment:
       API_URL: http://backend:8000
+      # Both unset by default, which makes telemetry a no-op: local development
+      # and CI send nothing. Set them once the Umami dashboard has a website id.
+      VITE_UMAMI_HOST: ${VITE_UMAMI_HOST:-}
+      VITE_UMAMI_WEBSITE_ID: ${VITE_UMAMI_WEBSITE_ID:-}
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/index.html:/app/index.html
