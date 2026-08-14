@@ -166,9 +166,16 @@ test.describe("three interactions", () => {
 
     await page.goto("/meetings/G13064");
 
+    // The exact sentence lives in NOT_COVERED in src/hooks/useBodies.ts. What
+    // this test is for is the distinction it draws, not its phrasing: the page
+    // must say the *portal* published nothing, and must not let a reader
+    // conclude the council did not meet. So the assertion below checks the
+    // subject of the sentence is Sakarma, and the one after it checks the
+    // reading we must never produce.
     await expect(
-      page.getByText("Sakarma holds no meeting record for this body.").first(),
+      page.getByText("Sakarma publishes no meetings for this local body.").first(),
     ).toBeVisible();
+    await expect(page.getByText(/held no meetings|did not meet/i)).toHaveCount(0);
   });
 
   test("an unknown code names the code rather than rendering blank", async ({
