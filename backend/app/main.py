@@ -26,23 +26,29 @@ logger = logging.getLogger(__name__)
 
 
 def _warmup_models():
-    """Pre-load embedding and reranker models to avoid cold-start latency.
+    """Say which retrieval mode this process is in, at startup.
 
-    Both are absent from the deployed image, which does not install the
-    `embedding` extra. That is the expected configuration, not a failure, so
-    this says which mode it is in rather than logging "model loaded" after
-    loading nothing — the previous version reported success whether or not
-    there was a model, which is the sort of log line that costs an hour later.
+    Nothing is pre-loaded any more. Query embedding is an API call, and the
+    reranker is absent from the deployed image, which does not install the
+    `embedding` extra — that is the expected configuration, not a failure.
+
+    It is worth logging because both degrade silently. An earlier version
+    reported "model loaded" whether or not anything had loaded, which is the
+    kind of log line that costs an hour later.
     """
+    from .config import settings
+
     try:
-        from .embedder import _get_model
+        from .embedder import embeddings_available
+
         logger.info(
-            "Embedder %s",
-            "loaded" if _get_model() is not None
-            else "not installed — search runs the full-text arm only",
+            "Query embedding: %s",
+            settings.embed_model
+            if embeddings_available()
+            else "not configured — search runs the full-text arm only",
         )
     except Exception as e:
-        logger.warning("Embedder warmup failed: %s", e)
+        logger.warning("Embedder check failed: %s", e)
 
     try:
         from .reranker import get_reranker

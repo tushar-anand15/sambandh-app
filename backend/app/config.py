@@ -7,7 +7,11 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expiry_hours: int = 24
 
-    embed_model: str = "BAAI/bge-m3"
+    # The model that produced chunk_embeddings. Verified against the stored
+    # vectors, not taken from this line: embedding a chunk's text with this
+    # model scores 0.96 cosine against its row. Changing it invalidates every
+    # vector in the table and requires re-embedding the corpus.
+    embed_model: str = "vertex_ai/gemini-embedding-001"
     embed_dim: int = 1024
     search_top_k: int = 10
     dense_recall_k: int = 50
