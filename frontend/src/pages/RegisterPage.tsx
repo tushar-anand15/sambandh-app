@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterPage() {
@@ -11,39 +10,40 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Where ProtectedRoute turned them away from, or the assistant — the only
+  // route on this site that needs an account at all.
+  const destination =
+    (location.state as { from?: string } | null)?.from ?? "/ask";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError("The password has to be at least 8 characters.");
       return;
     }
     setLoading(true);
     try {
       await register(email, password, fullName);
-      navigate("/dashboard/chat");
+      navigate(destination);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Registration failed");
+      setError(err.response?.data?.detail || "The account could not be created. Try again in a moment.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="grain flex min-h-screen items-center justify-center bg-canvas px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-sm"
-      >
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
+      <div
+        className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link to="/" className="font-display text-2xl tracking-tight text-ink">
             Gram<span className="text-indigo">SAMBANDH</span>
           </Link>
           <p className="mt-2 text-sm text-ink-muted">
-            Create an account to access the demo
+            Create an account to use the assistant
           </p>
         </div>
 
@@ -90,7 +90,7 @@ export default function RegisterPage() {
               required
               minLength={8}
               className="mt-1.5 block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-indigo focus:ring-0 focus:outline-none"
-              placeholder="Min 8 characters"
+              placeholder="At least 8 characters"
             />
           </label>
 
@@ -102,7 +102,7 @@ export default function RegisterPage() {
             {loading ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
-              "Create Account"
+              "Create account"
             )}
           </button>
         </form>
@@ -116,7 +116,7 @@ export default function RegisterPage() {
             Sign in
           </Link>
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 }

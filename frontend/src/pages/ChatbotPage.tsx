@@ -1,5 +1,4 @@
 import { useRef, useEffect, useCallback, useState } from "react";
-import { motion } from "framer-motion";
 import { MessageSquareText, Sparkles, History, Plus } from "lucide-react";
 import api from "@/lib/api";
 import type { ChatSource, ChatMessage, ChatDetail } from "@/types";
@@ -9,6 +8,8 @@ import ChatInput from "@/components/chat/ChatInput";
 import MessageBubble from "@/components/chat/MessageBubble";
 import SourceDrawer from "@/components/chat/SourceDrawer";
 import ChatHistoryPanel from "@/components/chat/ChatHistoryPanel";
+import CoverageBanner, { useAssistantIndex } from "@/components/chat/CoverageBanner";
+import ScopeSelector, { scopedQuestion } from "@/components/chat/ScopeSelector";
 
 interface DrawerState {
   isOpen: boolean;
@@ -25,6 +26,12 @@ export default function ChatbotPage() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [currentTitle, setCurrentTitle] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  // The local body a question is about, empty when the reader has not narrowed
+  // it. Restricted to the indexed bodies; see ScopeSelector.
+  const [scopeBody, setScopeBody] = useState("");
+
+  const index = useAssistantIndex();
+  const indexedBodies = index.status === "ready" ? index.index.local_bodies : [];
 
   const {
     messages,
@@ -120,15 +127,17 @@ export default function ChatbotPage() {
     clearHistory();
   }, [clearHistory]);
 
+  const askScoped = useCallback(
+    (text: string) => sendMessage(scopedQuestion(scopeBody, text)),
+    [scopeBody, sendMessage],
+  );
+
   const hasMessages = messages.length > 0;
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex h-full flex-col"
-      >
+      <div
+        className="flex h-full flex-col">
         {/* Header */}
         <div className="relative z-20 border-b border-border bg-gradient-to-r from-surface via-surface to-indigo-subtle/20 px-4 py-4 sm:px-6">
           <div className="flex items-center justify-between">
@@ -142,12 +151,12 @@ export default function ChatbotPage() {
               </div>
               <div>
                 <h2 className="font-display text-lg text-ink sm:text-xl">
-                  {currentTitle || "Chatbot"}
+                  {currentTitle || "Assistant"}
                 </h2>
                 <p className="text-[11px] text-ink-muted sm:text-xs">
                   {currentChatId
-                    ? "Continue your conversation"
-                    : "Ask questions about Sulekha project records"}
+                    ? "This conversation"
+                    : "Questions about Sulekha project documents"}
                 </p>
               </div>
             </div>
@@ -173,6 +182,18 @@ export default function ChatbotPage() {
           </div>
         </div>
 
+        {/* What the assistant has read, before the first question. */}
+        <CoverageBanner state={index} />
+
+        <div className="border-b border-border bg-surface px-s4 py-s3">
+          <ScopeSelector
+            bodies={indexedBodies}
+            value={scopeBody}
+            onChange={setScopeBody}
+            disabled={isStreaming}
+          />
+        </div>
+
         {/* Messages area */}
         <div ref={scrollRef} className="flex-1 overflow-auto">
           {!hasMessages ? (
@@ -183,26 +204,23 @@ export default function ChatbotPage() {
                 <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-gradient-to-tr from-indigo-subtle to-transparent blur-3xl" />
               </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="relative z-10 flex flex-col items-center"
-              >
+              <div
+                className="relative z-10 flex flex-col items-center">
                 <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo to-indigo-light shadow-lg sm:h-20 sm:w-20">
                   <Sparkles size={32} className="text-white" strokeWidth={1.5} />
                 </div>
                 <h3 className="text-center font-display text-xl text-ink sm:text-2xl">
-                  What would you like to know?
+                  Ask about a project
                 </h3>
                 <p className="mt-3 max-w-md text-center text-sm leading-relaxed text-ink-muted">
-                  Ask questions about Kerala's local government project records.
-                  Answers are sourced from Sulekha documents with citations.
+                  Every answer names the project number and the local body it
+                  came from. Questions about a local body or a year the
+                  assistant has not read are declined.
                 </p>
                 <div className="mt-8 w-full max-w-xl">
-                  <SuggestedPrompts onSelect={sendMessage} />
+                  <SuggestedPrompts onSelect={askScoped} />
                 </div>
-              </motion.div>
+              </div>
             </div>
           ) : (
             <div className="mx-auto max-w-3xl space-y-4 px-4 py-6 sm:px-6">
@@ -220,13 +238,13 @@ export default function ChatbotPage() {
 
         {/* Input */}
         <ChatInput
-          onSend={sendMessage}
+          onSend={askScoped}
           onStop={stopGeneration}
           onClear={clearHistory}
           disabled={false}
           isStreaming={isStreaming}
         />
-      </motion.div>
+      </div>
 
       {/* Source Drawer */}
       <SourceDrawer

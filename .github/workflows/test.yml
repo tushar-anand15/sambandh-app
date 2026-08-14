@@ -1,0 +1,127 @@
+name: Tests
+
+# The gate. Runs on every push and every pull request, and is also callable as
+# a job by deploy.yml, which is how a red suite stops a deployment: the deploy
+# job declares `needs: test`, so GitHub skips it when this workflow's jobs fail.
+#
+# Calling it rather than watching for it is deliberate. `workflow_run` would
+# start the deploy after a separate run finished and would have to look up which
+# commit that run was for; a called workflow is part of the same run, on the same
+# commit, and cannot deploy a commit it did not test.
+
+on:
+  push:
+    # A push to main is already tested by deploy.yml, which calls this workflow
+    # as a job. Without this the suite would run twice on every merge.
+    branches-ignore:
+      - main
+  pull_request:
+  workflow_call:
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: pytest
+    runs-on: ubuntu-latest
+
+    # The same Postgres the compose file's `postgres-test` service provides, so
+    # `uv run pytest` means the same thing on a laptop and here. conftest.py
+    # drops and reloads the fixture slice, so the container needs no seeding.
+    services:
+      postgres-test:
+        image: postgres:17
+        env:
+          POSTGRES_USER: sambandh
+          POSTGRES_PASSWORD: sambandh
+          POSTGRES_DB: sambandh_test
+        ports:
+          - 55433:5432
+        options: >-
+          --health-cmd "pg_isready -U sambandh -d sambandh_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgresql://sambandh:sambandh@localhost:55433/sambandh_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        working-directory: backend
+        run: uv sync --extra dev
+
+      - name: Run pytest
+        working-directory: backend
+        run: uv run pytest
+
+  frontend:
+    name: vitest
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Typecheck and build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Run vitest
+        working-directory: frontend
+        run: npm run test
+
+  e2e:
+    name: playwright
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      # Chromium only. The specs test the router and the selection flow, not
+      # rendering differences between engines, and three browsers would triple
+      # the slowest job in the gate for no finding it would produce.
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      # playwright.config.ts starts the Vite dev server itself and fulfils
+      # /api/bodies from a fixture, so no backend and no database here.
+      - name: Run Playwright
+        working-directory: frontend
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: frontend/test-results/
+          retention-days: 7

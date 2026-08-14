@@ -2,19 +2,10 @@ import uuid as _uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
-from google.cloud import storage as gcs
 
 from ..auth import get_current_user
 from ..database import get_pool
-
-_gcs_client: gcs.Client | None = None
-
-
-def _get_gcs_client() -> gcs.Client:
-    global _gcs_client
-    if _gcs_client is None:
-        _gcs_client = gcs.Client()
-    return _gcs_client
+from ..presign import storage_client
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -102,7 +93,14 @@ async def list_documents(
 
 @router.get("/filters")
 async def get_filters(_current_user: dict = Depends(get_current_user)):
-    """Return distinct values for each filter dimension."""
+    """Distinct values for each filter dimension, and the index's own extent.
+
+    ``local_bodies`` and ``documents`` are read from the corpus rather than
+    declared, because the assistant page states its coverage in a banner and
+    restricts its body selector to what has been indexed. A hand-kept list would
+    outlive an ingest and offer a body the retrieval cannot answer for, which is
+    the one failure the scoping work exists to prevent.
+    """
     pool = await get_pool()
     async with pool.acquire() as conn:
         districts = await conn.fetch(
@@ -114,11 +112,32 @@ async def get_filters(_current_user: dict = Depends(get_current_user)):
         years = await conn.fetch(
             "SELECT DISTINCT year_label FROM documents WHERE year_label IS NOT NULL ORDER BY 1"
         )
+        local_bodies = await conn.fetch(
+            """
+            SELECT lb_name, min(lb_type) AS lb_type, min(district_name) AS district_name,
+                   count(*) AS documents
+            FROM documents
+            WHERE lb_name IS NOT NULL
+            GROUP BY lb_name
+            ORDER BY lb_name
+            """
+        )
+        total = await conn.fetchval("SELECT count(*) FROM documents")
 
     return {
         "districts": [r["district_name"] for r in districts],
         "lb_types": [r["lb_type"] for r in lb_types],
         "years": [r["year_label"] for r in years],
+        "local_bodies": [
+            {
+                "lb_name": r["lb_name"],
+                "lb_type": r["lb_type"],
+                "district_name": r["district_name"],
+                "documents": r["documents"],
+            }
+            for r in local_bodies
+        ],
+        "documents": total,
     }
 
 
@@ -182,7 +201,15 @@ async def get_document(doc_id: str, _current_user: dict = Depends(get_current_us
 async def get_document_pdf(
     doc_id: str, _current_user: dict = Depends(get_current_user)
 ):
-    """Proxy the PDF from GCS to avoid CORS when loading in the browser."""
+    """Proxy the PDF from GCS to avoid CORS when loading in the browser.
+
+    The public Finances page does not come through here: it is handed a signed
+    Cloud Storage URL and fetches the file directly (``app/presign.py``). This
+    route stays a proxy because the assistant's viewer sends an Authorization
+    header with the request, and a redirect would carry that header on to Cloud
+    Storage, which rejects a signed request that also presents a bearer token.
+    Both paths now read GCS on one configured identity.
+    """
     pool = await get_pool()
     async with pool.acquire() as conn:
         doc = await conn.fetchrow(
@@ -190,18 +217,17 @@ async def get_document_pdf(
             _uuid.UUID(doc_id),
         )
     if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+        raise HTTPException(status_code=404, detail="No document available.")
 
     try:
-        client = _get_gcs_client()
-        bucket = client.bucket(doc["gcs_bucket"])
+        bucket = storage_client().bucket(doc["gcs_bucket"])
         blob = bucket.blob(doc["gcs_path"])
         content = blob.download_as_bytes()
     except Exception as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"Failed to fetch PDF from GCS: {exc}",
-        )
+            detail="The document could not be opened. Try again in a moment.",
+        ) from exc
 
     return Response(
         content=content,

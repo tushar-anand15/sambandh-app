@@ -1,0 +1,133 @@
+# What production runs. Nothing else in this file's directory is source code:
+# the VM holds this file, the nginx config beside it, three shell scripts, and
+# no checkout of the application at all.
+#
+# Two things follow from that and are worth stating, because both were true of
+# the arrangement this replaces and neither was intended.
+#
+# There is no `build:` key here. Images are built by .github/workflows/deploy.yml
+# on a GitHub runner and pulled from Artifact Registry by tag. An e2-small with
+# under a gigabyte of free memory cannot build a Vite bundle without swapping,
+# and a machine that builds its own images has to hold the source that produced
+# them, which is how the previous deployment ended up with a hand-copied,
+# untracked, unpullable copy of the repository in a home directory.
+#
+# There is no default for any secret. Every one of them is `${VAR:?...}`, so a
+# missing value stops `docker compose up` with the name of what is missing
+# rather than starting a site signed with a key that is printed in a public
+# repository. deploy.sh is what fills them in, from Secret Manager, into a file
+# on tmpfs that it deletes before it returns.
+
+# Pinned rather than inherited from the directory name. The running deployment
+# was created by a compose project called `gramsambandh`, and its database,
+# its Let's Encrypt account and its issued certificates are all in volumes
+# named after that project. Changing the directory would rename the project,
+# which would silently create empty volumes and bring up a site with no data
+# and no certificate.
+name: gramsambandh
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: sambandh
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?not fetched from Secret Manager}
+      POSTGRES_DB: sambandh
+    # No `ports:`. The old file published 5434 on every interface; only the
+    # firewall kept that private, and a firewall is a thing someone edits. The
+    # only clients are on this compose network, which can reach it by name.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sambandh"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    image: ${BACKEND_IMAGE:?set by deploy.sh from the commit being deployed}
+    # Bound to loopback so deploy.sh can health-check the API directly, without
+    # nginx and TLS in the way, and so nothing off the machine can.
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DATABASE_URL: postgresql://sambandh:${POSTGRES_PASSWORD:?}@db:5432/sambandh
+      JWT_SECRET: ${JWT_SECRET:?not fetched from Secret Manager}
+      LLM_PROVIDER: ${LLM_PROVIDER:?}
+      LLM_API_KEY: ${LLM_API_KEY:?}
+      VERTEXAI_PROJECT: ${VERTEXAI_PROJECT:?}
+      VERTEXAI_LOCATION: ${VERTEXAI_LOCATION:?}
+      GCP_PROJECT: ${GCP_PROJECT:?}
+      GCP_LOCATION: ${GCP_LOCATION:?}
+      # No GOOGLE_APPLICATION_CREDENTIALS and no key file. The VM runs as
+      # gramsambandh-vm@, so the metadata server answers inside the container
+      # and ADC works with nothing mounted. That identity can read the document
+      # and meeting buckets; it cannot sign a URL, so app/presign.py falls back
+      # to proxying the object, which is the documented second path.
+      GEO_DIR: /srv/geo
+    volumes:
+      # 104 MB of boundary layers, synced from GCS by sync-geo.sh. Deliberately
+      # a bind mount of a host directory and not baked into the image: the
+      # layers change on sulekha's release schedule, not on this repository's,
+      # and adding them to the backend image would put 104 MB into every build,
+      # every push, and every pull.
+      - /srv/gramsambandh/geo:/srv/geo:ro
+      # No model cache. The backend image no longer installs the `embedding`
+      # extra, so there is no bge-m3 and no Jina reranker to cache: search runs
+      # the full-text arm only. Restore this volume in the same change that
+      # puts `--extra embedding` back in backend/Dockerfile, and not before —
+      # an empty cache mount reads like the models are expected.
+    command: >
+      sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-v2.13.0
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      DATABASE_TYPE: postgresql
+      DATABASE_URL: postgresql://sambandh:${POSTGRES_PASSWORD:?}@db:5432/sambandh?schema=umami
+      APP_SECRET: ${UMAMI_APP_SECRET:?not fetched from Secret Manager}
+      DISABLE_TELEMETRY: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?set by deploy.sh from the commit being deployed}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Shipped in the deploy bundle rather than baked into the image. It is not
+      # secret, it names this one hostname, and keeping it a file on the VM
+      # means a certificate path can be corrected without a rebuild. The image
+      # itself carries nginx.conf, the plain-HTTP config, which this replaces.
+      - ./nginx.ssl.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot-webroot:/var/www/certbot:ro
+      - certbot-certs:/etc/letsencrypt:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot-webroot:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+
+volumes:
+  # These three already exist on the VM as gramsambandh_pgdata,
+  # gramsambandh_certbot-webroot and gramsambandh_certbot-certs. They are
+  # reached, not created, because of the pinned project name above.
+  pgdata:
+  certbot-webroot:
+  certbot-certs:

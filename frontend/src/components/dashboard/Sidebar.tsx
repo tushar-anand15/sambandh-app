@@ -1,12 +1,11 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { MessageSquareText, Search, LogOut, PanelLeftClose, PanelLeft, X } from "lucide-react";
+import { MessageSquareText, LogOut, PanelLeftClose, PanelLeft, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/layouts/DashboardLayout";
 
-const navItems = [
-  { to: "/dashboard/chat", icon: MessageSquareText, label: "Chatbot" },
-  { to: "/dashboard/explore", icon: Search, label: "Data Explorer" },
-];
+// The explorer entry is gone: browsing the data no longer needs an account, so
+// it lives in the public sections rather than behind this sidebar.
+const navItems = [{ to: "/ask", icon: MessageSquareText, label: "Assistant" }];
 
 export default function Sidebar() {
   const { logout } = useAuth();

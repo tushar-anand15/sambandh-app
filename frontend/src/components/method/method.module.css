@@ -1,0 +1,99 @@
+/* ---------------------------------------------------------------------------
+   Method.
+
+   Four tables and a build block. Same table shape as the home page's coverage
+   table; kept here rather than shared because the two pages are the only two
+   that hold plain data tables and a shared abstraction over two callers would
+   be one caller's table with an escape hatch.
+   --------------------------------------------------------------------------- */
+
+.tableScroll {
+  overflow-x: auto;
+  margin-block: var(--s5) 0;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+}
+
+.table caption {
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  text-align: left;
+  margin-block: 0 var(--s3);
+  max-width: var(--measure);
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--rule);
+  padding: var(--s2) var(--s3);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.table th:first-child,
+.table td:first-child {
+  padding-left: 0;
+}
+
+.table thead th {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 400;
+  border-bottom: 1px solid var(--rule-2);
+}
+
+.wrap {
+  white-space: normal;
+  min-width: 28ch;
+}
+
+.numeric {
+  text-align: right;
+}
+
+/* An open year, and a value the source does not hold. Neither is a number, and
+   neither should be read as one. */
+.absent {
+  color: var(--ink-3);
+}
+
+.build {
+  margin-block: var(--s5) 0;
+  max-width: var(--measure);
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+}
+
+.build div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  border-bottom: 1px solid var(--rule);
+  padding: var(--s2) 0;
+}
+
+.build dt {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  min-width: 18ch;
+}
+
+.build dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}

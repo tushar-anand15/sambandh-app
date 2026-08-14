@@ -1,3 +1,11 @@
+# This file is for development and for the test database. It is not what
+# production runs: deploy/docker-compose.prod.yml is, and it shares no service
+# definition with this one — it names built images instead of build contexts,
+# mounts no source, and takes every secret from Secret Manager.
+#
+# The `sambandh:sambandh` credentials below are deliberate and are safe only
+# because of what this file is: a throwaway local database, reachable on
+# localhost, holding a fixture slice. Nothing in production reads them.
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -15,6 +23,30 @@ services:
       timeout: 3s
       retries: 5
 
+  # The backend test suite runs against a real Postgres, not mocks, because every
+  # public endpoint is a SQL query against materialised rollups. This one holds
+  # nothing but the fixture slice, which backend/tests/conftest.py drops and
+  # reloads at the start of every session — so its data lives in tmpfs and is
+  # meant to be thrown away.
+  #
+  #   docker compose up -d postgres-test
+  #   cd backend && uv sync --extra dev && uv run pytest
+  postgres-test:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: sambandh
+      POSTGRES_PASSWORD: sambandh
+      POSTGRES_DB: sambandh_test
+    ports:
+      - "55433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sambandh -d sambandh_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   backend:
     build: ./backend
     ports:
@@ -23,8 +55,17 @@ services:
       - ./backend/.env
     environment:
       DATABASE_URL: postgresql://sambandh:sambandh@db:5432/sambandh
-      JWT_SECRET: dev-secret-change-in-production-abc123xyz
+      # No default. A literal here is how the previous version of this file
+      # shipped a working signing key to anyone who read the repository, and a
+      # compose file that boots without a secret being set is a compose file
+      # that will one day boot production without one. Put a throwaway value in
+      # a local .env; `openssl rand -hex 32` produces a fine one.
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in a local .env — see README}
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcs-credentials.json
+      # The boundary layers /api/maps points at, mounted below. An empty
+      # directory is a working state: every layer is then reported as absent
+      # with its reason rather than offered as a download that 404s.
+      GEO_DIR: /srv/geo
     command: >
       sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
@@ -32,6 +73,40 @@ services:
       - ./backend/alembic:/app/alembic
       - ./backend/alembic.ini:/app/alembic.ini
       - ./frontend/.secrets:/secrets:ro
+      # sulekha's `geo build` output. 7.5 MB to 57 MB per layer, so it is a
+      # deployment input, not repository content: point GEO_LAYERS_DIR at the
+      # directory holding them.
+      - ${GEO_LAYERS_DIR:-./backend/geo_layers}:/srv/geo:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Self-hosted analytics. It exists so the project can answer which sections
+  # and which local bodies are actually used, and it is self-hosted so that
+  # answering those questions sends nothing to anybody else.
+  #
+  # It adds no datastore: Prisma is pointed at the `umami` schema inside the
+  # Postgres already running above, and creates its own tables there on first
+  # boot. Nothing it writes touches the application's schemas.
+  #
+  # Umami is cookieless and stores no personal data, which is why this site has
+  # no consent banner. `frontend/src/lib/telemetry.ts` sends the fixed event set
+  # and nothing else; the allowed properties are enforced there.
+  #
+  # APP_SECRET signs Umami's own dashboard sessions. It has no default here for
+  # the same reason JWT_SECRET has none.
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-v2.13.0
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_TYPE: postgresql
+      DATABASE_URL: postgresql://sambandh:sambandh@db:5432/sambandh?schema=umami
+      APP_SECRET: ${UMAMI_APP_SECRET:?set UMAMI_APP_SECRET in a local .env — see README}
+      # No usage reporting back to the project that publishes the image. The
+      # point of self-hosting is that the traffic stops here.
+      DISABLE_TELEMETRY: "1"
     depends_on:
       db:
         condition: service_healthy
@@ -43,6 +118,10 @@ services:
       - "5173:5173"
     environment:
       API_URL: http://backend:8000
+      # Both unset by default, which makes telemetry a no-op: local development
+      # and CI send nothing. Set them once the Umami dashboard has a website id.
+      VITE_UMAMI_HOST: ${VITE_UMAMI_HOST:-}
+      VITE_UMAMI_WEBSITE_ID: ${VITE_UMAMI_WEBSITE_ID:-}
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/index.html:/app/index.html

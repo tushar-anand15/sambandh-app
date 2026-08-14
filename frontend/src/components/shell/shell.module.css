@@ -1,0 +1,103 @@
+/* ---------------------------------------------------------------------------
+   The site footer.
+
+   Ruled off rather than boxed, and set at --t2: it carries attribution and a
+   licence obligation, which a reader needs to be able to find and does not
+   need to read on the way to a number.
+   --------------------------------------------------------------------------- */
+
+.footer {
+  border-top: 1px solid var(--rule);
+  margin-block: var(--s8) 0;
+  background: var(--surface);
+}
+
+
+
+
+
+
+
+/* Two columns: what this is on the left, who made it on the right. Collapses
+   to one on a narrow screen, where two columns of four lines each read worse
+   than one of eight. */
+.footerInner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--s6);
+  padding-block: var(--s6) var(--s7);
+}
+
+.footerCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.footerHeading {
+  font-family: var(--sans);
+  font-size: var(--t1);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0;
+  max-width: none;
+}
+
+.footerText {
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 42ch;
+}
+
+
+
+
+
+/* Two authors side by side, each with their role and their own links -- the
+   same shape the previous site used, and their own description of themselves. */
+.authors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--s5);
+  margin-top: var(--s1);
+}
+
+.authorName {
+  font-size: var(--t3);
+  line-height: var(--lh-snug);
+  color: var(--ink);
+  margin: 0;
+}
+
+.authorRole {
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.authorLinks {
+  list-style: none;
+  display: flex;
+  gap: var(--s2);
+  margin: var(--s2) 0 0;
+  padding: 0;
+}
+
+.authorLinks a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  padding: var(--s1);
+  /* An icon, not a phrase. An underline under it reads as a stray rule. */
+  text-decoration: none;
+}
+
+.authorLinks a:hover {
+  color: var(--accent);
+}

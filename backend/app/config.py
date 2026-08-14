@@ -24,6 +24,22 @@ class Settings(BaseSettings):
 
     max_message_length: int = 2000
 
+    # Where the boundary GeoJSON layers are on disk. The layers are built by
+    # sulekha's `geo build` and are 7.5 MB to 57 MB each, so they are not in
+    # this repository: a deployment mounts the directory and points GEO_DIR at
+    # it. An unset or empty value means no layer is served, and /api/maps says
+    # so per layer rather than offering a download that would 404.
+    geo_dir: str = ""
+
+    # Project documents. The finance tables carry an object path inside this
+    # bucket; app/presign.py turns it into a signed URL so the browser fetches
+    # the scan from Cloud Storage instead of through this API. Signing needs a
+    # service account key with storage.objects.get on the bucket. Without one,
+    # /api/finances returns pdf_url: null and states why.
+    pdf_bucket: str = "sulekhasakarma-pdfs"
+    pdf_signing_key_file: str = ""
+    pdf_url_ttl_seconds: int = 3600
+
     model_config = {"env_file": ".env"}
 
 

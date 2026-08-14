@@ -1,0 +1,166 @@
+/* ---------------------------------------------------------------------------
+   Meetings.
+
+   Co-located because these are the shapes a utility class cannot express: a
+   data table, two SVG fills, and the bordered note about what the register
+   holds that this release does not publish. Everything else on the page is a
+   token utility.
+   --------------------------------------------------------------------------- */
+
+/* Bordered on all four sides, unlike `.notice`, which is ruled on one. The
+   scope note is a standing limit on the whole page, not a remark about the
+   figure beside it. */
+.scopeNote {
+  font-size: var(--t3);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--radius);
+  padding: var(--s4);
+  margin-block: var(--s5) 0;
+  max-width: var(--measure);
+}
+
+.total {
+  font-size: var(--t7);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+  margin-block: 0;
+}
+
+.split {
+  margin-block: var(--s6) 0;
+  max-width: var(--measure);
+}
+
+/* Proportional by construction: the viewBox is 100 units wide and each segment
+   is its own percentage of it, so the bar carries no pixel dimension and
+   nothing in it stretches when the container changes width. */
+.bar {
+  margin-block: var(--s3) 0;
+}
+
+.barMajor {
+  fill: var(--accent);
+}
+
+.barMinor {
+  fill: var(--rule-2);
+}
+
+.counts {
+  display: grid;
+  gap: var(--s2);
+  margin-block: var(--s3) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.countRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  justify-content: space-between;
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  border-bottom: 1px solid var(--rule);
+  padding: 0 0 var(--s2) 0;
+}
+
+.countMl {
+  color: var(--ink-2);
+}
+
+.countValue {
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  margin-block: var(--s4) 0;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--s2) var(--s3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.table th {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  font-weight: 400;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--rule-2);
+}
+
+.table td:first-child {
+  white-space: nowrap;
+}
+
+/* The English reading of the register's own Malayalam term. */
+.gloss {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  color: var(--ink-3);
+}
+
+/* A field the register left empty. Named, so the cell is never blank. */
+.absent {
+  color: var(--ink-3);
+}
+
+/* The last column of the meeting list: what the council published, as a way in
+   rather than a link out. Sakarma's own URLs are postbacks and cannot be
+   linked to, so these open the document in a panel on this page. */
+.documents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  align-items: flex-start;
+}
+
+.documentButton {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--accent);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rule-2);
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.documentButton:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* Above the document in the panel: whose meeting it was, and what was done to
+   the file before it was shown. */
+.registerHead {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  margin-block: 0 var(--s4);
+}

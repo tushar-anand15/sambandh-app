@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
   Bot,
@@ -40,24 +39,21 @@ const TOOL_LABELS: Record<string, string> = {
 
 function ThinkingIndicator() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 5 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex items-center gap-3 rounded-xl border border-indigo/20 bg-gradient-to-r from-indigo-subtle/50 to-indigo-subtle/30 px-4 py-3"
-    >
+    <div
+      className="flex items-center gap-3 rounded-xl border border-indigo/20 bg-gradient-to-r from-indigo-subtle/50 to-indigo-subtle/30 px-4 py-3">
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo/10">
         <Sparkles size={16} className="animate-pulse text-indigo" />
       </div>
       <div className="flex-1">
-        <p className="text-sm font-medium text-indigo">Thinking...</p>
-        <p className="text-xs text-ink-muted">Analyzing your question</p>
+        <p className="text-sm font-medium text-indigo">Thinking</p>
+        <p className="text-xs text-ink-muted">Reading the project documents</p>
       </div>
       <div className="flex gap-1">
         <span className="h-2 w-2 animate-bounce rounded-full bg-indigo/60" style={{ animationDelay: "0ms" }} />
         <span className="h-2 w-2 animate-bounce rounded-full bg-indigo/60" style={{ animationDelay: "150ms" }} />
         <span className="h-2 w-2 animate-bounce rounded-full bg-indigo/60" style={{ animationDelay: "300ms" }} />
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -67,15 +63,12 @@ function ToolCallCard({ tc, isExpanded, onToggle }: { tc: ToolCallEvent; isExpan
   const isRunning = tc.status === "running";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 5 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className={`overflow-hidden rounded-xl border transition-all ${
         isRunning
           ? "border-indigo/30 bg-gradient-to-r from-indigo-subtle/60 to-indigo-subtle/40"
           : "border-border bg-surface-alt/50"
-      }`}
-    >
+      }`}>
       {/* Header - always visible */}
       <button
         onClick={onToggle}
@@ -122,15 +115,9 @@ function ToolCallCard({ tc, isExpanded, onToggle }: { tc: ToolCallEvent; isExpan
       </button>
 
       {/* Expanded output */}
-      <AnimatePresence>
         {isExpanded && tc.output && !isRunning && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
+          <div
+            className="overflow-hidden">
             <div className="border-t border-border/50 bg-canvas/50 px-4 py-3">
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
                 Tool Output
@@ -141,10 +128,9 @@ function ToolCallCard({ tc, isExpanded, onToggle }: { tc: ToolCallEvent; isExpan
                 </pre>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 
@@ -195,12 +181,8 @@ export default function MessageBubble({ message, isThinking, onSourceClick }: Me
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className={`flex gap-3 ${isUser ? "justify-end" : ""}`}
-    >
+    <div
+      className={`flex gap-3 ${isUser ? "justify-end" : ""}`}>
       {!isUser && (
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo to-indigo-light shadow-sm">
           <Bot size={16} className="text-white" />
@@ -270,11 +252,7 @@ export default function MessageBubble({ message, isThinking, onSourceClick }: Me
 
         {/* Source citations as chips */}
         {!isUser && message.sources && message.sources.length > 0 && !message.isStreaming && (
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
+          <div>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
               References ({message.sources.length})
             </p>
@@ -287,7 +265,7 @@ export default function MessageBubble({ message, isThinking, onSourceClick }: Me
                 />
               ))}
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
 
@@ -296,6 +274,6 @@ export default function MessageBubble({ message, isThinking, onSourceClick }: Me
           <User size={16} className="text-ink-muted" />
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

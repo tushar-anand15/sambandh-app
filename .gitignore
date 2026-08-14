@@ -14,9 +14,24 @@ pgdata/
 .secrets/
 secrets/
 refs/
-docs/
+
+# docs/ is scratch, with one exception: the writing rules every page and
+# every commit message in this repo is held to. A negation cannot re-include a
+# file under an excluded directory, hence docs/* rather than docs/.
+docs/*
+!docs/instructions.md
 .cursor/
 rag_export/
 *.dump
 *.tar.gz
 nginx/certs/
+
+# Test artefacts. The fixture slice itself is checked in on purpose — it is the
+# contract later units assert against — but nothing a runner generates is.
+.pytest_cache/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+coverage/
+*.tsbuildinfo

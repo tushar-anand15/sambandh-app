@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Route, Droplets, BarChart3, Search, FileText, Building2 } from "lucide-react";
 
 const prompts = [
@@ -32,7 +31,7 @@ const prompts = [
   },
   {
     icon: Building2,
-    category: "Overview",
+    category: "Counts",
     text: "How many projects does Thrissur Corporation have?",
     color: "from-rose-500/10 to-pink-500/10",
     iconColor: "text-rose-600",
@@ -56,14 +55,10 @@ export default function SuggestedPrompts({ onSelect }: SuggestedPromptsProps) {
       {prompts.map((p, i) => {
         const Icon = p.icon;
         return (
-          <motion.button
+          <button
             key={p.text}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05, duration: 0.2 }}
             onClick={() => onSelect(p.text)}
-            className={`group relative flex items-start gap-3 rounded-xl border border-border bg-gradient-to-br ${p.color} p-3 text-left transition-all hover:border-indigo/30 hover:shadow-md sm:p-4`}
-          >
+            className={`group relative flex items-start gap-3 rounded-xl border border-border bg-gradient-to-br ${p.color} p-3 text-left transition-all hover:border-indigo/30 hover:shadow-md sm:p-4`}>
             <div
               className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface shadow-sm ${p.iconColor}`}
             >
@@ -77,7 +72,7 @@ export default function SuggestedPrompts({ onSelect }: SuggestedPromptsProps) {
                 {p.text}
               </p>
             </div>
-          </motion.button>
+          </button>
         );
       })}
     </div>

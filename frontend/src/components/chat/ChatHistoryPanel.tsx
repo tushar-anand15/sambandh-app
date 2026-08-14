@@ -1,5 +1,4 @@
 import { useEffect, useCallback, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Plus,
@@ -144,27 +143,17 @@ export default function ChatHistoryPanel({
   const groupedChats = groupChatsByDate(chats);
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
         <>
           {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+          <div
             className="fixed inset-0 z-40 bg-ink/30 backdrop-blur-sm"
-            onClick={onClose}
-          />
+            onClick={onClose}/>
 
           {/* Panel */}
-          <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 z-50 flex h-full w-full flex-col bg-surface shadow-2xl sm:w-[380px]"
-          >
+          <div
+            className="fixed right-0 top-0 z-50 flex h-full w-full flex-col bg-surface shadow-2xl sm:w-[380px]">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-4 py-4">
               <div className="flex items-center gap-3">
@@ -333,9 +322,9 @@ export default function ChatHistoryPanel({
                 to close
               </p>
             </div>
-          </motion.div>
+          </div>
         </>
       )}
-    </AnimatePresence>
+    </>
   );
 }

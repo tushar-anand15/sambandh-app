@@ -1,0 +1,107 @@
+/* ---------------------------------------------------------------------------
+   Home.
+
+   Two shapes a token utility cannot express: the one stark figure, and the
+   coverage table. Everything else on the page is prose in the base styles.
+   --------------------------------------------------------------------------- */
+
+/* The single --t9 on the site. The scale's own note says a second use means the
+   device has stopped working; this is the first, and it is spent on the sum
+   the whole argument turns on. */
+.figure {
+  font-size: var(--t9);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+  margin-block: var(--s7) 0;
+  max-width: var(--measure-h1);
+}
+
+.figureCaption {
+  font-size: var(--t4);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  max-width: var(--measure-lede);
+  margin-block: var(--s3) 0;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  margin-block: var(--s5) 0;
+}
+
+.table caption {
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  text-align: left;
+  margin-block: 0 var(--s3);
+  max-width: var(--measure);
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--rule);
+  padding: var(--s2) var(--s3);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 400;
+  border-bottom: 1px solid var(--rule-2);
+}
+
+.table td:first-child {
+  padding-left: 0;
+}
+
+.table th:first-child {
+  padding-left: 0;
+}
+
+.numeric {
+  text-align: right;
+}
+
+/* The table is the widest thing on the page and the only thing that may
+   scroll sideways. The page body never does. */
+.tableScroll {
+  overflow-x: auto;
+  margin-block: var(--s5) 0;
+}
+
+.period {
+  font-size: var(--t3);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  max-width: var(--measure);
+  margin-block: var(--s4) 0;
+}
+
+/* The source list. Each line names the portal and what it supplies, because a
+   bare list of five government portals tells a reader nothing about which one
+   answers their question. */
+.sources {
+  list-style: none;
+  margin-block: var(--s4) 0;
+  padding: 0;
+  max-width: var(--measure);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  color: var(--ink-2);
+}
+
+.sources li {
+  border-left: 2px solid var(--rule);
+  padding-left: var(--s3);
+}
