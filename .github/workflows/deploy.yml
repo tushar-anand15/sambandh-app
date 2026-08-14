@@ -207,14 +207,14 @@ jobs:
       - name: Copy the bundle to the VM
         run: |
           gcloud compute scp --quiet --recurse --tunnel-through-iap \
-            --ssh-key-file=~/.ssh/deploy_key \
+            --ssh-key-file="$HOME/.ssh/deploy_key" \
             --zone="$GCP_ZONE" --project="$GCP_PROJECT" \
             bundle "deploy@$INSTANCE":~/deploy-staging-${{ github.sha }}
 
       - name: Install the bundle and deploy
         run: |
           gcloud compute ssh --quiet --tunnel-through-iap \
-            --ssh-key-file=~/.ssh/deploy_key \
+            --ssh-key-file="$HOME/.ssh/deploy_key" \
             --zone="$GCP_ZONE" --project="$GCP_PROJECT" "deploy@$INSTANCE" \
             --command "set -euo pipefail
               STAGE=\$HOME/deploy-staging-${{ github.sha }}
