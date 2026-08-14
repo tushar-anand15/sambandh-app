@@ -1,3 +1,11 @@
+# This file is for development and for the test database. It is not what
+# production runs: deploy/docker-compose.prod.yml is, and it shares no service
+# definition with this one — it names built images instead of build contexts,
+# mounts no source, and takes every secret from Secret Manager.
+#
+# The `sambandh:sambandh` credentials below are deliberate and are safe only
+# because of what this file is: a throwaway local database, reachable on
+# localhost, holding a fixture slice. Nothing in production reads them.
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -47,7 +55,12 @@ services:
       - ./backend/.env
     environment:
       DATABASE_URL: postgresql://sambandh:sambandh@db:5432/sambandh
-      JWT_SECRET: dev-secret-change-in-production-abc123xyz
+      # No default. A literal here is how the previous version of this file
+      # shipped a working signing key to anyone who read the repository, and a
+      # compose file that boots without a secret being set is a compose file
+      # that will one day boot production without one. Put a throwaway value in
+      # a local .env; `openssl rand -hex 32` produces a fine one.
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in a local .env — see README}
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcs-credentials.json
       # The boundary layers /api/maps points at, mounted below. An empty
       # directory is a working state: every layer is then reported as absent
@@ -81,7 +94,8 @@ services:
   # no consent banner. `frontend/src/lib/telemetry.ts` sends the fixed event set
   # and nothing else; the allowed properties are enforced there.
   #
-  # APP_SECRET signs Umami's own dashboard sessions. Change it in deployment.
+  # APP_SECRET signs Umami's own dashboard sessions. It has no default here for
+  # the same reason JWT_SECRET has none.
   umami:
     image: ghcr.io/umami-software/umami:postgresql-v2.13.0
     ports:
@@ -89,7 +103,7 @@ services:
     environment:
       DATABASE_TYPE: postgresql
       DATABASE_URL: postgresql://sambandh:sambandh@db:5432/sambandh?schema=umami
-      APP_SECRET: ${UMAMI_APP_SECRET:-dev-umami-secret-change-in-production}
+      APP_SECRET: ${UMAMI_APP_SECRET:?set UMAMI_APP_SECRET in a local .env — see README}
       # No usage reporting back to the project that publishes the image. The
       # point of self-hosting is that the traffic stops here.
       DISABLE_TELEMETRY: "1"

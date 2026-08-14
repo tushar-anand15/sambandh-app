@@ -10,9 +10,22 @@ RUN pnpm install --frozen-lockfile || pnpm install
 
 COPY . .
 
-ARG API_URL=http://backend:8000
-ENV API_URL=${API_URL}
+# Vite substitutes `import.meta.env.VITE_*` at build time, so these are
+# properties of the image, not of the container. Setting them in compose does
+# nothing; they have to be here, which is why the deploy workflow passes them as
+# build args. Both unset produces a bundle that sends no telemetry at all —
+# `telemetryConfig()` returns null when either is missing — so an image built
+# without them is a working image, not a broken one.
+ARG VITE_UMAMI_HOST=
+ARG VITE_UMAMI_WEBSITE_ID=
+ENV VITE_UMAMI_HOST=${VITE_UMAMI_HOST}
+ENV VITE_UMAMI_WEBSITE_ID=${VITE_UMAMI_WEBSITE_ID}
 
+# There is deliberately no API_URL here. An earlier version of this file took
+# one and it never did anything: `API_URL` is read by vite.config.ts to point
+# the *dev server's* proxy at a backend, and `vite build` does not run the dev
+# server. The built bundle calls `/api` relatively (src/lib/api.ts), and nginx
+# in the stage below is what routes that to the backend container.
 RUN pnpm build
 
 # Stage 2: Serve with nginx

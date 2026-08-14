@@ -1,10 +1,27 @@
 name: Deploy to Production
 
-# Until 13 August 2026 this workflow was the whole of CI: every push to main
-# ran `git pull && docker compose build && up -d` on the production VM, with no
-# test run in front of it. The `needs: test` below is the gate. The deploy job
-# does not start unless every job in test.yml passed on this same commit, and a
-# skipped or failed test job leaves the site serving the previous build.
+# Until 13 August 2026 this workflow was the whole of CI: every push to main ran
+# `git pull && docker compose build && up -d` on the production VM, with no test
+# run in front of it. It also never once succeeded, because the directory it
+# cd'd into does not exist — the deployment on the VM was hand-copied and is not
+# a checkout of anything.
+#
+# What replaces it:
+#
+#   test    the same suite a pull request runs, called as a job so it runs on
+#           this commit. A red suite still stops the deploy.
+#   build   images built here, on a runner, and pushed to Artifact Registry
+#           tagged with the commit SHA. The VM stops building; an e2-small with
+#           under a gigabyte free was building a Vite bundle for every deploy.
+#   deploy  the VM pulls those two tags and restarts. It holds a compose file,
+#           an nginx config and three scripts — no source, no git remote, and
+#           nothing it could `git pull` from.
+#
+# Nothing here reads a GitHub secret. Authentication to Google Cloud is a
+# short-lived token exchanged for this run's OIDC identity through Workload
+# Identity Federation, and the binding on the service account will only accept
+# refs/heads/main of this repository. The three secrets the old workflow used —
+# PROD_HOST, PROD_USER, PROD_SSH_KEY — are no longer read by anything.
 
 on:
   push:
@@ -12,34 +29,186 @@ on:
       - main
   workflow_dispatch:
 
+# Two deploys of different commits racing each other onto one VM would leave it
+# serving an unpredictable mix of the two images. Queue them; do not cancel a
+# deploy that is already partway through replacing containers.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GCP_PROJECT: sulekhasakarma-495616
+  GCP_REGION: asia-south1
+  GCP_ZONE: asia-south1-c
+  INSTANCE: gramsambandh-app
+  REGISTRY: asia-south1-docker.pkg.dev/sulekhasakarma-495616/gramsambandh
+  WIF_PROVIDER: projects/526177210993/locations/global/workloadIdentityPools/github/providers/sambandh-app
+  DEPLOY_SA: gh-deploy@sulekhasakarma-495616.iam.gserviceaccount.com
+
 jobs:
   test:
-    # Same workflow the pull request ran, called as a job so it runs on this
-    # commit rather than being looked up after the fact.
+    # Called, not watched. A `workflow_run` trigger would start after a separate
+    # run finished and would have to look up which commit that run was for; a
+    # called workflow is part of this run, on this commit, and cannot deploy a
+    # commit it did not test.
     uses: ./.github/workflows/test.yml
 
-  deploy:
+  build:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    strategy:
+      # Both images must exist before the deploy job starts. Neither is pushed
+      # to a moving tag, so a half-finished matrix leaves the VM untouched.
+      matrix:
+        include:
+          - image: backend
+            context: ./backend
+            dockerfile: ./backend/Dockerfile
+          - image: frontend
+            context: ./frontend
+            dockerfile: ./frontend/Dockerfile.prod
 
     steps:
-      - name: Deploy to production server
-        uses: appleboy/ssh-action@v1.0.3
+      - uses: actions/checkout@v4
+
+      # No service account JSON anywhere. This exchanges the run's OIDC token
+      # for a short-lived credential; the provider's attribute condition rejects
+      # a token from any repository but this one.
+      - id: auth
+        uses: google-github-actions/auth@v2
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          script: |
-            cd ~/sambandh-app
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOY_SA }}
 
-            # Pull latest code
-            git pull origin main
+      - uses: google-github-actions/setup-gcloud@v2
 
-            # Rebuild and restart services
-            docker compose build --no-cache
-            docker compose up -d
+      - name: Authenticate Docker to Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 
-            # Clean up old images
-            docker image prune -f
+      - uses: docker/setup-buildx-action@v3
 
-            echo "Deployment complete"
+      - name: Build and push ${{ matrix.image }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          # Tagged by commit and by nothing else. A deploy names exactly what it
+          # is deploying and a rollback is re-pointing at an earlier tag, which
+          # `latest` cannot express: `latest` is always whatever was pushed last,
+          # so it can neither identify what is running nor name what to go back
+          # to. The registry's tag list is the deployment history.
+          tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ github.sha }}
+          # Vite bakes VITE_* into the bundle, so telemetry is configured at
+          # build time or not at all. These are repository *variables*, not
+          # secrets: a Umami website id is a public identifier that appears in
+          # every tracked page's requests. Leave them unset and the frontend
+          # sends nothing, which is the current state — production has never run
+          # Umami, so there is no website id to put here yet.
+          # (Ignored by the backend build, which declares no such ARG.)
+          build-args: |
+            VITE_UMAMI_HOST=${{ vars.VITE_UMAMI_HOST }}
+            VITE_UMAMI_WEBSITE_ID=${{ vars.VITE_UMAMI_WEBSITE_ID }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      # The bundle is everything the VM is allowed to know: a compose file, the
+      # nginx config, the non-secret half of the environment, and the scripts.
+      # No application source and no secret value.
+      #
+      # It is pushed from here rather than pulled by the VM on purpose. A pull
+      # would mean the VM holds a credential for GitHub and a checkout to pull
+      # into — the two things whose absence is the point of this change — and
+      # would let the file on the VM drift from the commit whose images are
+      # being deployed. Pushing means the compose file that starts the
+      # containers is, by construction, the one from the commit under test.
+      - name: Stage the deploy bundle
+        run: |
+          mkdir -p bundle
+          # Everything in deploy/, not a list of filenames. A list is a thing
+          # that goes stale silently: a script added to deploy/ and called by
+          # deploy.sh would simply not be on the VM, and the failure would
+          # surface mid-deploy rather than here.
+          cp deploy/* bundle/
+          cp frontend/nginx.ssl.conf bundle/
+          chmod +x bundle/*.sh
+          echo "Bundle contents:"; ls -1 bundle/
+
+      # PREREQUISITE, and the one thing that could not be verified before this
+      # workflow was first run. Both steps below reach the VM over IAP using OS
+      # Login as gh-deploy@. Every project-level piece of that is in place and
+      # was tested — the IAP tunnel opens, the OS Login profile exists with a
+      # POSIX account and an imported key, and the SA holds
+      # roles/compute.osAdminLogin. sshd still refuses the key, logging:
+      #
+      #   google_authorized_keys: OS Login user sa_<id> does not have login
+      #   permission. Could not grant access to organization user: sa_<id>.
+      #
+      # This project sits under an organization, and OS Login authorization for
+      # it is decided above the project. Until an organization administrator
+      # grants the deploy account external-user access, these two steps fail:
+      #
+      #   gcloud organizations add-iam-policy-binding 718434625283 \
+      #     --member=serviceAccount:gh-deploy@sulekhasakarma-495616.iam.gserviceaccount.com \
+      #     --role=roles/compute.osLoginExternalUser
+      #
+      # It fails loudly and before anything on the VM is touched, so a run that
+      # hits this leaves production exactly as it was.
+      - name: Copy the bundle to the VM
+        run: |
+          gcloud compute scp --quiet --recurse --tunnel-through-iap \
+            --zone="$GCP_ZONE" --project="$GCP_PROJECT" \
+            bundle "$INSTANCE":~/deploy-staging-${{ github.sha }}
+
+      - name: Install the bundle and deploy
+        run: |
+          gcloud compute ssh --quiet --tunnel-through-iap \
+            --zone="$GCP_ZONE" --project="$GCP_PROJECT" "$INSTANCE" \
+            --command "set -euo pipefail
+              STAGE=\$HOME/deploy-staging-${{ github.sha }}
+              sudo mkdir -p /opt/gramsambandh
+              sudo cp \$STAGE/* /opt/gramsambandh/
+              sudo chmod +x /opt/gramsambandh/*.sh
+              rm -rf \$STAGE
+              /opt/gramsambandh/deploy.sh ${{ github.sha }}"
+
+      # deploy.sh has already put the previous image tag back by the time it
+      # exits non-zero, so this runs against a site that is up. It exists to
+      # make the run red and to say which commit was rejected, rather than to
+      # perform the recovery.
+      - name: Report a failed deploy
+        if: failure()
+        run: |
+          echo "::error::Deploy of ${{ github.sha }} failed."
+          echo "deploy.sh rolls back to the previous image tag on a failed"
+          echo "health check, so production should be serving the build before"
+          echo "this one. Confirm, and see the step log above for the container"
+          echo "logs it printed:"
+          echo "  gcloud compute ssh $INSTANCE --zone=$GCP_ZONE --tunnel-through-iap \\"
+          echo "    --command='sudo cat /srv/gramsambandh/current_sha'"
