@@ -38,11 +38,37 @@ def tests() -> dict:
     return load("test.yml")
 
 
-def test_the_deploy_job_needs_the_test_job(deploy):
-    needs = deploy["jobs"]["deploy"]["needs"]
-    needs = [needs] if isinstance(needs, str) else needs
+def _needs(job: dict) -> list[str]:
+    needs = job.get("needs", [])
+    return [needs] if isinstance(needs, str) else list(needs)
 
-    assert "test" in needs, "deploy must not start before the suite has passed"
+
+def test_the_deploy_job_cannot_run_before_the_test_job(deploy):
+    """`deploy` waits on `test`, by whatever chain of jobs.
+
+    Originally this asserted `"test" in deploy.needs` — a direct edge. That
+    broke honestly when the pipeline gained a `build` job between them: the
+    chain became test <- build <- deploy, the gate was still intact, and the
+    assertion failed anyway. Walking the graph tests the property that matters
+    (no path from deploy to the runner that skips the suite) instead of one
+    shape the graph happened to have, so inserting another stage is allowed and
+    detaching the suite is not.
+    """
+    jobs = deploy["jobs"]
+
+    seen: set[str] = set()
+    frontier = _needs(jobs["deploy"])
+    while frontier:
+        name = frontier.pop()
+        if name in seen:
+            continue
+        seen.add(name)
+        frontier.extend(_needs(jobs.get(name, {})))
+
+    assert "test" in seen, (
+        "deploy must not start before the suite has passed; "
+        f"it transitively depends on {sorted(seen) or 'nothing'}"
+    )
 
 
 def test_the_test_job_calls_this_repository_s_test_workflow(deploy):

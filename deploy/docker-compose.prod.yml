@@ -71,12 +71,13 @@ services:
       # a bind mount of a host directory and not baked into the image: the
       # layers change on sulekha's release schedule, not on this repository's,
       # and adding them to the backend image would put 104 MB into every build,
-      # every push, and every pull of an image that is already 1.8 GB.
+      # every push, and every pull.
       - /srv/gramsambandh/geo:/srv/geo:ro
-      # bge-m3 and the Jina reranker are downloaded on first use, not baked in.
-      # Without this volume every deploy re-downloads about 2 GB of weights and
-      # the assistant is slow until it finishes.
-      - hfcache:/root/.cache/huggingface
+      # No model cache. The backend image no longer installs the `embedding`
+      # extra, so there is no bge-m3 and no Jina reranker to cache: search runs
+      # the full-text arm only. Restore this volume in the same change that
+      # puts `--extra embedding` back in backend/Dockerfile, and not before —
+      # an empty cache mount reads like the models are expected.
     command: >
       sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:
@@ -130,4 +131,3 @@ volumes:
   pgdata:
   certbot-webroot:
   certbot-certs:
-  hfcache:

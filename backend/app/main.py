@@ -26,18 +26,31 @@ logger = logging.getLogger(__name__)
 
 
 def _warmup_models():
-    """Pre-load embedding and reranker models to avoid cold-start latency."""
+    """Pre-load embedding and reranker models to avoid cold-start latency.
+
+    Both are absent from the deployed image, which does not install the
+    `embedding` extra. That is the expected configuration, not a failure, so
+    this says which mode it is in rather than logging "model loaded" after
+    loading nothing — the previous version reported success whether or not
+    there was a model, which is the sort of log line that costs an hour later.
+    """
     try:
         from .embedder import _get_model
-        _get_model()
-        logger.info("Embedder model loaded")
+        logger.info(
+            "Embedder %s",
+            "loaded" if _get_model() is not None
+            else "not installed — search runs the full-text arm only",
+        )
     except Exception as e:
         logger.warning("Embedder warmup failed: %s", e)
 
     try:
         from .reranker import get_reranker
-        get_reranker()
-        logger.info("Reranker model loaded")
+        logger.info(
+            "Reranker %s",
+            "loaded" if get_reranker() is not None
+            else "not installed or disabled — results are returned in fusion order",
+        )
     except Exception as e:
         logger.warning("Reranker warmup failed: %s", e)
 

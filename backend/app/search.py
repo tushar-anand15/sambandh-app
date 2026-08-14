@@ -127,7 +127,7 @@ async def fetch_chunks(
 async def hybrid_search(
     conn: asyncpg.Connection,
     query_text: str,
-    query_vector: list[float],
+    query_vector: list[float] | None,
     *,
     top_k: int = 10,
     rrf_k: int = 60,
@@ -140,17 +140,26 @@ async def hybrid_search(
     lb_name: str | None = None,
     year: str | None = None,
 ) -> list[SearchResult]:
-    dense_results = await dense_recall(
-        conn, query_vector, limit=dense_limit,
-        district=district, lb_type=lb_type, year=year,
-    )
-    fts_results = await fts_recall(
+    # The dense arm runs only when there is a real vector to run it with.
+    # `query_vector` is None in the deployed image, which ships without the
+    # embedding extra; feeding pgvector a zero vector instead would return
+    # `dense_limit` rows in arbitrary order and `rrf_fuse` would then weight
+    # that arbitrary order equally with the FTS ranking. Skipping the arm
+    # leaves fusion with one real list, which is exactly what a single-arm
+    # search should be.
+    ranked_lists: list[list[tuple[str, int]]] = []
+    if query_vector is not None:
+        ranked_lists.append(await dense_recall(
+            conn, query_vector, limit=dense_limit,
+            district=district, lb_type=lb_type, year=year,
+        ))
+    ranked_lists.append(await fts_recall(
         conn, query_text, limit=fts_limit,
         district=district, lb_type=lb_type, year=year,
-    )
+    ))
 
     candidate_k = rerank_k if use_rerank else top_k
-    fused_ids = rrf_fuse(dense_results, fts_results, rrf_k=rrf_k)[:candidate_k]
+    fused_ids = rrf_fuse(*ranked_lists, rrf_k=rrf_k)[:candidate_k]
     chunks = await fetch_chunks(conn, fused_ids)
 
     if use_rerank and chunks:
