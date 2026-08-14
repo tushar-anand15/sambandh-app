@@ -220,12 +220,17 @@ jobs:
               STAGE=\$HOME/deploy-staging-${{ github.sha }}
               sudo mkdir -p /opt/gramsambandh
               sudo cp \$STAGE/* /opt/gramsambandh/
-              # 755, not `+x`. `sudo cp` lands these as root:root 750 under the
-              # VM's umask, and `chmod +x` on that gives 751 -- others may
-              # execute but not read. A shell script must be readable by the
-              # interpreter that runs it, so deploy.sh below would have failed
-              # with a bare "Permission denied" that names no cause. Found by
-              # hitting it while installing these scripts by hand.
+              # 755 rather than a bare +x. sudo cp lands these as root:root
+              # 750 under the VM's umask, and adding only the execute bit to
+              # that gives 751 -- others may execute but not read. A shell
+              # script must be readable by the interpreter that runs it, so
+              # deploy.sh below would have failed with a bare Permission denied
+              # naming no cause. Found by hitting it by hand.
+              #
+              # No backticks anywhere in this string: it is double-quoted, so
+              # the runner's shell would run them as command substitution here
+              # rather than sending them to the VM. That is exactly how this
+              # step failed once already.
               sudo chmod 755 /opt/gramsambandh/*.sh
               sudo chmod 644 /opt/gramsambandh/*.yml /opt/gramsambandh/prod.env
               rm -rf \$STAGE
