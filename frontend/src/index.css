@@ -294,6 +294,26 @@ body {
   color: var(--ink);
 }
 
+/* Cells need horizontal room, not only vertical. Without it a column's value
+   runs straight into its neighbour -- "6,98,200None" -- and two short headers
+   read as one word, "EXPENSEDOCUMENT". Edge cells stay flush so a table still
+   aligns with the text column beside it. */
+th,
+td {
+  padding-block: var(--s2);
+  padding-inline: var(--s3);
+}
+
+th:first-child,
+td:first-child {
+  padding-inline-start: 0;
+}
+
+th:last-child,
+td:last-child {
+  padding-inline-end: 0;
+}
+
 /* Digits align in tables, figures and dates. */
 table,
 time,

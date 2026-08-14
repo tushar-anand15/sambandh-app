@@ -49,7 +49,9 @@ export function isOpenable(row: ProjectRow): boolean {
 function DocumentCell({ row }: { row: ProjectRow }) {
   if (isOpenable(row)) return <span>View</span>;
   if (row.has_pdf) return <span className="text-ink-3">Held, no address</span>;
-  return <span className="text-ink-3">None</span>;
+  // Sulekha published these as a plan line with no scan attached. "None"
+  // reads as a missing value; the document was never published at all.
+  return <span className="text-ink-3">Not published</span>;
 }
 
 export default function ProjectTable({ payload }: ProjectTableProps) {

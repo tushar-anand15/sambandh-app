@@ -176,7 +176,7 @@ describe("the project table", () => {
     ).toBeInTheDocument();
 
     await lastPage();
-    expect(within(table).getAllByText("None")).toHaveLength(6);
+    expect(within(table).getAllByText("Not published")).toHaveLength(6);
   });
 
   it("pages through the year fifty rows at a time", async () => {
