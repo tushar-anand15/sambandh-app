@@ -224,8 +224,25 @@ APP_SERVICES=(backend frontend umami certbot)
 
 compose_up() {
   local sha="$1"
-  BACKEND_IMAGE="${REGISTRY}/backend:${sha}" \
-  FRONTEND_IMAGE="${REGISTRY}/frontend:${sha}" \
+
+  # The image tags go into the env file rather than in front of the command.
+  #
+  # `BACKEND_IMAGE=... sudo docker compose ...` sets the variable for *sudo*,
+  # which sanitises its environment before exec'ing docker, so compose saw
+  # nothing and stopped with "required variable BACKEND_IMAGE is missing a
+  # value". Writing them where compose already looks removes the question of
+  # what survives sudo, and keeps every value compose interpolates in exactly
+  # one place.
+  #
+  # Rewritten rather than appended because this function is called a second
+  # time by the rollback path with a different SHA, and compose takes the last
+  # definition of a duplicated key -- which would work, but only by accident.
+  sed -i '/^BACKEND_IMAGE=/d; /^FRONTEND_IMAGE=/d' "$ENV_FILE"
+  {
+    printf 'BACKEND_IMAGE=%s/backend:%s\n'   "$REGISTRY" "$sha"
+    printf 'FRONTEND_IMAGE=%s/frontend:%s\n' "$REGISTRY" "$sha"
+  } >> "$ENV_FILE"
+
   $DOCKER compose \
     --project-directory "$DEPLOY_DIR" \
     -f "${DEPLOY_DIR}/docker-compose.prod.yml" \
