@@ -160,36 +160,62 @@ jobs:
           chmod +x bundle/*.sh
           echo "Bundle contents:"; ls -1 bundle/
 
-      # PREREQUISITE, and the one thing that could not be verified before this
-      # workflow was first run. Both steps below reach the VM over IAP using OS
-      # Login as gh-deploy@. Every project-level piece of that is in place and
-      # was tested — the IAP tunnel opens, the OS Login profile exists with a
-      # POSIX account and an imported key, and the SA holds
-      # roles/compute.osAdminLogin. sshd still refuses the key, logging:
+      # How this reaches the VM, and why it is not OS Login.
+      #
+      # OS Login was the original design and it could not be made to work. The
+      # SA got as far as a provisioned POSIX account (sa_<id>, with a uid) and
+      # was then refused at the authorization check:
       #
       #   google_authorized_keys: OS Login user sa_<id> does not have login
       #   permission. Could not grant access to organization user: sa_<id>.
       #
-      # This project sits under an organization, and OS Login authorization for
-      # it is decided above the project. Until an organization administrator
-      # grants the deploy account external-user access, these two steps fail:
+      # despite holding roles/compute.osAdminLogin and
+      # roles/iap.tunnelResourceAccessor on the project. This project sits under
+      # organization 718434625283, which the project owner cannot see or modify
+      # — `gcloud organizations list` returns nothing for them — so the fix
+      # normally prescribed here (roles/compute.osLoginExternalUser at the org)
+      # was not available, and waiting on an unreachable org admin is not a
+      # deployment strategy.
       #
-      #   gcloud organizations add-iam-policy-binding 718434625283 \
-      #     --member=serviceAccount:gh-deploy@sulekhasakarma-495616.iam.gserviceaccount.com \
-      #     --role=roles/compute.osLoginExternalUser
+      # So OS Login is off on the instance (`enable-oslogin=FALSE`, which is
+      # instance metadata we control; there is no org policy on this project)
+      # and this authenticates with an ordinary SSH key instead.
       #
-      # It fails loudly and before anything on the VM is touched, so a run that
-      # hits this leaves production exactly as it was.
+      # The key is provisioned once rather than generated per run. Letting
+      # `gcloud compute ssh` create its own key means it appends a new entry to
+      # the instance's ssh-keys metadata on every single deploy, which grows
+      # without bound until it hits the metadata size limit — and it would also
+      # mean granting this SA compute.instances.setMetadata, which is
+      # root-equivalent on a GCE instance via startup-script. With the public
+      # key already in metadata, gcloud has nothing to write, so the SA needs no
+      # metadata permission at all: only read access to the private key.
+      #
+      # `block-project-ssh-keys=TRUE` is set on the instance so that keys are
+      # scoped to this one VM rather than inherited project-wide.
+      - name: Fetch the deploy SSH key
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          gcloud secrets versions access latest \
+            --secret=gramsambandh-deploy-ssh-key --project="$GCP_PROJECT" \
+            > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # gcloud insists on a .pub beside the private key and will offer to
+          # generate a keypair if one is missing, which on a non-interactive
+          # runner is a failure rather than a prompt.
+          ssh-keygen -y -f ~/.ssh/deploy_key > ~/.ssh/deploy_key.pub
+
       - name: Copy the bundle to the VM
         run: |
           gcloud compute scp --quiet --recurse --tunnel-through-iap \
+            --ssh-key-file=~/.ssh/deploy_key \
             --zone="$GCP_ZONE" --project="$GCP_PROJECT" \
-            bundle "$INSTANCE":~/deploy-staging-${{ github.sha }}
+            bundle "deploy@$INSTANCE":~/deploy-staging-${{ github.sha }}
 
       - name: Install the bundle and deploy
         run: |
           gcloud compute ssh --quiet --tunnel-through-iap \
-            --zone="$GCP_ZONE" --project="$GCP_PROJECT" "$INSTANCE" \
+            --ssh-key-file=~/.ssh/deploy_key \
+            --zone="$GCP_ZONE" --project="$GCP_PROJECT" "deploy@$INSTANCE" \
             --command "set -euo pipefail
               STAGE=\$HOME/deploy-staging-${{ github.sha }}
               sudo mkdir -p /opt/gramsambandh

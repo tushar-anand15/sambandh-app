@@ -151,6 +151,13 @@ DB_CID="$($DOCKER ps --filter name=db --filter status=running --format '{{.ID}}'
 if [[ -z "$DB_CID" ]]; then
   echo "FATAL: no running db container. Refusing to deploy against a database" >&2
   echo "that is not up: the state before a migration could not be captured." >&2
+  echo >&2
+  echo "A deploy no longer starts the database -- it ships the app only, so it" >&2
+  echo "cannot recreate the container your data lives in. The database comes up" >&2
+  echo "with the machine via its restart policy. If it is genuinely down:" >&2
+  echo >&2
+  echo "  sudo docker compose --project-directory ${DEPLOY_DIR} \\" >&2
+  echo "    -f ${DEPLOY_DIR}/docker-compose.prod.yml --env-file <env> up -d db" >&2
   exit 1
 fi
 
@@ -191,6 +198,30 @@ fi
 
 # --- bring up -------------------------------------------------------------
 
+# The application services, named explicitly. `db` is deliberately not among
+# them, and `--no-deps` stops compose from pulling it in as a dependency.
+#
+# Compose would not normally recreate the database anyway: `up -d` only
+# recreates a container whose definition changed, and between two deploys the
+# only thing that changes here is the image tag on backend and frontend. But
+# "it happens not to" is a weaker property than "it cannot", and the difference
+# matters for the one container holding four users, their chats, and 99,616
+# embeddings. Editing an unrelated line of the db service in this compose file
+# should not be able to bounce the database as a side effect of shipping a
+# frontend change.
+#
+# So a deploy ships the app. The database is brought up by its restart policy
+# when the machine boots, and is changed only by a deliberate, separate act --
+# see "Changing the database service" in docs/deployment_runbook.md. Deploys
+# stay reversible in the way the rollback below assumes: a rollback re-runs the
+# app containers on an older tag and the data underneath is simply never in
+# scope.
+#
+# Note this means edits to the `db:` block of docker-compose.prod.yml do not
+# take effect on a deploy. That is the point, and the runbook says how to apply
+# them when they are wanted.
+APP_SERVICES=(backend frontend umami certbot)
+
 compose_up() {
   local sha="$1"
   BACKEND_IMAGE="${REGISTRY}/backend:${sha}" \
@@ -199,7 +230,7 @@ compose_up() {
     --project-directory "$DEPLOY_DIR" \
     -f "${DEPLOY_DIR}/docker-compose.prod.yml" \
     --env-file "$ENV_FILE" \
-    up -d --remove-orphans
+    up -d --no-deps --remove-orphans "${APP_SERVICES[@]}"
 }
 
 # Waits for the thing a user would notice, not for the container to exist.
