@@ -4,6 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GramSAMBANDH</title>
+
+    <!--
+      The mark, in the tab. public/favicon.svg is the primary and carries the
+      reasoning; the two PNGs are rasterised from it for the clients that will
+      not take an SVG icon (Safari on iOS, and anything reading the icon into a
+      fixed-size bitmap slot such as a bookmark bar or a homescreen tile).
+
+      Order matters. A browser that understands image/svg+xml takes the first
+      line and stops, so the SVG wins wherever it can; the sized PNG is the
+      fallback rather than the default. All three are same-origin files Vite
+      copies from public/ — no icon CDN, same rule as the fonts below.
+    -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+
     <!--
       No font host. Type comes from the stacks in src/index.css, which resolve
       to faces already on the reader's machine. The page makes zero external

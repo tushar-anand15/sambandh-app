@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="Gram Sambandh">
+  <title>Gram Sambandh</title>
+  <!--
+    The mark, redrawn for 16px.
+
+    src/components/shell/Logo.tsx is the mark proper: two strands curving into a
+    join, a dot at the join, one strand out. It is drawn for 30px and it does
+    not survive a browser tab. At 16px a 1.75 unit stroke is 1.17 device pixels,
+    and the two curves run close enough together at the end to fuse before they
+    reach the join. So this is a second drawing of the same idea.
+
+    It is drawn as a merge, not a fork. An earlier version put two arms in and
+    one arm out, all meeting at a point: three arms at 85, 137 and 137 degrees,
+    close enough to even that it read as a propeller at any size. This version
+    runs one line straight through and joins a second to it, so there are three
+    line ends instead of four and the angles are 49, 131 and 180 degrees. A
+    shape with no rotational symmetry cannot read as a pinwheel.
+
+    Two other changes for the small sizes:
+
+      * the strokes are straight, not curved. A curve at 1.2 device pixels is a
+        jagged line pretending to be a curve.
+      * the stroke is 3.6 units rather than 1.75, which is 2.4 device pixels at
+        16px. Below about 2px a stroke stops looking inked and starts looking
+        dithered.
+
+    Ground, and why there is one. The mark inside the site takes currentColor
+    from the masthead. A favicon has no page behind it: it sits on browser
+    chrome whose colour it cannot see and cannot inherit, so dark ink on nothing
+    disappears into a dark tab strip. The mark carries its own ground, the paddy
+    husk of the paper token. That also settles theming without a
+    prefers-color-scheme branch, which Chrome honours unreliably in favicons.
+
+    Colours are the palette from src/index.css, written out because an SVG file
+    sits outside the cascade and cannot read a custom property:
+      #f1f3e9   paper    paddy husk, the ground
+      #1d2417   ink      the records
+      #3e5c2a   accent   wet paddy, and only at the join
+
+    No request of any kind: no font, no external href, no embedded raster.
+  -->
+  <rect width="24" height="24" rx="5" fill="#f1f3e9"/>
+  <g fill="none" stroke="#1d2417" stroke-width="3.6" stroke-linecap="round">
+    <!-- One record runs through: what a council spent. -->
+    <path d="M3 12 H21"/>
+    <!-- The other joins it: what the council decided. -->
+    <path d="M4.6 19.4 L11 12"/>
+  </g>
+  <!--
+    The join. Twice the stroke width across, so it survives as a swelling in the
+    line even where the accent stops being separable from the ink at 16px. If
+    only one element could survive, this is the one carrying the meaning.
+  -->
+  <circle cx="11" cy="12" r="3.6" fill="#3e5c2a"/>
+</svg>
