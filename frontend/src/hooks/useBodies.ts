@@ -78,7 +78,7 @@ export function fetchBodies(): Promise<BodiesPayload> {
     inFlight = fetch(ENDPOINT)
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error(`Could not load the local body list (${response.status}).`);
+          throw new Error(`The list of local bodies did not load (${response.status}).`);
         }
         return (await response.json()) as BodiesPayload;
       })
@@ -141,8 +141,8 @@ export type Section = "finances" | "meetings" | "elections";
  */
 const NOT_COVERED: Record<Section, string> = {
   finances: "Sulekha holds no plan record for this body.",
-  meetings: "Sakarma holds no meeting record for this body.",
-  elections: "The State Election Commission published no result for this body.",
+  meetings: "Sakarma publishes no meetings for this local body.",
+  elections: "The State Election Commission published no result for this local body.",
 };
 
 export interface Coverage {

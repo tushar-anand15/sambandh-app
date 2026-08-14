@@ -46,7 +46,7 @@ export default function ScopeSelector({
         disabled={disabled || bodies.length === 0}
         onChange={(event) => onChange(event.target.value)}
       >
-        <option value="">Any indexed local body</option>
+        <option value="">Any local body below</option>
         {bodies.map((body) => (
           <option key={body.lb_name} value={body.lb_name}>
             {optionLabel(body)}

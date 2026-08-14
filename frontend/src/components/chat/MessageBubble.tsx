@@ -45,8 +45,8 @@ function ThinkingIndicator() {
         <Sparkles size={16} className="animate-pulse text-indigo" />
       </div>
       <div className="flex-1">
-        <p className="text-sm font-medium text-indigo">Thinking...</p>
-        <p className="text-xs text-ink-muted">Analyzing your question</p>
+        <p className="text-sm font-medium text-indigo">Thinking</p>
+        <p className="text-xs text-ink-muted">Reading the project documents</p>
       </div>
       <div className="flex gap-1">
         <span className="h-2 w-2 animate-bounce rounded-full bg-indigo/60" style={{ animationDelay: "0ms" }} />

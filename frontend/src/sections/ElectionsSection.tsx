@@ -57,12 +57,14 @@ import { useBodies, type BodySummary } from "@/hooks/useBodies";
 import { track } from "@/lib/telemetry";
 
 const DISTRICT_CAPTION =
-  "District outlines dissolved from the cycle's own local-body layer. " +
-  "The colour is the district panchayat's ruling front, which is a separate election from the bodies inside the district.";
+  "Kerala's fourteen districts, coloured by the front that runs the district " +
+  "panchayat. The district panchayat is elected separately from the local " +
+  "bodies inside the district.";
 
 const BODY_CAPTION =
-  "Grama Panchayat, Municipality and Corporation boundaries, coloured by the front that holds each. " +
-  "Block and District Panchayats cover the same ground again and are left off.";
+  "Grama Panchayats, Municipalities and Corporations, coloured by the front " +
+  "that runs each one. Block and District Panchayats cover the same ground " +
+  "over again, so the map shows them at their own level.";
 
 /**
  * The three levels that tile the state exactly once. Block and District
@@ -72,7 +74,8 @@ const BODY_CAPTION =
 const DIRECT_TYPES = new Set(["Grama Panchayat", "Municipality", "Corporation"]);
 
 const WARD_CAPTION =
-  "Ward boundaries as delimited for 2025, from KSMART's tiles, coloured by the winning candidate's front.";
+  "Ward boundaries as drawn for the 2025 election, from KSMART, coloured by " +
+  "the winning candidate's front.";
 
 /** Districts, from the fronts payload, which returns them in LSGD order. */
 function districtUnits(fronts: FrontsPayload): MapUnit[] {
@@ -228,8 +231,8 @@ export default function ElectionsSection() {
     <div className="shell-container section-page">
       <h1>Elections</h1>
       <p className="lede">
-        Ward-level results across the 2010, 2015, 2020 and 2025 cycles, with the
-        boundary layers they are drawn on.
+        Who won each ward in the 2010, 2015, 2020 and 2025 local body
+        elections, and by how many votes.
       </p>
       <BodySelector section="elections" />
 
@@ -246,12 +249,6 @@ export default function ElectionsSection() {
         {result.status === "loading" ? (
           <p className="selector-status" aria-busy="true">
             Loading the {cycle} result…
-          </p>
-        ) : null}
-
-        {result.status === "not-found" ? (
-          <p className="notice" role="alert">
-            No local body has the code {result.lbCode}.
           </p>
         ) : null}
 
@@ -353,14 +350,14 @@ export default function ElectionsSection() {
               <p>
                 {formatCount(missingGeometry.length)}{" "}
                 {missingGeometry.length === 1 ? "local body in" : "local bodies in"}{" "}
-                {district} {missingGeometry.length === 1 ? "is" : "are"} absent from the
-                map: no boundary layer holds a polygon for them. They are reachable from
-                the local body dropdown above.
+                {district} {missingGeometry.length === 1 ? "is" : "are"} not on the
+                map. No boundary has been published for them. Choose them from the
+                local body list above to see their results.
               </p>
               <ul className={styles.missingList}>
                 {missingGeometry.map((body) => (
                   <li key={body.lb_code}>
-                    {body.lb_name_en}, {body.lb_type}, no published boundary
+                    {body.lb_name_en}, {body.lb_type}
                   </li>
                 ))}
               </ul>

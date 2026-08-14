@@ -53,35 +53,28 @@ export default function MeetingsSection() {
     <div className="shell-container section-page">
       <h1>Meetings</h1>
       <p className="lede">
-        Meetings held, by category and by nature, from the Sakarma meeting manifest.
+        Every meeting a local body held in one financial year, and what it
+        published from each one.
       </p>
       <BodySelector section="meetings" />
 
-      <ScopeNote note={state.status === "ready" ? state.payload.scope_note : undefined} />
+      {state.status === "ready" ? <ScopeNote note={state.payload.scope_note} /> : null}
 
       {state.status === "idle" ? (
         <p className="selector-status">
-          Choose a district, a local body and a financial year to see what the
-          register holds for that year.
+          Choose a district, a local body and a financial year.
         </p>
       ) : null}
 
       {state.status === "loading" ? (
         <p className="selector-status" aria-busy="true">
-          Loading the meeting record.
-        </p>
-      ) : null}
-
-      {state.status === "not-found" ? (
-        <p className="notice" role="alert">
-          No local body has the code {state.lbCode}, so there is no meeting
-          record to show.
+          Loading the meetings.
         </p>
       ) : null}
 
       {state.status === "error" ? (
         <p className="notice" role="alert">
-          {state.message} Reloading the page requests it again.
+          {state.message} Reload the page to try again.
         </p>
       ) : null}
 

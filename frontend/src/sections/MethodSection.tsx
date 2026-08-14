@@ -28,7 +28,7 @@ export default function MethodSection() {
       <div className="shell-container section-page">
         <h1>How this data was built</h1>
         <p className="selector-status" aria-busy="true">
-          Loading the build record.
+          Loading.
         </p>
       </div>
     );
@@ -39,7 +39,7 @@ export default function MethodSection() {
       <div className="shell-container section-page">
         <h1>How this data was built</h1>
         <p className="notice" role="alert">
-          {state.message} Reloading the page requests it again.
+          {state.message} Reload the page to try again.
         </p>
       </div>
     );
@@ -62,9 +62,8 @@ export default function MethodSection() {
     <div className="shell-container section-page">
       <h1>How this data was built</h1>
       <p className="lede">
-        What changed by year, which boundaries each election cycle is drawn on,
-        and which dumps this build was made from. Every figure on this page is
-        counted from the database it describes.
+        What changed by year, which boundaries each election is drawn on, and
+        the files this site was built from.
       </p>
 
       <h2>Local bodies listed per year</h2>
@@ -73,8 +72,8 @@ export default function MethodSection() {
       <div className={styles.tableScroll}>
         <table className={styles.table}>
           <caption>
-            Local bodies listed by Sulekha per financial year, with entries and
-            departures against the previous year.
+            Local bodies listed by Sulekha per financial year, with those that
+            entered and left against the previous year.
           </caption>
           <thead>
             <tr>
@@ -117,21 +116,20 @@ export default function MethodSection() {
         </table>
       </div>
 
-      <h2>What each dataset holds per year</h2>
+      <h2>What each section covers per year</h2>
       <p>{meetings_coverage_note}</p>
 
       <div className={styles.tableScroll}>
         <table className={styles.table}>
           <caption>
-            Projects and meetings per financial year, statewide. The open year
-            is marked; its figures are a year in progress and are not comparable
-            with a closed one.
+            Projects and meetings per financial year, across Kerala. The year
+            still running is marked, and its figures cover part of a year.
           </caption>
           <thead>
             <tr>
               <th scope="col">Financial year</th>
               <th scope="col" className={styles.numeric}>
-                Bodies with a plan
+                Local bodies with projects
               </th>
               <th scope="col" className={styles.numeric}>
                 Projects
@@ -140,7 +138,7 @@ export default function MethodSection() {
                 Formulation
               </th>
               <th scope="col" className={styles.numeric}>
-                Bodies with a meeting record
+                Local bodies with meetings
               </th>
               <th scope="col" className={styles.numeric}>
                 Meetings
@@ -177,27 +175,25 @@ export default function MethodSection() {
         </table>
       </div>
 
-      <h2>Which boundaries each election cycle is drawn on</h2>
+      <h2>Which boundaries each election is drawn on</h2>
       <p>{ward_geometry_note}</p>
       <p>
-        None of these layers should be used for anything needing a legal or
-        cadastral boundary. They are built for showing election results on a
-        map.
+        These boundaries are drawn for showing election results on a map. Do not
+        use them to settle where a property or a ward line falls on the ground.
       </p>
 
       <div className={styles.tableScroll}>
         <table className={styles.table}>
           <caption>
-            The boundary set each election cycle is drawn on, from the layer
-            inventory the map itself reads.
+            The boundaries behind each election map.
           </caption>
           <thead>
             <tr>
-              <th scope="col">Cycle</th>
-              <th scope="col">Finest level published</th>
+              <th scope="col">Election</th>
+              <th scope="col">Smallest area published</th>
               <th scope="col">Source</th>
-              <th scope="col">Boundary vintage</th>
-              <th scope="col">Drawn for this cycle</th>
+              <th scope="col">Boundaries drawn</th>
+              <th scope="col">Drawn for this election</th>
               <th scope="col">Note</th>
             </tr>
           </thead>
@@ -220,13 +216,12 @@ export default function MethodSection() {
 
       <h2>The build</h2>
       <p>
-        The master database is rebuilt whole, not migrated, so one date
-        describes all of it. These are the counts the build itself recorded.
+        Everything on this site comes from one build, made on the date below.
       </p>
 
       <dl className={styles.build}>
         <div>
-          <dt>Dataset</dt>
+          <dt>Data</dt>
           <dd>{build.dataset}</dd>
         </div>
         <div>
@@ -236,11 +231,11 @@ export default function MethodSection() {
           </dd>
         </div>
         <div>
-          <dt>Pipeline version</dt>
+          <dt>Build version</dt>
           <dd>{build.master_version}</dd>
         </div>
         <div>
-          <dt>Source dumps</dt>
+          <dt>Source files</dt>
           <dd>{build.source_dumps.join(", ")}</dd>
         </div>
         <div>

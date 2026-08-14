@@ -75,7 +75,9 @@ async def test_an_unmounted_server_states_why_it_serves_nothing(client, unmounte
     response = await client.get(f"/geo/{LAYER}")
 
     assert response.status_code == 404
-    assert "GEO_DIR" in response.json()["detail"]
+    assert response.json()["detail"] == (
+        "This server holds no boundary files, so none can be downloaded."
+    )
 
 
 async def test_a_layer_missing_from_the_mount_is_distinguished(client, mounted):
@@ -86,7 +88,7 @@ async def test_a_layer_missing_from_the_mount_is_distinguished(client, mounted):
 
     assert response.status_code == 404
     detail = response.json()["detail"]
-    assert "boundary layer directory" in detail
+    assert detail == "This boundary file is not on this server."
     assert "GEO_DIR" not in detail
 
 
@@ -114,7 +116,7 @@ async def test_the_inventory_reports_what_this_server_holds(client, mounted):
     absent = layers["wards_2025"]
     assert absent["available"] is False
     assert absent["bytes"] is None
-    assert "geo build" in absent["unavailable_reason"]
+    assert absent["unavailable_reason"] == "This boundary file is not on this server."
 
 
 async def test_the_inventory_names_seven_layers(client, unmounted):
@@ -330,7 +332,7 @@ async def test_a_cycle_with_no_ward_geometry_says_so(client, layers):
 
     assert response.status_code == 404
     assert response.json()["detail"] == (
-        "No ward geometry has been published for the 2020 cycle."
+        "No ward boundaries have been published for the 2020 election."
     )
 
 
@@ -361,7 +363,9 @@ async def test_slicing_an_unmounted_server_states_the_cause(client, layers, unmo
     response = await client.get("/geo/wards/G01001.geojson?cycle=2025")
 
     assert response.status_code == 404
-    assert "GEO_DIR" in response.json()["detail"]
+    assert response.json()["detail"] == (
+        "This server holds no boundary files, so none can be downloaded."
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -40,7 +40,7 @@ export default function CoverageTable() {
   if (bodies.loading || maps.status === "loading" || maps.status === "idle") {
     return (
       <p className="selector-status" aria-busy="true">
-        Counting what each section holds.
+        Counting what each section covers.
       </p>
     );
   }
@@ -48,8 +48,7 @@ export default function CoverageTable() {
   if (bodies.error || maps.status !== "ready" || !bodies.data) {
     return (
       <p className="notice" role="alert">
-        The coverage figures did not load. Reloading the page requests them
-        again.
+        The coverage figures did not load. Reload the page to try again.
       </p>
     );
   }
@@ -71,7 +70,7 @@ export default function CoverageTable() {
       href: "/meetings",
       covered: list.filter((body) => body.has_meetings).length,
       total,
-      source: "Sakarma meeting manifest",
+      source: "Sakarma meeting portal",
     },
     {
       section: "Elections",
@@ -85,7 +84,7 @@ export default function CoverageTable() {
       href: "/elections",
       covered: coverage.with_geometry,
       total: coverage.bodies,
-      source: "KSMART vector tiles and the opendatakerala OpenStreetMap release",
+      source: "KSMART ward maps and opendatakerala",
     },
   ];
 
@@ -100,8 +99,8 @@ export default function CoverageTable() {
       <div className={styles.tableScroll}>
         <table className={styles.table}>
           <caption>
-            Local bodies with a record in each section, of the{" "}
-            {formatCount(total)} the master database holds.
+            Local bodies covered by each section, of the {formatCount(total)} in
+            Kerala.
           </caption>
           <thead>
             <tr>
@@ -135,11 +134,11 @@ export default function CoverageTable() {
       </div>
 
       <p className={styles.period}>
-        Finances run from {firstYear} to {lastYear}, the open year included and
-        labelled as open. Election results cover the{" "}
-        {bodies.data.cycles.join(", ")} cycles. Ward boundaries exist for 2025
-        only; the three earlier cycles reuse one November 2020 snapshot, and{" "}
-        <a href="/method">the method page</a> gives the vintage per cycle.
+        Finances run from {firstYear} to {lastYear}. Election results cover{" "}
+        {bodies.data.cycles.join(", ")}. Ward boundaries exist for 2025 only;
+        the three earlier elections are drawn on one November 2020 map of local
+        body boundaries, and <a href="/method">how this data was built</a> gives
+        the date for each.
       </p>
 
       <SourceLine

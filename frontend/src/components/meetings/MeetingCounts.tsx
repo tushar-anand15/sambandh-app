@@ -82,11 +82,11 @@ export default function MeetingCounts({ payload }: { payload: MeetingsYear }) {
       <p className={styles.total} data-numeric data-testid="meetings-total">
         {formatCount(payload.meetings)}
       </p>
-      <p className="label">Meetings in the Sakarma register</p>
+      <p className="label">Meetings published by Sakarma</p>
 
       {payload.is_complete ? null : (
         <p className="text-t3 text-ink-2 mt-s3">
-          {year} is still open, and the register is still being added to.
+          {year} is still running, and meetings are still being added.
         </p>
       )}
 
@@ -111,11 +111,11 @@ export default function MeetingCounts({ payload }: { payload: MeetingsYear }) {
       />
 
       <p className="text-t3 text-ink-2 mt-s5">
-        The register names the committee that met and the nature of the meeting.
-        Governing body counts the rows typed {GOVERNING_BODY_TERM}, and standing
-        committee counts every other committee named. Ordinary counts the rows
-        whose nature is {ORDINARY_TERM}, and special counts every other nature
-        the register records.
+        Sakarma names the committee that met and how the meeting was called.
+        Governing body counts the meetings marked {GOVERNING_BODY_TERM}, and
+        standing committee counts every other committee. Ordinary counts the
+        meetings marked {ORDINARY_TERM}, and special counts every other kind
+        Sakarma names.
       </p>
 
       <SourceLine

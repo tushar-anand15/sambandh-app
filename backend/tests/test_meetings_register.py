@@ -256,8 +256,12 @@ async def test_a_bucket_failure_is_a_502_naming_the_path(
 
     assert response.status_code == 502
     detail = response.json()["detail"]
-    assert "dr.html" in detail
-    assert "404 No such object" in detail
+    # The reader is told what failed and what to do. The bucket path and the
+    # upstream error stay on the exception chain, for the log.
+    assert detail == (
+        "The decision register for this meeting could not be opened. "
+        "Try again in a moment."
+    )
 
 
 async def test_an_empty_published_document_is_not_an_empty_page(

@@ -62,12 +62,24 @@ export function isOpenable(row: ProjectRow): boolean {
   return row.has_pdf && row.pdf_url !== null;
 }
 
-function DocumentCell({ row }: { row: ProjectRow }) {
-  if (isOpenable(row)) return <span>View</span>;
-  if (row.has_pdf) return <span className="text-ink-3">Held, no address</span>;
-  // Sulekha published these as a plan line with no scan attached. "None"
-  // reads as a missing value; the document was never published at all.
-  return <span className="text-ink-3">Not published</span>;
+function DocumentCell({ row, onOpen }: { row: ProjectRow; onOpen: () => void }) {
+  // A word that opens something has to look like it does. As plain text it read
+  // as a column value, and the cursor never changed over it.
+  if (isOpenable(row)) {
+    return (
+      <button
+        type="button"
+        className="text-accent underline cursor-pointer"
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpen();
+        }}
+      >
+        View
+      </button>
+    );
+  }
+  return <span className="text-ink-3">No document available</span>;
 }
 
 interface SortableHeaderProps {
@@ -182,8 +194,7 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
       </h2>
 
       <p>
-        {count(withPdf)} of {count(all.length)} projects have a scanned document in
-        Sulekha. The rest were published as a plan line with nothing attached.
+        {count(withPdf)} of {count(all.length)} projects have a scanned document.
         {payload.pdf_url_reason ? ` ${payload.pdf_url_reason}` : ""}
       </p>
 
@@ -237,8 +248,8 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
 
       {rows.length === 0 ? (
         <p className="notice" role="status">
-          No project in {year} has a scanned document in Sulekha. All{" "}
-          {count(all.length)} were published as a plan line with nothing attached.
+          None of the {count(all.length)} projects in {year} has a scanned
+          document.
         </p>
       ) : (
         <>
@@ -326,7 +337,7 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
                       {exactRupees(row.expense)}
                     </td>
                     <td className="py-s2">
-                      <DocumentCell row={row} />
+                      <DocumentCell row={row} onOpen={() => openRow(row)} />
                     </td>
                   </tr>
                 ))}

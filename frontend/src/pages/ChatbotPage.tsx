@@ -151,12 +151,12 @@ export default function ChatbotPage() {
               </div>
               <div>
                 <h2 className="font-display text-lg text-ink sm:text-xl">
-                  {currentTitle || "Chatbot"}
+                  {currentTitle || "Assistant"}
                 </h2>
                 <p className="text-[11px] text-ink-muted sm:text-xs">
                   {currentChatId
-                    ? "Continue your conversation"
-                    : "Ask questions about Sulekha project records"}
+                    ? "This conversation"
+                    : "Questions about Sulekha project documents"}
                 </p>
               </div>
             </div>
@@ -210,13 +210,12 @@ export default function ChatbotPage() {
                   <Sparkles size={32} className="text-white" strokeWidth={1.5} />
                 </div>
                 <h3 className="text-center font-display text-xl text-ink sm:text-2xl">
-                  What would you like to know?
+                  Ask about a project
                 </h3>
                 <p className="mt-3 max-w-md text-center text-sm leading-relaxed text-ink-muted">
-                  Answers come from the indexed Sulekha project documents, with
-                  the project number and local body each figure came from. A
-                  question about a local body or a year outside the index is
-                  declined.
+                  Every answer names the project number and the local body it
+                  came from. Questions about a local body or a year the
+                  assistant has not read are declined.
                 </p>
                 <div className="mt-8 w-full max-w-xl">
                   <SuggestedPrompts onSelect={askScoped} />

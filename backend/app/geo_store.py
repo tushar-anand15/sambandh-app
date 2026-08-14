@@ -75,16 +75,8 @@ def layer_path(filename: str) -> Path | None:
 # Why a layer named in the inventory cannot be downloaded from this server. The
 # two cases are different operational problems and are worth telling apart:
 # nothing is mounted, or the mount is missing one file.
-NO_DIRECTORY = (
-    "This server has no boundary layer directory configured, so no layer file "
-    "is served. The layers are built by sulekha's geo build; a deployment "
-    "mounts them and sets GEO_DIR."
-)
-NOT_ON_SERVER = (
-    "This layer is not in the boundary layer directory this server was given. "
-    "It is emitted by sulekha's geo build and has to be copied into that "
-    "directory before it can be downloaded."
-)
+NO_DIRECTORY = "This server holds no boundary files, so none can be downloaded."
+NOT_ON_SERVER = "This boundary file is not on this server."
 
 
 def layer_status(filename: str) -> dict[str, Any]:
@@ -499,7 +491,8 @@ class LayerMissing(Exception):
 def _resolve(filename: str | None, level: str, cycle: int) -> Path:
     if filename is None:
         raise LayerMissing(
-            f"No {level} geometry has been published for the {cycle} cycle."
+            f"No {level.replace('_', ' ')} boundaries have been published for "
+            f"the {cycle} election."
         )
     path = layer_path(filename)
     if path is None:

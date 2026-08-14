@@ -224,6 +224,11 @@
   line-height: var(--lh-ui);
 }
 
+/* Navigation, so no underline. See the note on `a` in index.css. */
+.breadcrumb a {
+  text-decoration: none;
+}
+
 .breadcrumbHere {
   color: var(--ink-2);
 }

@@ -45,22 +45,20 @@ from ..public import (
 
 router = APIRouter(prefix="/api/meetings", tags=["public"], dependencies=[Depends(rate_limit)])
 
-NOT_COVERED_REASON = "Sakarma holds no meeting record for this body."
+NOT_COVERED_REASON = "Sakarma publishes no meetings for this local body."
 
-# What the section holds and what it does not, counted from the master
-# database. Attachments are the one part of the manifest still unserved.
+# What a reader can open from the list, counted from the master database.
 SCOPE_NOTE = (
-    "Sakarma publishes a decision register and minutes for 420,561 of the "
-    "443,235 meetings in the manifest. Both open from the list below. PDF "
-    "attachments are named in the manifest and are not served here."
+    "Sakarma publishes a decision register and minutes for 420,561 of its "
+    "443,235 meetings. Both open from the list below."
 )
 
-# A document named in the manifest that the bucket has nothing for.
+# A document Sakarma names but the bucket has nothing for.
 NO_DOCUMENT = "no_document_published"
 
 
 def _no_record_reason(year_label: str) -> str:
-    return f"Sakarma holds no meeting record for {year_label}."
+    return f"Sakarma publishes no meetings for {year_label}."
 
 
 async def meeting_rows(conn, lb_key: int, year_label: str) -> list[dict[str, Any]]:
@@ -233,8 +231,8 @@ async def meeting_document(request: Request, meeting_id: int, kind: str):
         raise HTTPException(
             status_code=502,
             detail=(
-                f"The {KIND_LABEL[kind].lower()} is named in the manifest at "
-                f"{artifact['gcs_path']} and could not be read from the bucket: {err}"
+                f"The {KIND_LABEL[kind].lower()} for this meeting could not be "
+                "opened. Try again in a moment."
             ),
         ) from err
 

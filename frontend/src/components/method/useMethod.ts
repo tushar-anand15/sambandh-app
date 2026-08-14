@@ -77,7 +77,7 @@ export function useMethod(): MethodState {
         if (!response.ok) {
           setState({
             status: "error",
-            message: `The build record did not load (${response.status}).`,
+            message: `This page did not load (${response.status}).`,
           });
           return;
         }
@@ -86,7 +86,7 @@ export function useMethod(): MethodState {
       })
       .catch(() => {
         if (live) {
-          setState({ status: "error", message: "The build record did not load." });
+          setState({ status: "error", message: "This page did not load." });
         }
       });
 

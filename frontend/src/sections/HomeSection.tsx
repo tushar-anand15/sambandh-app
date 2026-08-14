@@ -23,9 +23,8 @@ export default function HomeSection() {
     <div className="shell-container section-page">
       <h1>Kerala local government spending, and the meetings behind it</h1>
       <p className="lede">
-        Two state portals publish what Kerala&rsquo;s local bodies planned and
-        what they met about. This site holds both, joined by a single key, and
-        hands over every figure it shows.
+        Projects, meetings and election results for the same panchayat, in one
+        place. Every figure on this site can be downloaded.
       </p>
 
       <p>
@@ -52,20 +51,19 @@ export default function HomeSection() {
 
       <h2>Kerala publishes both halves</h2>
       <p>
-        Sulekha (plan.lsgkerala.gov.in) holds 3.6 million project records, from
-        2012&ndash;13 onward. Sakarma (meeting.lsgkerala.gov.in) holds 443,000
-        meeting records, the earliest of them from 2015&ndash;16. The
-        two portals identify a local body in different ways and have never
-        shared a key, so nobody could ask what a council discussed and what it
-        then paid for. This site is built on a reconciliation of the two, and
-        every project row and every meeting row in it resolves to one local
-        body.
-      </p>
-      <p>
-        Kerala&rsquo;s local bodies are constitutionally empowered and fiscally
-        dependent. The law requires them to deliberate before they spend, and
-        that record has sat unread behind a portal that returns one meeting at
-        a time.
+        <a href="https://plan.lsgkerala.gov.in" target="_blank" rel="noopener noreferrer">
+          Sulekha
+        </a>{" "}
+        holds 3.6 million projects, from
+        2012&ndash;13 onward.{" "}
+        <a href="https://meeting.lsgkerala.gov.in" target="_blank" rel="noopener noreferrer">
+          Sakarma
+        </a>{" "}
+        holds 443,000
+        meetings, the earliest from 2015&ndash;16. The two portals name the same
+        panchayat in two different ways, so until now the projects and the
+        meetings could only be read one portal at a time. Here they sit under
+        one name per local body.
       </p>
 
       <h2>What this site holds</h2>
@@ -84,38 +82,32 @@ export default function HomeSection() {
         Kerala&rsquo;s own portals answer to.
       </p>
       <p>
-        Kerala&rsquo;s grama panchayats have about 25 million residents. They
-        are the people present or absent at the assembly that plans the
-        spending, and their access to information about their own local
-        government has been opaque.
+        Kerala&rsquo;s grama panchayats have about 25 million residents. The
+        assembly that plans the spending is theirs to attend.
       </p>
 
       <h2>Where the records come from</h2>
-      <p>
-        Five sources, all of them public. This site copies them, joins them on
-        one identifier for every local body, and publishes the result. It adds
-        no figure of its own.
-      </p>
+      <p>Five sources, all of them public.</p>
       <ul className={styles.sources}>
         <li>
           <a href="https://plan.lsgkerala.gov.in" target="_blank" rel="noopener noreferrer">
             Sulekha
           </a>
-          , the Kerala LSGD plan monitoring portal &mdash; the projects a local
-          body formulated and what it spent
+          , the Kerala LSGD plan monitoring portal: the projects a local body
+          planned and what it spent
         </li>
         <li>
           <a href="https://meeting.lsgkerala.gov.in" target="_blank" rel="noopener noreferrer">
             Sakarma
           </a>
-          , the Kerala LSGD meeting portal &mdash; when each council met and
-          what it recorded
+          , the Kerala LSGD meeting portal: when each council met and what it
+          wrote down
         </li>
         <li>
           <a href="https://www.sec.kerala.gov.in" target="_blank" rel="noopener noreferrer">
             Kerala State Election Commission
-          </a>{" "}
-          &mdash; candidates and results for four cycles
+          </a>
+          : candidates and results for four elections
         </li>
         <li>
           <a
@@ -124,18 +116,18 @@ export default function HomeSection() {
             rel="noopener noreferrer"
           >
             opendatakerala
-          </a>{" "}
-          &mdash; local body boundaries for 2015 and 2020
+          </a>
+          : local body boundaries for 2015 and 2020
         </li>
         <li>
           <a href="https://wardmap.ksmart.live" target="_blank" rel="noopener noreferrer">
             KSMART ward maps
           </a>
-          , Government of Kerala &mdash; ward boundaries for 2025
+          , Government of Kerala: ward boundaries for 2025
         </li>
       </ul>
       <p>
-        Boundary layers for 2015 and 2020 are &copy; OpenStreetMap contributors,
+        Boundary maps for 2015 and 2020 are &copy; OpenStreetMap contributors,
         redistributed by opendatakerala under the Open Database License 1.0.{" "}
         <Link to="/method">How the data was built</Link>.
       </p>

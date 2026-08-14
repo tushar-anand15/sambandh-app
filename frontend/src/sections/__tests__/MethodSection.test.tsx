@@ -38,7 +38,7 @@ async function rowIn(caption: RegExp, name: string | RegExp) {
 
 const BODIES = /Local bodies listed by Sulekha/;
 const COVERAGE = /Projects and meetings per financial year/;
-const BOUNDARIES = /The boundary set each election cycle/;
+const BOUNDARIES = /The boundaries behind each election map/;
 
 beforeEach(() => {
   server.use(...methodHandlers);
@@ -94,7 +94,7 @@ describe("dataset coverage", () => {
     expect(within(row).getByText("545")).toBeInTheDocument();
 
     expect(
-      screen.getByText(/A year with few meetings is a thin record/),
+      screen.getByText(/Sakarma covers more local bodies every year/),
     ).toBeInTheDocument();
   });
 
@@ -157,13 +157,13 @@ describe("the build", () => {
 });
 
 describe("when the endpoint is unreachable", () => {
-  it("says the build record did not load rather than rendering empty tables", async () => {
+  it("says the page did not load rather than rendering empty tables", async () => {
     server.use(http.get("*/api/method", () => HttpResponse.error()));
 
     renderMethod();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "The build record did not load",
+      "This page did not load",
     );
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });

@@ -71,7 +71,7 @@ export default function CoverageBanner({ state }: { state: IndexState }) {
   if (state.status === "loading") {
     return (
       <p className="border-b border-border bg-surface-alt px-s4 py-s3 text-t2 text-ink-muted">
-        Reading what the assistant holds.
+        Loading what the assistant has read.
       </p>
     );
   }
@@ -79,8 +79,8 @@ export default function CoverageBanner({ state }: { state: IndexState }) {
   if (state.status === "error") {
     return (
       <p className="border-b border-border bg-surface-alt px-s4 py-s3 text-t2 text-ink-muted">
-        The assistant&rsquo;s coverage could not be read. Ask about Thrissur
-        district for 2025&ndash;26 only until it loads.
+        What the assistant has read could not be loaded. It covers Thrissur
+        district, 2025&ndash;26.
       </p>
     );
   }
@@ -93,8 +93,8 @@ export default function CoverageBanner({ state }: { state: IndexState }) {
         The assistant has read {COUNT.format(index.documents)} project documents
         from {index.local_bodies.length} local bodies in{" "}
         {list(index.districts)} district, for{" "}
-        {list(index.years.map(shortYear))} only. It declines questions about any
-        other local body or year.
+        {list(index.years.map(shortYear))} only. It declines questions about
+        any other local body or year.
       </p>
       <p className="mt-s2">
         Finances, Meetings and Elections cover every local body in Kerala, and

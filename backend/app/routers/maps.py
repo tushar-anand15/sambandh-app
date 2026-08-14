@@ -22,17 +22,17 @@ from ..public import provenance, public_json, rate_limit
 router = APIRouter(prefix="/api/maps", tags=["public"], dependencies=[Depends(rate_limit)])
 
 KSMART = {
-    "source": "KSMART vector tiles",
-    "boundary_vintage": "current (KSMART tile server)",
+    "source": "KSMART ward maps",
+    "boundary_vintage": "as KSMART publishes them today",
     "per_cycle_delimitation": True,
     "licence": None,
-    "licence_note": "KSMART publishes no open licence for this data. Redistribution terms are unstated.",
+    "licence_note": "Redistribution terms are unstated.",
     "attribution": "KSMART, Government of Kerala",
 }
 
 OSM = {
-    "source": "opendatakerala LSG release (OpenStreetMap)",
-    "boundary_vintage": "November 2020 snapshot",
+    "source": "opendatakerala, from OpenStreetMap",
+    "boundary_vintage": "November 2020",
     "licence": "ODbL 1.0",
     "licence_note": "Attribution required on any redistribution, including a rendered image.",
     "attribution": "© OpenStreetMap contributors",
@@ -79,7 +79,7 @@ LAYERS: list[dict[str, Any]] = [
         "filename": "local_bodies_2020.geojson",
         **OSM,
         "per_cycle_delimitation": True,
-        "note": "The snapshot's own vintage matches this cycle.",
+        "note": "Drawn the same year as this election.",
     },
     {
         "id": "local_bodies_2015",
@@ -89,7 +89,7 @@ LAYERS: list[dict[str, Any]] = [
         "filename": "local_bodies_2015.geojson",
         **OSM,
         "per_cycle_delimitation": False,
-        "note": "The November 2020 snapshot reused. No 2015-vintage boundary set has been published.",
+        "note": "The November 2020 boundaries reused. Nothing has been published for 2015.",
     },
     {
         "id": "local_bodies_2010",
@@ -100,15 +100,15 @@ LAYERS: list[dict[str, Any]] = [
         **OSM,
         "per_cycle_delimitation": False,
         "note": (
-            "The November 2020 snapshot reused, and the largest approximation of the three: "
-            "47 of 2010's 1,208 bodies have no 2020-vintage counterpart and are absent from the layer."
+            "The November 2020 boundaries reused, and the roughest fit of the three. "
+            "47 of 2010's 1,208 local bodies had changed by 2020 and are not on this map."
         ),
     },
 ]
 
 WARD_GEOMETRY_NOTE = (
-    "No ward-level geometry exists for 2010, 2015 or 2020. opendatakerala publishes "
-    "local-body polygons only, and no alternative source has been published."
+    "Ward boundaries exist for 2025 only. For 2010, 2015 and 2020 the only "
+    "published boundaries are whole local bodies, from opendatakerala."
 )
 
 

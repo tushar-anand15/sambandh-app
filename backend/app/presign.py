@@ -66,8 +66,7 @@ log = logging.getLogger(__name__)
 # setting to fill in, because a reader-facing sentence leaves whoever runs the
 # deployment nothing to act on.
 NO_KEY_REASON = (
-    "This site cannot produce an address for the project documents, so the "
-    "scans Sulekha holds are named here without being reachable."
+    "The scanned documents cannot be opened from this site at the moment."
 )
 
 # Published only when signing and proxying have both failed, which is the one

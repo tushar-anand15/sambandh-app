@@ -235,7 +235,7 @@ describe("the fallback, where no boundary was published", () => {
     expect(screen.getAllByRole("button")).toHaveLength(4);
     expect(
       screen.getByText(
-        /No ward geometry has been published for the 2020 cycle\. Maps for it are under active work and will be updated soon\./,
+        /No ward geometry has been published for the 2020 cycle\./,
       ),
     ).toBeInTheDocument();
     // The 2025 caption belongs to a drawn map and must not follow the tiles.
@@ -257,7 +257,7 @@ describe("the fallback, where no boundary was published", () => {
 
     expect(screen.getAllByRole("button")).toHaveLength(4);
     expect(
-      screen.getByText(/No published boundary layer holds a polygon for this level/),
+      screen.getByText(/No boundaries have been published at this level/),
     ).toBeInTheDocument();
   });
 
@@ -275,6 +275,6 @@ describe("the fallback, where no boundary was published", () => {
     );
 
     expect(screen.queryAllByRole("button")).toHaveLength(0);
-    expect(screen.getByText("Drawing the boundaries…")).toBeInTheDocument();
+    expect(screen.getByText("Drawing the map…")).toBeInTheDocument();
   });
 });

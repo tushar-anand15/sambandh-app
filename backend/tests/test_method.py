@@ -131,9 +131,7 @@ async def test_only_2025_has_ward_geometry_and_the_reuse_is_stated(payload):
             by_cycle[cycle]["note"] or ""
         )
 
-    assert "No ward-level geometry exists for 2010, 2015 or 2020" in payload[
-        "ward_geometry_note"
-    ]
+    assert "Ward boundaries exist for 2025 only" in payload["ward_geometry_note"]
 
 
 async def test_the_build_block_names_the_dumps_it_was_built_from(payload, db):

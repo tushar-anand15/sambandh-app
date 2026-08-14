@@ -127,16 +127,21 @@ function rows(options: {
   names: string[];
   formulation: number;
   expense: number;
+  /** The first n rows have a document, unless `documentAt` overrides it. */
   withPdf: number;
+  /** The project numbers that have one, where they are not the first n. */
+  documentAt?: number[];
   folder: string;
   yearLabel: string;
 }): ProjectRow[] {
-  const { names, formulation, expense, withPdf, folder, yearLabel } = options;
+  const { names, formulation, expense, withPdf, documentAt, folder, yearLabel } =
+    options;
+  const scanned = documentAt ? new Set(documentAt) : null;
   const formulations = split(formulation, names.length);
   const expenses = split(expense, names.length);
   return names.map((name, index) => {
     const projectNo = String(index + 1);
-    const hasPdf = index < withPdf;
+    const hasPdf = scanned ? scanned.has(index + 1) : index < withPdf;
     const path = hasPdf ? `pdfs/${yearLabel}/${folder}/${projectNo}.pdf` : null;
     return {
       project_no: projectNo,
@@ -187,6 +192,32 @@ const CHALAKUDY_2022_ROWS = rows({
   yearLabel: "2022-2023",
 });
 
+/**
+ * A body-year in which almost nothing has a document, which is the case the
+ * filter exists for. It is modelled on Alangad Grama Panchayat's 2017-18
+ * record in the master database, where 10 of 301 projects have a scan and only
+ * one of the ten is on the first page of fifty. A reader who pages through
+ * that table and stops concludes the body published nothing at all. The
+ * figures here are constructed; the distribution is the one that caused the
+ * report.
+ */
+export const SPARSE = {
+  lbCode: "G04036",
+  yearLabel: "2017-2018",
+  projects: 301,
+  documentAt: [4, 62, 69, 80, 277, 285, 291, 296, 300, 301],
+};
+
+const SPARSE_ROWS = rows({
+  names: Array.from({ length: SPARSE.projects }, (_, i) => project(i + 1)),
+  formulation: 84_500_000,
+  expense: 41_200_000,
+  withPdf: 0,
+  documentAt: SPARSE.documentAt,
+  folder: "Grama_Panchayat/Alappuzha/Muttar_Grama_Panchayat",
+  yearLabel: SPARSE.yearLabel,
+});
+
 /** A small, generic body-year for every code the fixtures do not name. */
 function genericRows(lbCode: string, yearLabel: string): ProjectRow[] {
   return rows({
@@ -233,11 +264,14 @@ function previousLabel(yearLabel: string): string {
 /** One body-year that has a record. */
 function fullYear(lbCode: string, yearLabel: string) {
   const chalakudy2023 = lbCode === "M08032" && yearLabel === "2023-2024";
+  const sparse = lbCode === SPARSE.lbCode && yearLabel === SPARSE.yearLabel;
   const projectRows = chalakudy2023
     ? CHALAKUDY_2023_ROWS
     : lbCode === "M08032" && yearLabel === "2022-2023"
       ? CHALAKUDY_2022_ROWS
-      : genericRows(lbCode, yearLabel);
+      : sparse
+        ? SPARSE_ROWS
+        : genericRows(lbCode, yearLabel);
 
   const formulation = sum(projectRows.map((row) => row.formulation));
   const expense = sum(projectRows.map((row) => row.expense));
@@ -367,6 +401,30 @@ export const detailedHandlers = [
     const { lb, year } = params as { lb: string; year: string };
     if (!knownCode(lb)) return notFound(lb);
     return HttpResponse.json(yearPayload(lb, year));
+  }),
+];
+
+/**
+ * A body-year Sulekha attached no scan to at all. The filter has to state that
+ * rather than offer a choice that would empty the table.
+ */
+export const noDocumentHandlers = [
+  seriesHandler,
+  http.get("*/api/finances/:lb/:year", ({ params }) => {
+    const { lb, year } = params as { lb: string; year: string };
+    if (!knownCode(lb)) return notFound(lb);
+    const payload = yearPayload(lb, year);
+    if (!payload.available) return HttpResponse.json(payload);
+    return HttpResponse.json({
+      ...payload,
+      projects_with_pdf: 0,
+      project_rows: payload.project_rows.map((row) => ({
+        ...row,
+        has_pdf: false,
+        pdf_path: null,
+        pdf_url: null,
+      })),
+    });
   }),
 ];
 

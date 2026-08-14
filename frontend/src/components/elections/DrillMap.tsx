@@ -51,8 +51,8 @@ function Legend() {
         </li>
       ))}
       <li className={styles.legendItem}>
-        Any other group the commission names, BJP+ among them, takes the OTH colour
-        and keeps its own name in the table.
+        Any other group the commission names, BJP+ among them, takes the OTH
+        colour and keeps its own name everywhere it is written.
       </li>
     </ul>
   );
@@ -81,11 +81,11 @@ export default function DrillMap({
   // no polygon for this unit, or the request for it failed.
   let fallback: string | null = null;
   if (geometry.status === "absent") {
-    fallback = `${geometry.reason} Maps for it are under active work and will be updated soon.`;
+    fallback = geometry.reason;
   } else if (geometry.status === "error") {
     fallback = geometry.message;
   } else if (geometry.status === "ready" && !drawn) {
-    fallback = "No published boundary layer holds a polygon for this level.";
+    fallback = "No boundaries have been published at this level.";
   }
 
   return (
@@ -95,7 +95,7 @@ export default function DrillMap({
 
       {geometry.status === "loading" ? (
         <p className={styles.hoverLine} aria-busy="true">
-          Drawing the boundaries…
+          Drawing the map…
         </p>
       ) : null}
 
@@ -130,8 +130,8 @@ export default function DrillMap({
 
       {fallback !== null ? (
         <p className={styles.hoverLine}>
-          {fallback} Each tile is one {unitNoun}, coloured by front and carrying no
-          geography.
+          {fallback} Each square below is one {unitNoun}, coloured by front. The
+          squares are in no particular place.
         </p>
       ) : null}
     </section>

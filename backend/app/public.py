@@ -52,11 +52,11 @@ BUILD_DATE = os.environ.get("MASTER_BUILD_DATE", "2026-08-13")
 # "where did this number come from" is answered by the portal, not by the
 # warehouse the portal was loaded into.
 SOURCES: dict[str, str] = {
-    "bodies": "Kerala LSGD registry, reconciled across Sulekha, Sakarma and the State Election Commission",
+    "bodies": "Kerala LSGD list of local bodies",
     "finances": "Sulekha plan monitoring portal",
-    "meetings": "Sakarma meeting manifest",
+    "meetings": "Sakarma meeting portal",
     "elections": "Kerala State Election Commission",
-    "maps": "KSMART vector tiles and the opendatakerala OpenStreetMap release",
+    "maps": "KSMART ward maps and opendatakerala",
 }
 
 
@@ -92,7 +92,7 @@ def unavailable(
 
 def body_not_found(lb_code: str) -> HTTPException:
     """404 naming the code, so a bad deep link says which code was bad."""
-    return HTTPException(status_code=404, detail=f"No local body with code {lb_code}")
+    return HTTPException(status_code=404, detail=f"No local body has the code {lb_code}.")
 
 
 # ---------------------------------------------------------------------------
@@ -192,7 +192,7 @@ def rate_limit(request: Request) -> None:
     if not check_rate(client):
         raise HTTPException(
             status_code=429,
-            detail="Too many requests. This data is public and free to download in bulk — see /api/maps for the layer files.",
+            detail="Too many requests. Wait a minute, then try again.",
             headers={"Retry-After": "60"},
         )
 
@@ -271,7 +271,7 @@ async def fetch_year(conn, year_label: str):
         raise HTTPException(
             status_code=422,
             detail=(
-                f"{year_label} is not a financial year in this dataset. "
+                f"{year_label} is not a financial year on this site. "
                 f"Years run from {first} to {last}."
             ),
         )

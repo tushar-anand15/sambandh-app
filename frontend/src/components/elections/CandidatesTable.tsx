@@ -56,8 +56,8 @@ export default function CandidatesTable({
       <section aria-label="Candidates">
         <h2>Candidates</h2>
         <p className={styles.layerMeta}>
-          No ward is selected. A ward chosen on the map or in the table above lists its
-          candidates here.
+          No ward is selected. Choose a ward on the map or in the table above to
+          list its candidates here.
         </p>
       </section>
     );
@@ -72,7 +72,7 @@ export default function CandidatesTable({
       <section className={styles.swap} aria-label={title}>
         <h2>{title}</h2>
         <p className={styles.layerMeta} role="status">
-          The commission published no candidate rows for this ward in the {cycle} cycle.
+          The commission published no candidate list for this ward in {cycle}.
           The winner and the runner-up are in the card above.
         </p>
       </section>
@@ -120,8 +120,8 @@ export default function CandidatesTable({
         </table>
       </div>
       <p className={styles.layerMeta}>
-        The margin is votes behind the winner. The winner's own margin is over the
-        runner-up.
+        The margin is how many votes behind the winner each candidate finished.
+        The winner's own margin is over the runner-up.
       </p>
     </section>
   );

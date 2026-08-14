@@ -84,8 +84,8 @@ describe("the year control under a chosen body", () => {
     renderAt("/meetings/M07025");
     await ready();
 
-    expect(years()).toContainEqual(["2016–17 (no record)", true]);
-    expect(years()).toContainEqual(["2015–16 (no record)", true]);
+    expect(years()).toContainEqual(["2016–17 (nothing published)", true]);
+    expect(years()).toContainEqual(["2015–16 (nothing published)", true]);
     // All fourteen years are still visible: a reader can see that 2015-16
     // exists and that Sakarma holds nothing for this body in it.
     expect(years()).toHaveLength(15);

@@ -63,9 +63,7 @@ async def test_the_scope_note_says_what_is_served_and_what_is_not(client, chalak
     payload = (await client.get(f"/api/meetings/{chalakudy}/2023-2024")).json()
 
     assert "decision register and minutes" in payload["scope_note"]
-    assert "attachments are named in the manifest and are not served" in (
-        payload["scope_note"].lower()
-    )
+    assert "420,561 of its 443,235 meetings" in payload["scope_note"]
 
 
 async def test_mattannur_meetings_are_ordinary(client, mattannur):
@@ -115,7 +113,7 @@ async def test_a_covered_body_in_a_year_before_its_record_starts(client):
     assert payload["reason_code"] == "no_record_for_year"
     # One sentence. The year control no longer offers this combination, so the
     # long explanation this state used to carry has nothing left to do.
-    assert payload["reason"] == "Sakarma holds no meeting record for 2016-2017."
+    assert payload["reason"] == "Sakarma publishes no meetings for 2016-2017."
 
 
 async def test_the_two_empty_cases_are_distinguishable(client):

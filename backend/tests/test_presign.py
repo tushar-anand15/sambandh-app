@@ -120,7 +120,7 @@ def test_no_key_means_no_url_and_two_sentences():
     assert unsigned.sign_paths([PATH]) == {}
 
     # What the page prints, for a reader: no settings, no bucket names.
-    assert "scans Sulekha holds are named here" in unsigned.reason
+    assert "cannot be opened from this site" in unsigned.reason
     assert "PDF_SIGNING_KEY_FILE" not in unsigned.reason
 
     # What the log carries, for whoever runs the deployment.

@@ -25,8 +25,8 @@ from .maps import LAYERS, WARD_GEOMETRY_NOTE
 router = APIRouter(prefix="/api/method", tags=["public"], dependencies=[Depends(rate_limit)])
 
 SOURCE = (
-    "Gram Sambandh master database, built by sulekha from the Sulekha and "
-    "Sakarma portal dumps and the State Election Commission's own exports"
+    "Built from the Sulekha and Sakarma portals and the State Election "
+    "Commission's published results"
 )
 
 # What the year-on-year diff can and cannot see. A body identified by its
@@ -34,16 +34,16 @@ SOURCE = (
 # list; the source does not record whether it was created, merged, split or
 # reclassified, and the page says so rather than picking one of the four.
 BODY_DIFF_NOTE = (
-    "A local body is counted in a year when the Sulekha portal lists it for that "
-    "year. Entering and leaving are counted against the previous year's list. The "
-    "portal records the list, not the reason it changed, so a body that leaves "
-    "may have been merged, split, renamed or reclassified, and the four are not "
-    "distinguishable here."
+    "A local body is counted in a year when Sulekha lists it for that year. "
+    "Entered and left are counted against the previous year's list. Sulekha "
+    "publishes the list and no explanation of it, so a local body that leaves "
+    "may have been merged, split, renamed or reclassified, and the list does "
+    "not say which."
 )
 
 MEETINGS_COVERAGE_NOTE = (
-    "Sakarma's record thins towards the start. A year with few meetings is a thin "
-    "record, not a local body that did not meet."
+    "Sakarma covers more local bodies every year. The early years hold very "
+    "few meetings, and the last full year holds nearly all of them."
 )
 
 

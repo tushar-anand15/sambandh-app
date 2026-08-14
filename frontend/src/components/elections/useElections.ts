@@ -77,12 +77,12 @@ export function useCycleResult(lbCode: string, cycle: number): Fetched<CyclePayl
 
 /** Every body's ruling front for one cycle. The map's colours. */
 export function useFronts(cycle: number): Fetched<FrontsPayload> {
-  return useJson<FrontsPayload>(`/api/elections/fronts/${cycle}`, "The map colours");
+  return useJson<FrontsPayload>(`/api/elections/fronts/${cycle}`, "The map");
 }
 
 /** The boundary layer inventory, its licences and what this server holds. */
 export function useMaps(): Fetched<MapsPayload> {
-  return useJson<MapsPayload>("/api/maps", "The boundary layer list");
+  return useJson<MapsPayload>("/api/maps", "The list of boundary files");
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +103,7 @@ export type GeometryState =
   | { status: "absent"; reason: string }
   | { status: "error"; message: string };
 
-const NO_LAYER = "No boundary layer has been published for this level.";
+const NO_LAYER = "No boundaries have been published at this level.";
 
 /**
  * One slice of geometry, cut server-side. `url` is null where the level has

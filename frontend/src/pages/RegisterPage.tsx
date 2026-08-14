@@ -20,7 +20,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError("The password has to be at least 8 characters.");
       return;
     }
     setLoading(true);
@@ -28,7 +28,7 @@ export default function RegisterPage() {
       await register(email, password, fullName);
       navigate(destination);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Registration failed");
+      setError(err.response?.data?.detail || "The account could not be created. Try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,7 @@ export default function RegisterPage() {
             Gram<span className="text-indigo">SAMBANDH</span>
           </Link>
           <p className="mt-2 text-sm text-ink-muted">
-            Create an account to access the demo
+            Create an account to use the assistant
           </p>
         </div>
 
@@ -90,7 +90,7 @@ export default function RegisterPage() {
               required
               minLength={8}
               className="mt-1.5 block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-indigo focus:ring-0 focus:outline-none"
-              placeholder="Min 8 characters"
+              placeholder="At least 8 characters"
             />
           </label>
 
@@ -102,7 +102,7 @@ export default function RegisterPage() {
             {loading ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
-              "Create Account"
+              "Create account"
             )}
           </button>
         </form>

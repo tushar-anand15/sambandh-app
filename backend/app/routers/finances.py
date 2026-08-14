@@ -356,8 +356,7 @@ async def project_document(
     if not row["pdf_gcs_path"]:
         raise HTTPException(
             status_code=404,
-            detail=f"Project {project_no} was published as a plan line with no "
-            "document attached.",
+            detail=f"Project {project_no} has no scanned document.",
         )
 
     path = row["pdf_gcs_path"]

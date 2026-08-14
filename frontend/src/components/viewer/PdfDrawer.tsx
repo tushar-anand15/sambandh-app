@@ -94,8 +94,7 @@ export default function PdfDrawer({
             </Suspense>
           ) : (
             <p className="notice m-s5" role="status">
-              {unavailableReason ??
-                "Sulekha holds a document for this project and this site publishes no address for it."}
+              {unavailableReason ?? "No document available."}
             </p>
           )}
         </div>

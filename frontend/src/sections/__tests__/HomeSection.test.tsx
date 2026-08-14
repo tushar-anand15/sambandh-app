@@ -64,12 +64,21 @@ describe("the argument", () => {
     ).toBeInTheDocument();
   });
 
-  it("names both portals and says they never shared a key", async () => {
+  it("names both portals and says they name a panchayat differently", async () => {
     renderHome();
 
-    const paragraph = screen.getByText(/have never\s+shared a key/);
-    expect(paragraph).toHaveTextContent("plan.lsgkerala.gov.in");
-    expect(paragraph).toHaveTextContent("meeting.lsgkerala.gov.in");
+    // The portals are named, and each name is the link. A bare URL in brackets
+    // is not something a reader clicks.
+    // Each portal is linked twice: once in this paragraph and again in the
+    // source list further down. Both should point at the portal.
+    for (const [name, href] of [
+      ["Sulekha", "https://plan.lsgkerala.gov.in"],
+      ["Sakarma", "https://meeting.lsgkerala.gov.in"],
+    ]) {
+      const links = screen.getAllByRole("link", { name });
+      expect(links.length).toBeGreaterThan(0);
+      for (const link of links) expect(link).toHaveAttribute("href", href);
+    }
   });
 
   it("ends on the citizens, not on prospects", async () => {
@@ -79,7 +88,7 @@ describe("the argument", () => {
       name: "Who this is for",
     }).parentElement!;
     expect(paragraphs).toHaveTextContent(/about 25 million residents/);
-    expect(paragraphs).toHaveTextContent(/has been opaque/);
+    expect(paragraphs).toHaveTextContent(/theirs to attend/);
   });
 });
 

@@ -45,7 +45,7 @@ export default function ChatInput({ onSend, onStop, onClear, disabled, isStreami
           <button
             onClick={onClear}
             className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-ink-faint transition-colors hover:bg-surface-alt hover:text-ink-muted sm:h-10 sm:w-10"
-            title="Clear conversation"
+            title="Start again"
           >
             <RotateCcw size={16} className="sm:h-[18px] sm:w-[18px]" />
           </button>
@@ -58,7 +58,7 @@ export default function ChatInput({ onSend, onStop, onClear, disabled, isStreami
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             disabled={disabled || isStreaming}
-            placeholder="Ask about Sulekha project records..."
+            placeholder="Ask about a project"
             rows={1}
             className="flex-1 resize-none bg-transparent py-2 text-sm text-ink placeholder:text-ink-faint focus:outline-none disabled:opacity-50 sm:text-base"
             style={{ minHeight: 36, maxHeight: 120 }}

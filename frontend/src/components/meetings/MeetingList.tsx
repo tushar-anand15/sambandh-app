@@ -30,10 +30,10 @@ import {
   type MeetingsYear,
 } from "./payload";
 
-const NOT_RECORDED = "Not recorded in the register";
+const NOT_RECORDED = "Not recorded";
 
 /** Sakarma published neither document for this meeting. */
-const NO_DOCUMENT = "None published";
+const NO_DOCUMENT = "No document available";
 
 function Term({ source, gloss }: { source: string; gloss: string }) {
   return (
@@ -128,8 +128,8 @@ export default function MeetingList({ payload, onOpen }: MeetingListProps) {
               <th scope="col">Category</th>
               <th scope="col">Nature</th>
               <th scope="col">Venue</th>
-              <th scope="col">Number in the register</th>
-              <th scope="col">Published document</th>
+              <th scope="col">Meeting number</th>
+              <th scope="col">Document</th>
             </tr>
           </thead>
           <tbody>

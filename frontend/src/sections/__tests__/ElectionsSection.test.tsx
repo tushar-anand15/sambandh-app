@@ -270,9 +270,9 @@ describe("what is missing, stated", () => {
     renderAt("/elections?cycle=2025&district=KANNUR");
 
     expect(
-      await screen.findByText(/absent from the map: no boundary layer holds a polygon/),
+      await screen.findByText(/not on the\s+map\. No boundary has been published for them/),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Panoor, Grama Panchayat, no published boundary/)).toBeInTheDocument();
+    expect(screen.getByText(/Panoor, Grama Panchayat/)).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /open the wards of Panoor/ }),
     ).not.toBeInTheDocument();
@@ -407,11 +407,11 @@ describe("the sources", () => {
     // The three cycles that reuse the one November 2020 snapshot, each on its
     // own line with its own size.
     expect(
-      within(sources).getAllByText(/local-body polygons, November 2020 snapshot/),
+      within(sources).getAllByText(/local body boundaries, November 2020 snapshot/),
     ).toHaveLength(3);
     expect(within(sources).getByText("56.9 MB")).toBeInTheDocument();
     expect(
-      within(sources).getByText(/1,033 of 1,238 local bodies have a polygon/),
+      within(sources).getByText(/1,033 of 1,238 local bodies have a boundary/),
     ).toBeInTheDocument();
 
     // The page-level essay about which cycle was delimited when is the method

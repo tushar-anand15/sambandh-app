@@ -151,7 +151,7 @@ describe("BodySelector", () => {
     const meetings = screen.getByText("Meetings — unavailable");
     expect(meetings).toBeInTheDocument();
     expect(
-      screen.getByText("Sakarma holds no meeting record for this body."),
+      screen.getByText("Sakarma publishes no meetings for this local body."),
     ).toBeInTheDocument();
     // The sections it does have stay as links.
     expect(screen.getByRole("link", { name: "Elections" })).toHaveAttribute(
@@ -165,7 +165,7 @@ describe("BodySelector", () => {
     await selectorReady();
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Sakarma holds no meeting record for this body.",
+      "Sakarma publishes no meetings for this local body.",
     );
   });
 

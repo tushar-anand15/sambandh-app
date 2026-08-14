@@ -34,13 +34,13 @@ import { bodies, cycles, districts, financialYears, knownCode, notFound, provena
 
 /** `backend/app/routers/meetings.py`, verbatim. */
 export const SCOPE_NOTE =
-  "Sakarma publishes a decision register and minutes for 420,561 of the " +
-  "443,235 meetings in the manifest. Both open from the list below. PDF " +
-  "attachments are named in the manifest and are not served here.";
+  "Sakarma publishes a decision register and minutes for 420,561 of its " +
+  "443,235 meetings. Both open from the list below.";
 
-export const NOT_COVERED_REASON = "Sakarma holds no meeting record for this body.";
+export const NOT_COVERED_REASON =
+  "Sakarma publishes no meetings for this local body.";
 
-const meetingsProvenance = { ...provenance, source: "Sakarma meeting manifest" };
+const meetingsProvenance = { ...provenance, source: "Sakarma meeting portal" };
 
 /** The open year. Everything else in the fixture set is closed. */
 const OPEN_YEAR = "2025-2026";
@@ -782,7 +782,7 @@ export const handlers = [
           lb,
           year,
           "no_record_for_year",
-          `Sakarma holds no meeting record for ${year}.`,
+          `Sakarma publishes no meetings for ${year}.`,
         ),
       );
     }

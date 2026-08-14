@@ -90,7 +90,17 @@ export default function YearSeries({ body, lbCode, years, provenance }: YearSeri
   const ticks = [0, top / 2, top];
   // Fourteen labels do not fit under a 720-unit axis, so every second year is
   // written and the open year is always one of them.
-  const labelled = (index: number) => index % 2 === 0 || index === years.length - 1;
+  const labelledYears = (() => {
+    const last = years.length - 1;
+    const marked = new Set<number>();
+    for (let i = 0; i < years.length; i += 2) marked.add(i);
+    // The last year is always named, and naming it can put two labels side by
+    // side -- with fourteen years, index 12 and index 13. Drop the earlier one.
+    marked.add(last);
+    if (marked.has(last - 1)) marked.delete(last - 1);
+    return marked;
+  })();
+  const labelled = (index: number) => labelledYears.has(index);
 
   return (
     <section aria-labelledby="year-series-heading">
@@ -179,7 +189,6 @@ export default function YearSeries({ body, lbCode, years, provenance }: YearSeri
                 className="text-t1 fill-ink-3 font-sans"
               >
                 {formatYearLabel(year.year_label)}
-                {year.is_complete ? "" : " (in progress)"}
               </text>
             ) : null}
           </g>

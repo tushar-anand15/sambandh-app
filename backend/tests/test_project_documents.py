@@ -205,7 +205,7 @@ async def test_a_project_published_with_no_document_says_so(client, bucket):
     response = await client.get(url("74", lb_code="M13057", year="2017-2018"))
 
     assert response.status_code == 404
-    assert "no document attached" in response.json()["detail"]
+    assert "no scanned document" in response.json()["detail"]
 
 
 async def test_an_object_the_bucket_does_not_hold_is_404_naming_the_path(

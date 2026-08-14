@@ -58,8 +58,7 @@ export default function SiteFooter() {
         <div className={styles.footerCol}>
           <h2 className={styles.footerHeading}>Gram Sambandh</h2>
           <p className={styles.footerText}>
-            What Kerala&rsquo;s local governments planned, met about and spent,
-            joined on one key and handed over in full.
+            What Kerala&rsquo;s local governments planned, met about and spent.
           </p>
           <p className={styles.footerText}>
             <a href="https://gramsambandh.co.in">gramsambandh.co.in</a>

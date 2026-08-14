@@ -150,7 +150,7 @@ def test_the_prompt_states_its_coverage():
 
 
 def test_the_prompt_declines_a_body_outside_the_index():
-    assert "not in your index, decline" in SYSTEM_PROMPT
+    assert "you have not read documents for, decline" in SYSTEM_PROMPT
     assert (
         "Do not answer a question about one local body using documents from another"
         in SYSTEM_PROMPT
@@ -175,7 +175,7 @@ def test_the_prompt_does_not_claim_the_sites_coverage_as_its_own():
 def test_the_refusal_names_the_coverage_it_does_hold():
     refusal = out_of_index_refusal("Karunagappally Grama Panchayat, Kollam district")
 
-    assert "not in the assistant's index" in refusal
+    assert "The assistant has read no documents for" in refusal
     assert INDEX_DISTRICT in refusal
     assert INDEX_YEAR in refusal
     # A refusal that leaves the reader nowhere is a worse answer than it needs

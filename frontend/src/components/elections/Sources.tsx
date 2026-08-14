@@ -19,10 +19,10 @@ import { formatBytes, formatCount, type MapLayer, type MapsPayload } from "./pay
 import { track } from "@/lib/telemetry";
 
 const LEVELS: Record<string, string> = {
-  ward: "ward polygons",
-  local_body: "local-body polygons",
-  block_panchayat: "block panchayat polygons",
-  district_panchayat: "district panchayat polygons",
+  ward: "ward boundaries",
+  local_body: "local body boundaries",
+  block_panchayat: "block panchayat boundaries",
+  district_panchayat: "district panchayat boundaries",
 };
 
 function what(layer: MapLayer): string {
@@ -56,9 +56,8 @@ export default function Sources({ maps }: { maps: MapsPayload }) {
       <h2>Sources</h2>
 
       <p>
-        {formatCount(coverage.with_geometry)} of {formatCount(coverage.bodies)} local
-        bodies have a polygon in these {formatCount(maps.count)} layers.{" "}
-        {formatCount(coverage.without_geometry)} do not.
+        {formatCount(coverage.with_geometry)} of {formatCount(coverage.bodies)}{" "}
+        local bodies have a boundary in these {formatCount(maps.count)} files.
       </p>
 
       <ul className={styles.sources}>

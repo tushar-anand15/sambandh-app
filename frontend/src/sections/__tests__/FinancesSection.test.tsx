@@ -178,7 +178,7 @@ describe("the project table", () => {
     ).toBeInTheDocument();
 
     await lastPage();
-    expect(within(table).getAllByText("Not published")).toHaveLength(6);
+    expect(within(table).getAllByText("No document available")).toHaveLength(6);
   });
 
   it("pages through the year fifty rows at a time", async () => {
@@ -336,7 +336,7 @@ describe("finding the projects that have a document", () => {
     expect(screen.getByTestId("page-position")).toHaveTextContent(
       "Rows 351 to 351 of 351",
     );
-    expect(screen.queryAllByText("Not published")).toHaveLength(0);
+    expect(screen.queryAllByText("No document available")).toHaveLength(0);
   });
 
   it("returns to the first page when the filter changes", async () => {
@@ -537,7 +537,7 @@ describe("the document drawer", () => {
     const table = await screen.findByTestId("project-table");
 
     // Every row keeps its stated absence, and the cause is given once above.
-    expect(within(table).getAllByText("Held, no address")).toHaveLength(PAGE_SIZE);
+    expect(within(table).getAllByText("No document available")).toHaveLength(PAGE_SIZE);
     expect(within(table).queryAllByText("View")).toHaveLength(0);
     expect(screen.getByText(new RegExp(NO_SIGNING_KEY_REASON.slice(0, 60)))).toBeInTheDocument();
 

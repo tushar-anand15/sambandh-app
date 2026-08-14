@@ -94,6 +94,8 @@
   justify-content: center;
   color: var(--ink-3);
   padding: var(--s1);
+  /* An icon, not a phrase. An underline under it reads as a stray rule. */
+  text-decoration: none;
 }
 
 .authorLinks a:hover {

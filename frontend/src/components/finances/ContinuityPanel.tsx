@@ -97,11 +97,7 @@ export default function ContinuityPanel({
             <List items={carried} />
           ) : (
             <p className="text-t3 text-ink-2 leading-ui mt-s3">
-              The endpoint publishes the count and no project-level flag. Matching
-              this year's names against{" "}
-              {previousLabel ? formatYearLabel(previousLabel) : "the previous year"}{" "}
-              here produced {count(carried.length)} names, so the list is withheld
-              and the published count stands.
+              The names of these projects are not listed here.
             </p>
           )}
         </details>
@@ -114,11 +110,7 @@ export default function ContinuityPanel({
             <List items={fresh} />
           ) : (
             <p className="text-t3 text-ink-2 leading-ui mt-s3">
-              The endpoint publishes the count and no project-level flag. Matching
-              this year's names against{" "}
-              {previousLabel ? formatYearLabel(previousLabel) : "the previous year"}{" "}
-              here produced {count(fresh.length)} names, so the list is withheld and
-              the published count stands.
+              The names of these projects are not listed here.
             </p>
           )}
         </details>

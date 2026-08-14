@@ -23,7 +23,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate(destination);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Login failed");
+      setError(err.response?.data?.detail || "Sign in failed. Check the email address and the password.");
     } finally {
       setLoading(false);
     }
@@ -38,7 +38,7 @@ export default function LoginPage() {
             Gram<span className="text-indigo">SAMBANDH</span>
           </Link>
           <p className="mt-2 text-sm text-ink-muted">
-            Sign in to access the demo
+            Sign in to use the assistant
           </p>
         </div>
 
@@ -72,7 +72,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="mt-1.5 block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-indigo focus:ring-0 focus:outline-none"
-              placeholder="Min 8 characters"
+              placeholder="At least 8 characters"
             />
           </label>
 
@@ -84,13 +84,13 @@ export default function LoginPage() {
             {loading ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
-              "Sign In"
+              "Sign in"
             )}
           </button>
         </form>
 
         <p className="mt-5 text-center text-sm text-ink-muted">
-          Don't have an account?{" "}
+          No account yet?{" "}
           <Link
             to="/register"
             className="font-medium text-indigo transition-colors hover:text-indigo-hover"

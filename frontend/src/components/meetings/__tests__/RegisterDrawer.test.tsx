@@ -62,7 +62,7 @@ describe("the way into a meeting's own document", () => {
     renderAt("/meetings/M08032/2023-2024");
     const last = await row(chalakudyMeetingRows.length);
 
-    expect(within(last).getByText("None published")).toBeInTheDocument();
+    expect(within(last).getByText("No document available")).toBeInTheDocument();
     expect(within(last).queryByRole("button")).not.toBeInTheDocument();
   });
 });
@@ -96,7 +96,7 @@ describe("the panel", () => {
     const panel = await screen.findByRole("dialog");
     expect(within(panel).getByRole("heading")).toHaveTextContent("Decision register");
     expect(panel).toHaveTextContent("12 October 2023, meeting 2");
-    expect(panel).toHaveTextContent("gs://sulekhasakarma-meetings/");
+    expect(panel).toHaveTextContent("Published by Sakarma");
     expect(panel).toHaveTextContent("Gram Sambandh master database");
   });
 

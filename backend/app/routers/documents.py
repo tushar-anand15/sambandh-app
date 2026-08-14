@@ -217,7 +217,7 @@ async def get_document_pdf(
             _uuid.UUID(doc_id),
         )
     if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+        raise HTTPException(status_code=404, detail="No document available.")
 
     try:
         bucket = storage_client().bucket(doc["gcs_bucket"])
@@ -226,8 +226,8 @@ async def get_document_pdf(
     except Exception as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"Failed to fetch PDF from GCS: {exc}",
-        )
+            detail="The document could not be opened. Try again in a moment.",
+        ) from exc
 
     return Response(
         content=content,

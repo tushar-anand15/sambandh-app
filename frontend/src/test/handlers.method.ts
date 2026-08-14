@@ -81,7 +81,7 @@ export const methodPayload = {
     }),
   ),
   meetings_coverage_note:
-    "Sakarma's record thins towards the start. A year with few meetings is a thin record, not a local body that did not meet.",
+    "Sakarma covers more local bodies every year. The early years hold very few meetings, and the last full year holds nearly all of them.",
   boundary_vintage: [
     {
       cycle: 2025,

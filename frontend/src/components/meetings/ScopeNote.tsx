@@ -11,9 +11,8 @@ import styles from "./meetings.module.css";
 
 /** The endpoint's own wording, used when a payload is not to hand. */
 export const SCOPE_NOTE =
-  "Sakarma publishes a decision register and minutes for 420,561 of the " +
-  "443,235 meetings in the manifest. Both open from the list below. PDF " +
-  "attachments are named in the manifest and are not served here.";
+  "Sakarma publishes a decision register and minutes for 420,561 of its " +
+  "443,235 meetings. Both open from the list below.";
 
 export default function ScopeNote({ note }: { note?: string }) {
   return (

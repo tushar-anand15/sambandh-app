@@ -197,7 +197,7 @@ export default function SourceDrawer({
                     strokeWidth={1}
                   />
                   <p className="text-sm font-medium text-ink-muted">
-                    PDF not available
+                    No document available
                   </p>
                   <p className="mt-1 max-w-xs text-xs text-ink-faint">
                     {pdfError}

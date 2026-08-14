@@ -67,14 +67,13 @@ export default function RegisterDrawer({
         <>
           <p className={styles.registerHead}>
             {bodyLabel(ready.body)}
-            {ready.meeting_date ? `, ${formatDate(ready.meeting_date)}` : null}. The
-            document is Sakarma&rsquo;s own, with its scripts and Word formatting
-            removed.
+            {ready.meeting_date ? `, ${formatDate(ready.meeting_date)}` : null}.
+            The wording is the council&rsquo;s own.
           </p>
           <SourceLine
             dataset={ready.provenance.dataset}
             build_date={ready.provenance.build_date}
-            note={`Sakarma, gs://sulekhasakarma-meetings/${ready.source_path}`}
+            note="Published by Sakarma"
           />
         </>
       ) : null}

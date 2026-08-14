@@ -69,8 +69,8 @@ function BodyCard({ result, bodyName, cycle }: Omit<SelectedCardProps, "ward">) 
           className={styles.partyDot}
           style={{ backgroundColor: `var(--${frontToken(result.ruling_front)})` }}
         />
-        {controlSentence(result.ruling_front, result.control_type)}. A ward chosen on the
-        map or in the table below fills this card with that ward's result.
+        {controlSentence(result.ruling_front, result.control_type)}. Choose a ward
+        on the map or in the table below to see its result here.
       </p>
 
       <div className={styles.figures}>
@@ -112,7 +112,7 @@ export default function SelectedCard({ result, ward, bodyName, cycle }: Selected
           className={styles.partyDot}
           style={{ backgroundColor: `var(--${frontToken(ward.winner_front)})` }}
         />
-        {ward.winner_name ?? "Winner not named in the source"}
+        {ward.winner_name ?? "Winner not named by the commission"}
         {ward.winner_party ? `, ${ward.winner_party}` : ""}
         {ward.winner_front ? ` (${ward.winner_front})` : ""}
       </p>

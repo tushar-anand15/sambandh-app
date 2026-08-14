@@ -31,7 +31,7 @@ const prompts = [
   },
   {
     icon: Building2,
-    category: "Overview",
+    category: "Counts",
     text: "How many projects does Thrissur Corporation have?",
     color: "from-rose-500/10 to-pink-500/10",
     iconColor: "text-rose-600",

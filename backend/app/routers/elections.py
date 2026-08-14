@@ -38,17 +38,17 @@ from ..public import (
 router = APIRouter(prefix="/api/elections", tags=["public"], dependencies=[Depends(rate_limit)])
 
 NO_RESULT_REASON = (
-    "The State Election Commission published no result for this body, "
-    "so it has no ward, candidate or seat figures in any cycle."
+    "The State Election Commission published no result for this local body in "
+    "any of the four elections."
 )
 
 
 def _cycle_reason(cycle: int, first: int | None, last: int | None) -> str:
     if first and last and cycle < first:
-        return f"This body was not constituted for the {cycle} cycle; its results begin in {first}."
+        return f"This local body did not exist at the {cycle} election. Its results begin in {first}."
     if first and last and cycle > last:
-        return f"This body has no result after {last}, so the {cycle} cycle shows nothing."
-    return f"The State Election Commission published no result for this body in the {cycle} cycle."
+        return f"This local body has no result after {last}."
+    return f"The State Election Commission published no result for this local body in {cycle}."
 
 
 def _ward_row(r) -> dict[str, Any]:

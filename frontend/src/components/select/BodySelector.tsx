@@ -87,7 +87,7 @@ export default function BodySelector({ section }: BodySelectorProps) {
     return (
       <section className="selector">
         <p className="selector-status" role="alert">
-          {error ?? "Could not load the list of local bodies."}
+          {error ?? "The list of local bodies did not load. Reload the page to try again."}
         </p>
       </section>
     );
@@ -120,7 +120,7 @@ export default function BodySelector({ section }: BodySelectorProps) {
             label: formatYearLabel(year.year_label),
             unavailable,
             note: unavailable
-              ? "no record"
+              ? "nothing published"
               : year.is_complete
                 ? undefined
                 : "in progress",
@@ -237,9 +237,8 @@ export default function BodySelector({ section }: BodySelectorProps) {
 
       {unknownCode ? (
         <p className="notice" role="alert">
-          No local body has the code {lbCode}. Kerala has {data.count} local
-          bodies and none of them carries that code — check the link, or choose
-          a district and body above.
+          No local body has the code {lbCode}. Check the link, or choose a
+          district and a local body above.
         </p>
       ) : null}
 
@@ -270,8 +269,8 @@ export default function BodySelector({ section }: BodySelectorProps) {
               entry.available &&
               !selected.has_geometry ? (
                 <span className="coverage-reason">
-                  No boundary geometry has been published for this body, so it is
-                  absent from the map and reachable only from this selector.
+                  No boundary has been published for this local body, so it is
+                  not on the map. Its results are still here.
                 </span>
               ) : null}
             </li>

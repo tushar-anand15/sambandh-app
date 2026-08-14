@@ -111,7 +111,7 @@ describe("the coverage banner", () => {
     render(<Banner />);
 
     expect(
-      await screen.findByText(/Ask about Thrissur district for 2025–26 only/),
+      await screen.findByText(/It covers Thrissur\s+district, 2025–26/),
     ).toBeInTheDocument();
   });
 });
@@ -127,7 +127,7 @@ describe("the body selector", () => {
       .map((option) => option.textContent);
 
     expect(options).toEqual([
-      "Any indexed local body",
+      "Any local body below",
       "Adat Grama Panchayat (41 documents)",
       "Athirappilly Grama Panchayat (33 documents)",
       "Chalakkudy Municipality (61 documents)",

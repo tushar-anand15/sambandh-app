@@ -54,8 +54,8 @@ function Row({
       }}
     >
       <td className={styles.numeric}>{formatCount(ward.ward_no)}</td>
-      <td>{ward.ward_name ?? <span className={styles.absent}>Unnamed in the source</span>}</td>
-      <td>{ward.winner_name ?? <span className={styles.absent}>Not named in the source</span>}</td>
+      <td>{ward.ward_name ?? <span className={styles.absent}>Unnamed</span>}</td>
+      <td>{ward.winner_name ?? <span className={styles.absent}>Not named</span>}</td>
       <td className={styles.nowrap}>
         <span
           className={styles.partyDot}
@@ -86,9 +86,9 @@ export default function WardTable({ result, selectedWard, onSelect }: WardTableP
     <section aria-label={title}>
       <h2>{title}</h2>
       <p className={styles.layerMeta}>
-        {formatCount(result.wards.length)} wards. Votes are the count the commission
-        published for the winning candidate; the margin is the winner's votes less
-        the runner-up's.
+        {formatCount(result.wards.length)} wards. Votes are what the commission
+        published for the winning candidate. The margin is the winner's votes
+        less the runner-up's.
       </p>
       <div className={styles.tableScroll}>
         <table className={styles.table} aria-label={title}>
@@ -122,8 +122,8 @@ export default function WardTable({ result, selectedWard, onSelect }: WardTableP
         </table>
       </div>
       <p className={styles.layerMeta}>
-        The margin as a share of valid votes is in the card above. The commission
-        publishes no turnout figure per ward, so that share is of the votes counted.
+        The margin as a share of the votes counted is in the card above. The
+        commission publishes no turnout figure per ward.
       </p>
       <SourceLine
         dataset={result.provenance.dataset}

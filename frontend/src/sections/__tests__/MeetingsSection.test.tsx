@@ -89,14 +89,11 @@ describe("a body-year with meetings", () => {
     ).toBeInTheDocument();
   });
 
-  it("says what the section serves and what it does not", async () => {
+  it("says what can be opened from the list", async () => {
     renderAt("/meetings/M08032/2023-2024");
 
     expect(await screen.findByTestId("scope-note")).toHaveTextContent(
-      "Sakarma publishes a decision register and minutes for 420,561 of the 443,235 meetings in the manifest.",
-    );
-    expect(screen.getByTestId("scope-note")).toHaveTextContent(
-      /attachments are named in the manifest and are not served here/,
+      "Sakarma publishes a decision register and minutes for 420,561 of its 443,235 meetings. Both open from the list below.",
     );
   });
 
@@ -108,7 +105,7 @@ describe("a body-year with meetings", () => {
     expect(lines).toHaveLength(2);
     for (const line of lines) {
       expect(line).toHaveTextContent("Gram Sambandh master database");
-      expect(line).toHaveTextContent("Sakarma meeting manifest");
+      expect(line).toHaveTextContent("Sakarma meeting portal");
       expect(line).toHaveTextContent("13 August 2026");
     }
   });
@@ -165,7 +162,7 @@ describe("a year the portal holds no record for", () => {
     const reason = await screen.findByTestId("unavailable-reason");
     // One sentence. The year control does not offer 2016-17 for this body, so
     // the three paragraphs this page used to print have nothing left to argue.
-    expect(reason).toHaveTextContent("Sakarma holds no meeting record for 2016–17.");
+    expect(reason).toHaveTextContent("Sakarma publishes no meetings for 2016–17.");
     expect(reason.textContent!.split(".").filter((p) => p.trim()).length).toBe(1);
 
     // Nothing that could be read as a count of meetings held.
@@ -189,7 +186,7 @@ describe("a thin early year", () => {
 
     expect(await screen.findByTestId("meetings-total")).toHaveTextContent("1");
     expect(screen.getByTestId("coverage-note")).toHaveTextContent(
-      /A year with few meetings in it is a thin record/,
+      /Sakarma covers more local bodies every year/,
     );
   });
 });
@@ -209,8 +206,8 @@ describe("a meeting the register left fields out of", () => {
     const table = await screen.findByRole("table");
     const cells = within(within(table).getAllByRole("row")[1]).getAllByRole("cell");
 
-    expect(cells[3]).toHaveTextContent("Not recorded in the register");
-    expect(cells[4]).toHaveTextContent("Not recorded in the register");
+    expect(cells[3]).toHaveTextContent("Not recorded");
+    expect(cells[4]).toHaveTextContent("Not recorded");
     // Every cell in the row says something.
     for (const cell of cells) expect(cell.textContent?.trim()).not.toBe("");
   });
@@ -221,12 +218,11 @@ describe("a body Sakarma does not cover", () => {
     // Panoor: no Sakarma record at all, in any year.
     renderAt("/meetings/G13064/2023-2024");
 
+    // The selector above already names the portal that publishes nothing.
+    // What it cannot say is how unusual that is, so that is the sentence here.
     expect(await screen.findByTestId("unavailable-reason")).toHaveTextContent(
-      "Sakarma holds no meeting record for this body.",
+      "Sakarma covers 1,200 of Kerala's 1,238 local bodies. Panoor Grama Panchayat is one of the 38 it does not cover.",
     );
-    expect(
-      screen.getByText(/covers 1,200 of Kerala’s 1,238 local bodies/),
-    ).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.getAllByTestId("source-line").length).toBeGreaterThan(0);
   });
@@ -237,7 +233,7 @@ describe("a code that matches no local body", () => {
     renderAt("/meetings/M99999/2023-2024");
 
     expect(
-      await screen.findByText(/No local body has the code M99999, so there is no meeting/),
+      await screen.findByText(/No local body has the code M99999/),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("unavailable-reason")).not.toBeInTheDocument();
   });
@@ -251,7 +247,8 @@ describe("nothing selected yet", () => {
       await screen.findByText(/Choose a district, a local body and a financial year/),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("meetings-total")).not.toBeInTheDocument();
-    // The scope note holds on every state of the page, not only where figures are.
-    expect(screen.getByTestId("scope-note")).toBeInTheDocument();
+    // Nothing is listed yet, so the note about what opens from the list is not
+    // on the page either.
+    expect(screen.queryByTestId("scope-note")).not.toBeInTheDocument();
   });
 });
