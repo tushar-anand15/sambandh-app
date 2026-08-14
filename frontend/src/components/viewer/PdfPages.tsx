@@ -57,7 +57,13 @@ export default function PdfPages({ url }: PdfPagesProps) {
           onLoadSuccess={({ numPages }: { numPages: number }) => setPages(numPages)}
           onLoadError={(cause: Error) =>
             setError(
-              `The document did not load: ${cause.message}. The link expires an hour after the page was opened; reload to get a fresh one.`,
+              // A signed Cloud Storage URL expires an hour after the page was
+              // opened, and a stale one is the likeliest cause of a failure
+              // here. An address on this site's own API does not expire, so
+              // saying it does would send the reader after the wrong thing.
+              url.startsWith("http")
+                ? `The document did not load: ${cause.message}. The link expires an hour after the page was opened; reload to get a fresh one.`
+                : `The document did not load: ${cause.message}. Reload the page to try again.`,
             )
           }
           loading={<p className="selector-status">Loading the document…</p>}

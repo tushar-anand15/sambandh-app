@@ -52,13 +52,18 @@ async def test_a_project_without_a_pdf_is_stated_not_omitted(client, chalakudy):
     assert all(r["pdf_path"] is None for r in rows if not r["has_pdf"])
 
 
-async def test_every_row_carries_a_pdf_url_field_signed_or_stated(client, chalakudy):
-    """A row with a document answers with a URL, or with a stated absence.
+async def test_every_row_carries_a_pdf_url_field_signed_proxied_or_stated(
+    client, chalakudy
+):
+    """A row with a document answers with an address, or with a stated absence.
 
-    Whether the URL is there depends on the deployment holding a signing key,
-    so this asserts the pair rather than the value: a signed URL addresses the
-    object in the bucket, and a null one comes with the sentence saying why.
-    See ``app/presign.py`` and ``tests/test_presign.py``.
+    Which address depends on what the deployment holds, so this asserts the
+    pair rather than the value. With a signing key the URL addresses the object
+    in Cloud Storage. Without one, but with credentials that can read the
+    bucket, it addresses this API's own proxy route. With neither it is null
+    and ``pdf_url_reason`` carries the sentence saying why. See
+    ``app/presign.py``, ``tests/test_presign.py`` and
+    ``tests/test_project_documents.py``.
     """
     payload = (await client.get(f"/api/finances/{chalakudy}/2023-2024")).json()
     rows = payload["project_rows"]
@@ -67,15 +72,24 @@ async def test_every_row_carries_a_pdf_url_field_signed_or_stated(client, chalak
     assert all(row["pdf_url"] is None for row in rows if not row["has_pdf"])
 
     with_document = [row for row in rows if row["has_pdf"]]
-    if payload["pdf_url_reason"] is None:
+    if payload["pdf_url_reason"] is not None:
+        assert all(row["pdf_url"] is None for row in with_document)
+        assert "scans Sulekha holds are named here" in payload["pdf_url_reason"]
+    elif with_document[0]["pdf_url"].startswith("https://"):
         assert all(
             row["pdf_url"].startswith("https://storage.googleapis.com/")
             for row in with_document
         )
         assert all(row["pdf_path"] in row["pdf_url"] for row in with_document)
     else:
-        assert all(row["pdf_url"] is None for row in with_document)
-        assert "scans Sulekha holds are named here" in payload["pdf_url_reason"]
+        assert all(
+            row["pdf_url"]
+            == f"/api/finances/{chalakudy}/2023-2024/documents/{row['project_no']}"
+            for row in with_document
+        )
+        # The proxy address names a project, never an object path: a path off
+        # the request is a path a caller could have written.
+        assert all(row["pdf_path"] not in row["pdf_url"] for row in with_document)
 
 
 async def test_the_stable_object_path_survives_alongside_the_signed_url(

@@ -1,25 +1,30 @@
-"""Signed URLs for the project documents held in Google Cloud Storage.
+"""Reaching the project documents held in Google Cloud Storage.
 
 Sulekha's project documents live in ``gs://sulekhasakarma-pdfs``. The finance
 tables carry an object path, ``pdfs/2023-2024/Municipality/Thrissur/…/1.pdf``,
-which is not an address a browser can open. This module turns that path into a
-V4 signed URL, so the browser fetches the file from Cloud Storage and the API
-never carries the bytes. A 3 MB scan proxied through the app is 3 MB of the
-app's bandwidth and one more request the rate limiter has to hold open.
+which is not an address a browser can open. There are two ways to turn that
+path into one, and this module holds both.
 
-Signing is local RSA over a service account's private key: no network call, and
-about 0.7 ms per URL on the machine this was written on. A body-year with 357
-documents therefore costs a quarter of a second, which is why
-:func:`sign_paths` is meant to be called off the event loop.
+Signing is the preferred way. A V4 signed URL sends the browser straight to
+Cloud Storage, so the API never carries the bytes: a 3 MB scan proxied through
+the app is 3 MB of the app's bandwidth and one more request the rate limiter
+has to hold open. Signing is local RSA over a service account's private key,
+about 0.7 ms per URL on the machine this was written on, so a body-year with
+357 documents costs a quarter of a second and :func:`sign_paths` is meant to be
+called off the event loop.
 
-What signing needs, and what happens without it
------------------------------------------------
-A V4 signature needs a private key. Application-default credentials from
-``gcloud auth application-default login`` are a user account and hold no private
-key, so they can only sign by calling the IAM Credentials API's ``signBlob`` on
-a service account the caller may impersonate. Neither path exists in every
-environment, so this module treats a signing identity as optional: when there
-is none, every URL is ``None``, :attr:`DocumentSigner.reason` carries the
+Proxying is the fallback. A V4 signature needs a private key. Application-
+default credentials from ``gcloud auth application-default login`` are a user
+account and hold no private key, so they can read an object and cannot sign for
+one. That identity is what most checkouts and some deployments run on, and a
+site where no document opens is worse than one that spends its own bandwidth,
+so :func:`open_document` and :func:`stream_document` read the object on the
+same identity and ``/api/finances/{lb}/{year}/documents/{project_no}`` streams
+it. :func:`documents_readable` is what the finances endpoint asks before it
+publishes a proxy address.
+
+When neither works — no signing key and no credentials at all — every URL is
+``None``, :attr:`DocumentSigner.reason` or :data:`NO_ACCESS_REASON` carries the
 sentence the page prints, and :attr:`DocumentSigner.operator_note` carries the
 one naming the setting to fill in, which is logged and never published.
 
@@ -43,6 +48,7 @@ import datetime as _dt
 import json
 import logging
 import os
+from collections.abc import Iterator
 from functools import lru_cache
 
 from .config import settings
@@ -62,6 +68,20 @@ log = logging.getLogger(__name__)
 NO_KEY_REASON = (
     "This site cannot produce an address for the project documents, so the "
     "scans Sulekha holds are named here without being reachable."
+)
+
+# Published only when signing and proxying have both failed, which is the one
+# state in which a document genuinely cannot be reached.
+NO_ACCESS_REASON = (
+    "This site holds no credentials for the bucket Sulekha's scans are in, so "
+    "the scans Sulekha holds are named here without being reachable."
+)
+
+NO_ACCESS_NOTE = (
+    "No credentials for gs://{bucket}: neither a signing key nor application-"
+    "default credentials. Set PDF_SIGNING_KEY_FILE, or run "
+    "gcloud auth application-default login, and the documents become "
+    "reachable. The underlying error was: {error}"
 )
 
 BAD_KEY_REASON = (
@@ -246,3 +266,92 @@ def reset_document_signer() -> None:
     """Drops the cached signer. For tests that change the settings under it."""
     document_signer.cache_clear()
     storage_client.cache_clear()
+    _reader.cache_clear()
+
+
+# ---------------------------------------------------------------------------
+# Proxying: reading an object this process can read but cannot sign for
+# ---------------------------------------------------------------------------
+
+
+class DocumentMissing(LookupError):
+    """The path is in ``finance.project`` and the bucket holds nothing at it."""
+
+
+class DocumentUnreadable(RuntimeError):
+    """The bucket could not be read. The cause is carried, not swallowed."""
+
+
+# 256 KB per read. Large enough that a 3 MB scan is a dozen reads, small enough
+# that a slow reader never holds a megabyte of the process's memory per request.
+CHUNK_BYTES = 256 * 1024
+
+
+@lru_cache(maxsize=1)
+def _reader():
+    """A storage client for proxying, or ``None`` where there are none.
+
+    Building one resolves credentials, which is file I/O and, off Google's
+    infrastructure, one short metadata-server probe. Cached so the finances
+    endpoint can ask :func:`documents_readable` on every request.
+    """
+    try:
+        return storage_client()
+    except Exception as error:  # noqa: BLE001 - reported, then reported again
+        log.warning(
+            "Documents cannot be proxied. %s",
+            NO_ACCESS_NOTE.format(bucket=settings.pdf_bucket, error=error),
+        )
+        return None
+
+
+def documents_readable() -> bool:
+    """Whether this process can read the bucket, signing key or not."""
+    return _reader() is not None
+
+
+def open_document(object_path: str):
+    """The blob at ``object_path``, with its metadata loaded.
+
+    Loading the metadata first is what separates the two failures the endpoint
+    has to answer differently: an object the bucket does not hold is a 404, and
+    a bucket that could not be reached at all is a 502. It also yields the
+    length, which a range request needs.
+    """
+    client = _reader()
+    if client is None:
+        raise DocumentUnreadable(
+            NO_ACCESS_NOTE.format(bucket=settings.pdf_bucket, error="no credentials")
+        )
+
+    from google.api_core import exceptions as api
+
+    try:
+        blob = client.bucket(settings.pdf_bucket).blob(object_path.lstrip("/"))
+        blob.reload()
+    except api.NotFound as missing:
+        raise DocumentMissing(object_path) from missing
+    except Exception as error:  # noqa: BLE001 - the cause is reported
+        raise DocumentUnreadable(str(error)) from error
+    return blob
+
+
+def stream_document(blob, start: int = 0, end: int | None = None) -> Iterator[bytes]:
+    """The object's bytes, :data:`CHUNK_BYTES` at a time, ``start`` to ``end``.
+
+    ``end`` is inclusive, as it is in an HTTP range. Blocking on every read, so
+    it is handed to Starlette as a synchronous iterator and runs in the
+    threadpool rather than on the event loop.
+    """
+    remaining = None if end is None else end - start + 1
+    with blob.open("rb", chunk_size=CHUNK_BYTES) as handle:
+        if start:
+            handle.seek(start)
+        while remaining is None or remaining > 0:
+            size = CHUNK_BYTES if remaining is None else min(CHUNK_BYTES, remaining)
+            chunk = handle.read(size)
+            if not chunk:
+                return
+            if remaining is not None:
+                remaining -= len(chunk)
+            yield chunk

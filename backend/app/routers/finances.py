@@ -11,20 +11,38 @@ What this section deliberately does not carry: any sector, sub-sector or
 category. Nothing in the source classifies a project, and no proxy is
 substituted (see the plan's scope boundaries).
 
-Each project row carries ``pdf_url``, a signed Cloud Storage URL good for an
-hour, alongside the stable ``pdf_path``. Where the deployment holds no signing
-key, ``pdf_url`` is null for every row and ``pdf_url_reason`` says so once. See
-``app/presign.py``.
+Each project row carries ``pdf_url`` alongside the stable ``pdf_path``. Where
+the deployment holds a signing key, that URL is a signed Cloud Storage address
+good for an hour and the browser fetches the scan from Cloud Storage. Where it
+does not, the URL points at ``/documents/{project_no}`` below, which streams the
+object through this API on whatever identity the process is running as.
+``pdf_url_reason`` is filled in only when neither works. See ``app/presign.py``.
+
+The client never names an object. It names a body, a year and a project number,
+and the path is read from ``finance.project``: a path taken from a caller is a
+bucket traversal one crafted string away.
 """
 
+import re
 from typing import Any
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Path, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
+from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from ..database import get_pool
-from ..presign import document_signer
+from ..presign import (
+    NO_ACCESS_REASON,
+    DocumentMissing,
+    DocumentUnreadable,
+    document_signer,
+    documents_readable,
+    open_document,
+    stream_document,
+)
 from ..public import (
+    CACHE_CONTROL,
     NO_RECORD_FOR_YEAR,
     NOT_COVERED,
     YEAR_PATTERN,
@@ -42,6 +60,11 @@ from ..public import (
 router = APIRouter(prefix="/api/finances", tags=["public"], dependencies=[Depends(rate_limit)])
 
 NOT_COVERED_REASON = "Sulekha holds no plan record for this body."
+
+# Every project_no in finance.project is digits, and the lookup is by column
+# value rather than by string interpolation, so this pattern is a cheap reject
+# of junk rather than the thing keeping the bucket safe.
+PROJECT_NO_PATTERN = "^[A-Za-z0-9._-]{1,50}$"
 
 
 def _no_record_reason(year_label: str, first: str | None, last: str | None) -> str:
@@ -97,17 +120,33 @@ async def series_rows(conn, lb_key: int) -> list[dict[str, Any]]:
     ]
 
 
-async def project_rows(conn, lb_key: int, year_label: str) -> list[dict[str, Any]]:
+def document_url(lb_code: str, year_label: str, project_no: str | None) -> str | None:
+    """The proxy address of one project's document on this API.
+
+    Relative, so it works behind whatever host and scheme the site is served
+    on, and built from the three identifiers the row already carries rather
+    than from the object path, which never leaves the server.
+    """
+    if project_no is None:
+        return None
+    return f"/api/finances/{lb_code}/{year_label}/documents/{quote(project_no, safe='')}"
+
+
+async def project_rows(
+    conn, lb_key: int, lb_code: str, year_label: str
+) -> list[dict[str, Any]]:
     """The on-screen table, unrounded. The CSV download reads this same list.
 
-    Each row carries both the object path and a signed URL for it. The path is
-    what the CSV keeps, because it is stable; the URL expires within the hour
-    and belongs only to the page that is open now.
+    Each row carries the stable object path and an address for it. The path is
+    what the CSV keeps; the address is either a signed Cloud Storage URL, which
+    expires within the hour and belongs only to the page open now, or this
+    API's own proxy route, which does not expire and holds no object path.
 
     Signing is RSA over a local key, so a 357-row body-year costs about a
     quarter of a second of CPU. That runs in a worker thread: a public endpoint
     that blocks the event loop for a quarter of a second blocks every other
-    request on the process for that quarter second too.
+    request on the process for that quarter second too. Proxy addresses are
+    string formatting and cost nothing.
     """
     rows = await conn.fetch(
         """
@@ -123,6 +162,14 @@ async def project_rows(conn, lb_key: int, year_label: str) -> list[dict[str, Any
     signer = document_signer()
     paths = [r["pdf_gcs_path"] for r in rows if r["pdf_gcs_path"]]
     urls = await run_in_threadpool(signer.sign_paths, paths) if paths else {}
+    proxying = not signer.available and await run_in_threadpool(documents_readable)
+
+    def address(row) -> str | None:
+        if not row["pdf_gcs_path"]:
+            return None
+        if proxying:
+            return document_url(lb_code, year_label, row["project_no"])
+        return urls.get(row["pdf_gcs_path"])
 
     return [
         {
@@ -134,7 +181,7 @@ async def project_rows(conn, lb_key: int, year_label: str) -> list[dict[str, Any
             # absent state, not a link that 404s.
             "has_pdf": bool(r["has_pdf"]),
             "pdf_path": r["pdf_gcs_path"],
-            "pdf_url": urls.get(r["pdf_gcs_path"]) if r["pdf_gcs_path"] else None,
+            "pdf_url": address(r),
         }
         for r in rows
     ]
@@ -173,8 +220,11 @@ async def year_payload(conn, body, year) -> dict[str, Any]:
             **base,
         )
 
-    rows = await project_rows(conn, body["lb_key"], year["year_label"])
+    rows = await project_rows(
+        conn, body["lb_key"], body["lb_code"], year["year_label"]
+    )
     signer = document_signer()
+    reachable = signer.available or await run_in_threadpool(documents_readable)
 
     return {
         **base,
@@ -189,10 +239,11 @@ async def year_payload(conn, body, year) -> dict[str, Any]:
         "also_in_prev_year": as_number(summary["also_in_prev_year"]),
         "first_seen_this_year": as_number(summary["first_seen_this_year"]),
         "project_rows": rows,
-        # Null where every document has an address. Where one does not, this is
-        # the sentence saying why, so the page states a cause instead of
-        # printing a dead column.
-        "pdf_url_reason": None if signer.available else signer.reason,
+        # Null where every document has an address, whether that address is a
+        # signed URL or this API's proxy route. A sentence only where neither
+        # is available, so the page states a cause instead of printing a dead
+        # column, and never states one while the documents open.
+        "pdf_url_reason": None if reachable else NO_ACCESS_REASON,
         # Stated on the page, not implied by its absence.
         "classification": None,
         "classification_note": "Sulekha publishes no sector or category for a project, and none is inferred here.",
@@ -224,6 +275,130 @@ async def finances_series(request: Request, lb_code: str):
             "years_with_finance": body["years_with_finance"],
             "provenance": provenance("finances"),
         },
+    )
+
+
+# ---------------------------------------------------------------------------
+# The documents themselves
+# ---------------------------------------------------------------------------
+
+_RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
+
+
+def _range(header: str | None, length: int) -> tuple[int, int] | None:
+    """One byte range, or ``None`` for the whole object.
+
+    Only the single-range forms are honoured: ``bytes=0-1023``, ``bytes=1024-``
+    and ``bytes=-1024``. A multipart range is answered with the whole object,
+    which RFC 9110 allows and which no PDF viewer asks for. A range that starts
+    past the end raises 416, because answering it with the whole file would
+    have the viewer read the wrong bytes at the offset it asked about.
+    """
+    if not header:
+        return None
+    match = _RANGE.match(header.strip())
+    if not match or length == 0:
+        return None
+
+    first, last = match.group(1), match.group(2)
+    if not first:
+        if not last:
+            return None
+        start, end = max(0, length - int(last)), length - 1
+    else:
+        start = int(first)
+        end = min(int(last), length - 1) if last else length - 1
+
+    if start > end or start >= length:
+        raise HTTPException(
+            status_code=416,
+            detail=f"{header} does not lie inside this document, which is {length} bytes.",
+            headers={"Content-Range": f"bytes */{length}"},
+        )
+    return start, end
+
+
+@router.get("/{lb_code}/{year_label}/documents/{project_no}")
+async def project_document(
+    request: Request,
+    lb_code: str,
+    year_label: str = Path(pattern=YEAR_PATTERN),
+    project_no: str = Path(pattern=PROJECT_NO_PATTERN),
+):
+    """One project's sanctioning document, streamed from the bucket.
+
+    This route exists for the deployments that can read ``gs://`` and cannot
+    sign for it. Where a signing key is configured the payload's ``pdf_url``
+    addresses Cloud Storage directly and nothing reaches this route, so the
+    bytes stay off the app.
+
+    The caller names a body, a year and a project number. The object path is
+    read from ``finance.project`` and never comes off the request, so no string
+    a caller can write reaches the bucket.
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        body = await fetch_body(conn, lb_code)
+        row = await conn.fetchrow(
+            "SELECT project_name, has_pdf, pdf_gcs_path FROM finance.project "
+            "WHERE lb_key = $1 AND year_label = $2 AND project_no = $3",
+            body["lb_key"],
+            year_label,
+            project_no,
+        )
+
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Sulekha records no project {project_no} for "
+            f"{body['lb_code']} in {year_label}.",
+        )
+    if not row["pdf_gcs_path"]:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Project {project_no} was published as a plan line with no "
+            "document attached.",
+        )
+
+    path = row["pdf_gcs_path"]
+    try:
+        blob = await run_in_threadpool(open_document, path)
+    except DocumentMissing as missing:
+        raise HTTPException(
+            status_code=404,
+            detail=f"The document for project {project_no} is recorded at {path} "
+            "and the bucket holds nothing there.",
+        ) from missing
+    except DocumentUnreadable as unreadable:
+        raise HTTPException(
+            status_code=502,
+            detail=f"The document for project {project_no} is recorded at {path} "
+            f"and could not be read from the bucket: {unreadable}",
+        ) from unreadable
+
+    length = blob.size or 0
+    window = _range(request.headers.get("range"), length)
+    start, end = window if window else (0, max(0, length - 1))
+
+    headers = {
+        "Accept-Ranges": "bytes",
+        "Cache-Control": CACHE_CONTROL,
+        # Inline: the reader opened a drawer beside a table, not a download.
+        # The filename is what a browser's own save action then writes.
+        "Content-Disposition": (
+            f'inline; filename="{lb_code}_{year_label}_project_{project_no}.pdf"'
+        ),
+    }
+    if length:
+        headers["Content-Length"] = str(end - start + 1)
+    if window:
+        headers["Content-Range"] = f"bytes {start}-{end}/{length}"
+
+    return StreamingResponse(
+        stream_document(blob, start, end if length else None),
+        status_code=206 if window else 200,
+        media_type="application/pdf",
+        headers=headers,
     )
 
 

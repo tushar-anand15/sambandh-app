@@ -10,6 +10,7 @@
  */
 
 import { formatYearLabel } from "@/components/select/YearControl";
+import type { ProjectFilter } from "./order";
 import type { BodyBlock, ProjectRow } from "./types";
 
 /**
@@ -121,9 +122,19 @@ export function projectsCsv(rows: ProjectRow[]): string {
   return `${lines.join("\n")}\n`;
 }
 
-/** Matches the filename the download endpoint sets. */
-export function csvFilename(lbCode: string, yearLabel: string): string {
-  return `finances_${lbCode}_${yearLabel}.csv`;
+/**
+ * Matches the filename the download endpoint sets, with the filter appended
+ * where one is on. Two files in a downloads folder called
+ * `finances_M08032_2023-2024.csv` holding different row counts is a way to
+ * misread a body-year, and the suffix is what keeps them apart.
+ */
+export function csvFilename(
+  lbCode: string,
+  yearLabel: string,
+  filter: ProjectFilter = "all",
+): string {
+  const scope = filter === "with-document" ? "_with-document" : "";
+  return `finances_${lbCode}_${yearLabel}${scope}.csv`;
 }
 
 /**

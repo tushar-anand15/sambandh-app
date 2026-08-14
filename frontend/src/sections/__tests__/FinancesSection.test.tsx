@@ -19,7 +19,9 @@ import { resetBodiesCache } from "@/hooks/useBodies";
 import { server } from "@/test/setup";
 import {
   NO_SIGNING_KEY_REASON,
+  SPARSE,
   detailedHandlers,
+  noDocumentHandlers,
   unsignedHandlers,
 } from "@/test/handlers.finances";
 import { CSV_COLUMNS } from "@/components/finances/format";
@@ -262,9 +264,227 @@ describe("the project table", () => {
     );
 
     // The file holds the stable object path. A signed URL in a downloaded file
-    // would be dead within the hour.
+    // would be dead within the hour, and a proxy address is this site's
+    // routing rather than the document's address in Sulekha's bucket.
     expect(csv).toContain("pdfs/2023-2024/Municipality/Thrissur");
     expect(csv).not.toContain("X-Goog-Signature");
+    expect(csv).not.toContain("/api/finances/");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Filtering and sorting the whole body-year
+// ---------------------------------------------------------------------------
+
+/** The CSV the page currently offers, decoded. */
+function currentCsv(): string {
+  return decodeURIComponent(
+    (screen.getByTestId("download-csv").getAttribute("href") ?? "").replace(
+      /^data:text\/csv;charset=utf-8,/,
+      "",
+    ),
+  );
+}
+
+/** The project numbers in the rows on screen, in the order they are drawn. */
+function projectNumbers(): string[] {
+  return within(screen.getByTestId("project-table"))
+    .getAllByRole("row")
+    .slice(1)
+    .map((row) => row.getAttribute("data-project-no") ?? "");
+}
+
+const SPARSE_PATH = `/finances/${SPARSE.lbCode}/${SPARSE.yearLabel}`;
+
+describe("finding the projects that have a document", () => {
+  it("counts them in the control", async () => {
+    renderAt(SPARSE_PATH);
+    await screen.findByTestId("project-table");
+
+    const filter = screen.getByTestId("project-filter");
+    expect(within(filter).getByRole("option", { name: "All projects (301)" })).toBeInTheDocument();
+    expect(
+      within(filter).getByRole("option", { name: "With a document (10)" }),
+    ).toBeInTheDocument();
+  });
+
+  it("surfaces the ten that would otherwise sit six pages down", async () => {
+    const user = userEvent.setup();
+    renderAt(SPARSE_PATH);
+    await screen.findByTestId("project-table");
+
+    // Unfiltered, the first page of fifty holds one of the ten.
+    expect(screen.getAllByText("View")).toHaveLength(1);
+
+    await user.selectOptions(screen.getByTestId("project-filter"), "with-document");
+
+    expect(projectNumbers()).toEqual(SPARSE.documentAt.map(String));
+    expect(screen.getAllByText("View")).toHaveLength(10);
+    expect(screen.getByTestId("page-position")).toHaveTextContent("Rows 1 to 10 of 10");
+  });
+
+  it("filters the whole body-year, not the page on screen", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032/2023-2024");
+    await screen.findByTestId("project-table");
+
+    // The six without a document are the last six of 357, on page eight.
+    await user.selectOptions(screen.getByTestId("project-filter"), "with-document");
+
+    expect(screen.getByTestId("page-position")).toHaveTextContent("Rows 1 to 50 of 351");
+    await lastPage();
+    expect(screen.getByTestId("page-position")).toHaveTextContent(
+      "Rows 351 to 351 of 351",
+    );
+    expect(screen.queryAllByText("Not published")).toHaveLength(0);
+  });
+
+  it("returns to the first page when the filter changes", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032/2023-2024");
+    await screen.findByTestId("project-table");
+
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByTestId("page-position")).toHaveTextContent("Rows 51 to 100");
+
+    await user.selectOptions(screen.getByTestId("project-filter"), "with-document");
+    expect(screen.getByTestId("page-position")).toHaveTextContent("Rows 1 to 50 of 351");
+  });
+
+  it("writes the filter into the URL and reads it back", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderAt("/finances/M08032/2023-2024");
+    await screen.findByTestId("project-table");
+
+    await user.selectOptions(screen.getByTestId("project-filter"), "with-document");
+    unmount();
+
+    // The link a reader would copy out of the address bar.
+    renderAt("/finances/M08032/2023-2024?documents=with-document");
+    await screen.findByTestId("project-table");
+    expect(screen.getByTestId("page-position")).toHaveTextContent("of 351");
+    expect(screen.getByTestId("project-filter")).toHaveValue("with-document");
+  });
+
+  it("hands over the filtered rows in the CSV, under a filename that says so", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032/2023-2024");
+    await screen.findByTestId("project-table");
+
+    await user.selectOptions(screen.getByTestId("project-filter"), "with-document");
+
+    expect(screen.getByTestId("download-csv")).toHaveAttribute(
+      "download",
+      "finances_M08032_2023-2024_with-document.csv",
+    );
+    // 351 rows and the header.
+    expect(currentCsv().trim().split("\n")).toHaveLength(352);
+  });
+
+  it("does not offer the filter where nothing in the year has a document", async () => {
+    server.use(...noDocumentHandlers);
+    renderAt("/finances/M08032/2023-2024");
+    await screen.findByTestId("project-table");
+
+    expect(
+      within(screen.getByTestId("project-filter")).getByRole("option", {
+        name: "With a document (0)",
+      }),
+    ).toBeDisabled();
+  });
+});
+
+describe("sorting the project table", () => {
+  it("orders by project number ascending before anything is clicked", async () => {
+    renderAt("/finances/M08032/2023-2024");
+    await screen.findByTestId("project-table");
+
+    expect(projectNumbers().slice(0, 3)).toEqual(["1", "2", "3"]);
+    expect(screen.getByTestId("sort-project_no").closest("th")).toHaveAttribute(
+      "aria-sort",
+      "ascending",
+    );
+  });
+
+  it("sorts by expense, largest first, then reverses on a second click", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032/2023-2024");
+    await screen.findByTestId("project-table");
+
+    await user.click(screen.getByTestId("sort-expense"));
+    const header = screen.getByTestId("sort-expense").closest("th");
+    expect(header).toHaveAttribute("aria-sort", "descending");
+    // Row 357 carries the remainder of the split, so it is the largest.
+    expect(projectNumbers()[0]).toBe("357");
+
+    await user.click(screen.getByTestId("sort-expense"));
+    expect(header).toHaveAttribute("aria-sort", "ascending");
+    expect(projectNumbers()[0]).not.toBe("357");
+  });
+
+  it("puts the rows that have a document first when Document is clicked", async () => {
+    const user = userEvent.setup();
+    renderAt(SPARSE_PATH);
+    await screen.findByTestId("project-table");
+
+    await user.click(screen.getByTestId("sort-document"));
+
+    expect(projectNumbers().slice(0, 10)).toEqual(SPARSE.documentAt.map(String));
+    expect(screen.getAllByText("View")).toHaveLength(10);
+    // Sorting keeps every row: 301, not 10.
+    expect(screen.getByTestId("page-position")).toHaveTextContent("of 301");
+  });
+
+  it("sorts the whole body-year and returns to the first page", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032/2023-2024");
+    await screen.findByTestId("project-table");
+
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByTestId("sort-formulation"));
+
+    expect(screen.getByTestId("page-position")).toHaveTextContent("Rows 1 to 50 of 357");
+    // The largest of all 357, not the largest of rows 51 to 100.
+    expect(projectNumbers()[0]).toBe("357");
+  });
+
+  it("carries only one sorted column at a time", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032/2023-2024");
+    await screen.findByTestId("project-table");
+
+    await user.click(screen.getByTestId("sort-expense"));
+    const sorted = within(screen.getByTestId("project-table"))
+      .getAllByRole("columnheader")
+      .filter((cell) => {
+        const value = cell.getAttribute("aria-sort");
+        return value !== null && value !== "none";
+      });
+
+    expect(sorted).toHaveLength(1);
+    expect(sorted[0]).toHaveTextContent("Expense");
+  });
+
+  it("writes the sort into the URL and reads it back", async () => {
+    renderAt("/finances/M08032/2023-2024?sort=expense&dir=asc");
+    await screen.findByTestId("project-table");
+
+    expect(screen.getByTestId("sort-expense").closest("th")).toHaveAttribute(
+      "aria-sort",
+      "ascending",
+    );
+  });
+
+  it("keeps the CSV in the order on screen", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032/2023-2024");
+    await screen.findByTestId("project-table");
+
+    await user.click(screen.getByTestId("sort-expense"));
+
+    const lines = currentCsv().trim().split("\n");
+    expect(lines[1].split(",")[0]).toBe(projectNumbers()[0]);
+    expect(lines).toHaveLength(358);
   });
 });
 
