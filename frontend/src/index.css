@@ -466,8 +466,8 @@ hr {
    --------------------------------------------------------------------------- */
 
 .masthead {
-  background: var(--surface);
-  border-bottom: 1px solid var(--rule);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--rule-2);
 }
 
 /* The one use of laterite on the site. */
@@ -477,17 +477,41 @@ hr {
 }
 
 .masthead-inner {
-  padding-block: var(--s5) var(--s4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3) var(--s5);
+  padding-block: var(--s4);
 }
 
 .masthead-title {
-  display: inline-block;
-  font-family: var(--font-serif);
-  font-size: var(--t6);
-  line-height: var(--lh-snug);
-  letter-spacing: var(--track-head);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s3);
   color: var(--ink);
   text-decoration: none;
+}
+
+/* The mark keeps its own baseline; the name sits beside it, not on it. */
+.masthead-title svg {
+  flex: none;
+  align-self: center;
+}
+
+.masthead-name {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-serif);
+  font-size: var(--t6);
+  line-height: 1.1;
+  letter-spacing: var(--track-head);
+}
+
+.masthead-name-mal {
+  font-size: var(--t2);
+  letter-spacing: 0;
+  color: var(--ink-2);
 }
 
 .masthead-sub {
@@ -495,8 +519,15 @@ hr {
   font-size: var(--t2);
   line-height: var(--lh-ui);
   color: var(--ink-2);
-  margin-block: var(--s1) 0;
-  max-width: var(--measure-lede);
+  margin: 0;
+  text-align: right;
+  max-width: 34ch;
+}
+
+@media (max-width: 640px) {
+  .masthead-sub {
+    text-align: left;
+  }
 }
 
 /* The only sticky element. */
