@@ -85,7 +85,19 @@ ls -lh "$DUMP"
 # complaint is `SET transaction_timeout`, a GUC that pg17 emits and pg16 does
 # not have. It is a session setting, it fails harmlessly, and it is the reason
 # the restore below cannot use ON_ERROR_STOP.
-RESTORE=(sudo docker run --rm --network container:"$CID" -v /var/tmp:/d postgres:17
+#
+# The connection is over TCP, so unlike every `psql_` call above it actually
+# authenticates: those go through `docker exec` to a unix socket, where the
+# postgres image's pg_hba trusts the local user, while a host connection needs
+# a password. Taken from the db container's own environment rather than from a
+# literal or from Secret Manager, so this keeps working either side of
+# rotate-db-password.sh without knowing which side it is on.
+DBPASS="$(sudo docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CID" \
+          | sed -n 's/^POSTGRES_PASSWORD=//p' | head -1)"
+[[ -n "$DBPASS" ]] || { echo "[master] FATAL: could not read the db password." >&2; exit 1; }
+
+RESTORE=(sudo docker run --rm --network container:"$CID" -e PGPASSWORD="$DBPASS"
+         -v /var/tmp:/d postgres:17
          pg_restore -h 127.0.0.1 -U sambandh -d sambandh --no-owner --no-privileges)
 
 log "Reading the archive"
