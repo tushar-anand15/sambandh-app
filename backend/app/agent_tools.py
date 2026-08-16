@@ -60,7 +60,7 @@ async def search_documents(
     year: Optional[str] = None,
     top_k: int = 8,
 ) -> str:
-    """Search across all project documents using semantic and keyword search.
+    """Search the project documents by subject. Use this for any topical question.
 
     Use this tool to find information about projects, budgets, activities,
     beneficiaries, or any other content in the Sulekha project documents.
@@ -157,10 +157,21 @@ async def list_projects(
     lb_type: Optional[str] = None,
     limit: int = 20,
 ) -> str:
-    """List projects with optional filters. Shows project numbers and names.
+    """Browse or count projects by local body. Cannot search by subject.
 
-    Use this to browse available projects or answer questions like
-    "how many projects does X have?" or "what projects are in Y?".
+    This tool filters on local body only. It has no idea what a project is
+    about, so it answers "how many projects does X have?" and "what projects
+    are in Y?" and nothing else.
+
+    Do NOT use it for a question about a subject — water, roads, housing,
+    women's welfare. "List drinking water projects" is a search, not a listing,
+    and this tool would answer it with whichever projects happen to sort first.
+    Use `search_documents` for anything topical, including questions that begin
+    with the word "list".
+
+    Some projects show as "Untitled": the scanned form's English title field
+    was not captured for them. Their content is still searchable through
+    `search_documents`.
 
     Args:
         lb_name: Filter by local body name.
@@ -194,7 +205,13 @@ async def list_projects(
                    d.page_count
             FROM documents d
             {where}
-            ORDER BY d.lb_name, d.project_no
+            -- project_no is text, so a plain sort gives 1, 10, 100, 111, 12.
+            -- Sort numerically where it is a number, and keep anything
+            -- non-numeric at the end rather than dropping it.
+            ORDER BY d.lb_name,
+                     (CASE WHEN d.project_no ~ '^[0-9]+$'
+                           THEN d.project_no::bigint END) NULLS LAST,
+                     d.project_no
             LIMIT ${idx}
             """,
             *params,
