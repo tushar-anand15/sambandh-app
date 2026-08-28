@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import styles from "./auth.module.css";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -30,48 +31,48 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
+    <div className={`shell-container ${styles.page}`}>
       <div
-        className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <Link to="/" className="font-display text-2xl tracking-tight text-ink">
-            Gram<span className="text-indigo">SAMBANDH</span>
+        className={styles.panel}>
+        <div className={styles.head}>
+          <Link to="/" className={styles.wordmark}>
+            Gram Sambandh
           </Link>
-          <p className="mt-2 text-sm text-ink-muted">
+          <p className={styles.strap}>
             Sign in to use the assistant
           </p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl border border-border bg-surface p-6 shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
+          className={styles.form}
         >
           {error && (
-            <div className="mb-4 rounded-lg bg-error/5 px-3 py-2 text-sm text-error">
+            <div className={styles.error}>
               {error}
             </div>
           )}
 
-          <label className="block">
-            <span className="text-xs font-medium text-ink-muted">Email</span>
+          <label className={styles.field}>
+            <span className={styles.label}>Email</span>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1.5 block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-indigo focus:ring-0 focus:outline-none"
+              className={styles.input}
               placeholder="you@example.com"
             />
           </label>
 
-          <label className="mt-4 block">
-            <span className="text-xs font-medium text-ink-muted">Password</span>
+          <label className={styles.field}>
+            <span className={styles.label}>Password</span>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="mt-1.5 block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-indigo focus:ring-0 focus:outline-none"
+              className={styles.input}
               placeholder="At least 8 characters"
             />
           </label>
@@ -79,21 +80,17 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-6 flex w-full items-center justify-center rounded-lg bg-indigo px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-hover disabled:opacity-60"
+            className={styles.submit}
           >
-            {loading ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              "Sign in"
-            )}
+            {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
 
-        <p className="mt-5 text-center text-sm text-ink-muted">
+        <p className={styles.alt}>
           No account yet?{" "}
           <Link
             to="/register"
-            className="font-medium text-indigo transition-colors hover:text-indigo-hover"
+            
           >
             Create one
           </Link>

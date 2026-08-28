@@ -1,0 +1,126 @@
+/* The sign-in and sign-up pages.
+ *
+ * These sat in the token lint's quarantine, so they were the one corner of the
+ * site the redesign never reached: an old coral wordmark, a rounded card with a
+ * shadow, rounded inputs and a rounded filled button -- none of which exist
+ * anywhere else now. They are the gate in front of the assistant, so a reader
+ * meets them before they meet the rest of the site.
+ *
+ * No radius and no shadow: --radius is 0 and the design has no elevation. The
+ * accent stays on the link and the submit button, which is what it means.
+ */
+
+.page {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: var(--s8);
+}
+
+.panel {
+  width: 100%;
+  max-width: 34rem;
+}
+
+.head {
+  text-align: center;
+  margin-block: 0 var(--s7);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-size: var(--t7);
+  font-weight: 300;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+  text-decoration: none;
+  display: block;
+}
+
+.strap {
+  font-size: var(--t2);
+  color: var(--ink-3);
+  margin-block: var(--s3) 0;
+}
+
+.form {
+  border-block: 1px solid var(--rule);
+  padding-block: var(--s6);
+}
+
+.field {
+  display: block;
+}
+
+.field + .field {
+  margin-block-start: var(--s5);
+}
+
+.label {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-block: 0 var(--s2);
+}
+
+.input {
+  display: block;
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule-2);
+  padding: var(--s2) var(--s3);
+}
+
+.input::placeholder {
+  color: var(--ink-3);
+}
+
+.input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.submit {
+  margin-block-start: var(--s6);
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  padding: var(--s3) var(--s4);
+  cursor: pointer;
+}
+
+.submit:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* An error states what failed. It is not a coloured box. */
+.error {
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ldf);
+  border-left: 2px solid var(--ldf);
+  padding: var(--s1) 0 var(--s1) var(--s3);
+  margin-block: 0 var(--s5);
+}
+
+.alt {
+  font-size: var(--t2);
+  color: var(--ink-3);
+  text-align: center;
+  margin-block: var(--s5) 0;
+}

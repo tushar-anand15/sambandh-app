@@ -36,7 +36,7 @@ const SRC = path.resolve(__dirname, "..");
  * check below calls `isDirectory()` -- so it cannot name two files out of
  * three.
  */
-const QUARANTINE = ["components/viewer", "pages"];
+const QUARANTINE = ["components/viewer"];
 
 const SCALE_STEPS = 9;
 const SPACING_STEPS = 8;

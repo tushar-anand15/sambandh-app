@@ -92,7 +92,24 @@ export default function Masthead() {
               both: scroll away from the top and the whole masthead goes,
               banner included. Filled in by the banner unit; home route only. */}
           {isHome ? (
-            <div className={styles.hero} data-testid="masthead-banner" />
+            <div className={styles.hero} data-testid="masthead-banner">
+              {/* Two renders, one per theme, chosen from the resolved theme
+                  rather than from CSS: an <img> carries the alt text, and the
+                  hook already knows which theme is actually showing when the
+                  reader has made no choice. Generated offline by
+                  scripts/render_banner.py; see it for why this is not
+                  prettymaps. */}
+              <img
+                className={styles.heroImage}
+                src={`/banner-kerala-${theme.showing}.png`}
+                width={2560}
+                height={400}
+                alt="Kerala's 1,033 local governments, drawn from their published boundaries and tilted about 15 degrees. Municipalities and corporations are the darker shapes."
+              />
+              <span className={styles.heroStamp}>
+                1,033 local bodies &middot; &copy; OpenStreetMap contributors, ODbL
+              </span>
+            </div>
           ) : null}
 
           {/* The Malayalam is the same name again, so it is not part of the
