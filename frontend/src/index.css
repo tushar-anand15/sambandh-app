@@ -347,7 +347,10 @@ h2,
 h3,
 h4 {
   font-family: var(--font-serif);
-  font-weight: 600;
+  /* Nothing on this site is bold. The Atlas sets `font-weight: normal` on
+     every heading and lets size, case and colour carry the hierarchy; a
+     600-weight heading here was left over from the serif system. */
+  font-weight: 400;
   line-height: var(--lh-snug);
   letter-spacing: var(--track-head);
   text-wrap: balance;
@@ -720,7 +723,7 @@ svg[data-chart] {
 .prose-chat p { margin: var(--s2) 0; max-width: none; }
 .prose-chat p:first-child { margin-top: 0; }
 .prose-chat p:last-child { margin-bottom: 0; }
-.prose-chat strong { font-weight: 600; }
+.prose-chat strong { font-weight: 500; }
 .prose-chat ul, .prose-chat ol { margin: var(--s2) 0; padding-left: var(--s5); }
 .prose-chat li { margin: var(--s1) 0; }
 .prose-chat code {
@@ -757,7 +760,7 @@ svg[data-chart] {
 }
 .prose-chat th {
   background: var(--surface-2);
-  font-weight: 600;
+  font-weight: 400;
 }
 .prose-chat h1, .prose-chat h2, .prose-chat h3 {
   margin: var(--s5) 0 var(--s3);

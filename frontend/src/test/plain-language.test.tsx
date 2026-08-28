@@ -23,7 +23,6 @@ import MeetingsSection from "@/sections/MeetingsSection";
 import MethodSection from "@/sections/MethodSection";
 import Masthead from "@/components/shell/Masthead";
 import SiteFooter from "@/components/shell/SiteFooter";
-import TabBar from "@/components/shell/TabBar";
 import { resetBodiesCache } from "@/hooks/useBodies";
 import { server } from "@/test/setup";
 import { handlers as methodHandlers } from "@/test/handlers.method";
@@ -95,10 +94,11 @@ describe("the words a reader is never shown", () => {
   });
 
   it("keeps them off the masthead, the tabs and the footer", () => {
+    // The tabs moved inside the masthead in the nameplate redesign, so one
+    // render now covers both.
     render(
       <MemoryRouter>
         <Masthead />
-        <TabBar />
         <SiteFooter />
       </MemoryRouter>,
     );

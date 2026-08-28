@@ -11,7 +11,6 @@ import MeetingsSection from "@/sections/MeetingsSection";
 import MethodSection from "@/sections/MethodSection";
 import Masthead from "@/components/shell/Masthead";
 import SiteFooter from "@/components/shell/SiteFooter";
-import TabBar from "@/components/shell/TabBar";
 import { useRouteTelemetry } from "@/lib/telemetry";
 
 /**
@@ -38,8 +37,10 @@ import { useRouteTelemetry } from "@/lib/telemetry";
  * sixth tab would put a page about the build alongside four pages of data.
  *
  * The shell is chrome, so it sits outside <Routes> and is not re-mounted on
- * navigation. There is no AnimatePresence: a page transition that fades in a
- * table of public spending buys nothing and delays the number.
+ * navigation. That is what lets the masthead keep its collapsed/expanded state
+ * across a navigation instead of re-deciding it from scratch on every paint.
+ * There is no AnimatePresence: a page transition that fades in a table of
+ * public spending buys nothing and delays the number.
  */
 
 export default function App() {
@@ -50,7 +51,6 @@ export default function App() {
   return (
     <>
       <Masthead />
-      <TabBar />
       <main>
         <Routes>
           <Route path="/" element={<HomeSection />} />

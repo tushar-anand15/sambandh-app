@@ -1,4 +1,274 @@
 /* ---------------------------------------------------------------------------
+   The masthead.
+
+   A newspaper nameplate at rest; a slim sticky bar once the reader scrolls,
+   after the New Yorker, whose stacked nav is 7rem at rest and 3.5rem fixed.
+   The nameplate collapses, the section bar survives.
+
+   Everything that collapses does so through max-height rather than `display`,
+   so the change animates instead of jumping. `display: none` cannot be
+   transitioned, and a header that snaps shut mid-scroll reads as a bug.
+   --------------------------------------------------------------------------- */
+
+.site {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--surface);
+  border-bottom: 1px solid var(--ink);
+}
+
+.hdr {
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--s5);
+}
+
+/* The utility strip: the only thing above the nameplate, and the first thing
+   to go on scroll. */
+.utility {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 34px;
+  max-height: 34px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--rule);
+  transition: max-height 0.28s ease, height 0.28s ease;
+}
+
+.site.isStuck .utility {
+  height: 0;
+  max-height: 0;
+  border-bottom-width: 0;
+}
+
+/* The banner is part of the nameplate, so it collapses with it on scroll and
+   needs no rule of its own. Drawn on the home route only; another unit fills
+   it. */
+.hero {
+  margin: 0 0 var(--s5);
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 6.4 / 1;
+}
+
+/* The nameplate collapses on scroll. Height, not display, so it animates. */
+.nameplate {
+  text-align: center;
+  padding: var(--s5) 0 var(--s4);
+  /* Well clear of the tallest the nameplate gets (banner, name, strapline):
+     max-height needs a concrete value to transition from. */
+  max-height: 640px;
+  overflow: hidden;
+  transition: max-height 0.28s ease, padding 0.28s ease, opacity 0.18s ease;
+}
+
+.site.isStuck .nameplate {
+  max-height: 0;
+  padding: 0;
+  opacity: 0;
+}
+
+@media (max-width: 720px) {
+  .hero {
+    aspect-ratio: 3.4 / 1;
+  }
+}
+
+/* The nameplate is one link carrying two names, so a click anywhere on either
+   goes home. */
+.name {
+  display: block;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+/* --t9 is the largest step the scale has (52px at its ceiling). The design
+   asks for 64px; a seventh size is a bug, so the nameplate takes the top of
+   the scale rather than inventing one. */
+.nameEn {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: var(--t9);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+}
+
+/* The same name in the language of the state the site covers -- content, and
+   the second-language line an Indian masthead carries as a matter of course.
+   Set between the wordmark and the strapline in size as well as in position.
+
+   Neither Archivo nor Barlow covers Malayalam, so the stack names Noto Sans
+   Malayalam before the generic -- the same fallback `.prose-chat` uses in
+   index.css for the assistant's Malayalam answers. Nothing is fetched: it
+   resolves to a locally installed face or to the platform's own, and which
+   Malayalam face should pair with the text font is still open in the plan. */
+.nameMal {
+  display: block;
+  font-family: var(--font-sans), "Noto Sans Malayalam", sans-serif;
+  font-size: var(--t5);
+  line-height: var(--lh-snug);
+  letter-spacing: 0;
+  color: var(--ink-2);
+  margin: var(--s2) 0 0;
+}
+
+/* The strapline is the nameplate's motto: about a fifth its size, tracked and
+   centred, the proportion a masthead uses. */
+.expansion {
+  display: block;
+  margin: var(--s4) auto 0;
+  max-width: 62ch;
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: 1.75;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* SAMBANDH is an acronym, so the eight letters that spell it are the ones set
+   in ink. Italic markup, upright type: <i> is the semantic hook, not a slant. */
+.expansion i {
+  font-style: normal;
+  color: var(--ink);
+}
+
+/* The section bar. Centred at rest; at the left, beside the small wordmark,
+   once the nameplate is gone. */
+.sectionbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s6);
+  height: 50px;
+  border-top: 1px solid var(--rule);
+  flex-wrap: wrap;
+  transition: height 0.28s ease;
+}
+
+.site.isStuck .sectionbar {
+  justify-content: flex-start;
+  border-top: 0;
+  height: 54px;
+}
+
+.smallmark {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  letter-spacing: var(--track-head);
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-right: auto;
+  white-space: nowrap;
+  /* Sized to nothing rather than removed, so the row does not reflow in a
+     single frame when the header sticks. */
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-width 0.28s ease, opacity 0.18s ease;
+}
+
+.site.isStuck .smallmark {
+  max-width: 24ch;
+  opacity: 1;
+}
+
+.nav {
+  display: flex;
+  gap: var(--s6);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.tab {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  letter-spacing: var(--track-head);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--accent);
+}
+
+.tabActive {
+  color: var(--ink);
+}
+
+/* The theme control. Two instances, one in the utility strip and one in the
+   sticky bar; both report what they will switch you to. */
+.tg {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--ink-3);
+  border: 1px solid var(--rule-2);
+  padding: var(--s1) var(--s3);
+  cursor: pointer;
+}
+
+.tg:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.tgInBar {
+  margin-left: var(--s6);
+  max-width: 0;
+  padding-inline: 0;
+  border-left-width: 0;
+  border-right-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-width 0.28s ease, opacity 0.18s ease;
+}
+
+.site.isStuck .tgInBar {
+  max-width: 16ch;
+  padding-inline: var(--s3);
+  border-left-width: 1px;
+  border-right-width: 1px;
+  opacity: 1;
+}
+
+/* Focus must stay visible through every one of the collapses above: a control
+   clipped to zero width cannot be reached by tab, so the sticky-bar toggle and
+   the wordmark open up when focus lands inside them. */
+.tgInBar:focus-visible {
+  max-width: 16ch;
+  padding-inline: var(--s3);
+  border-left-width: 1px;
+  border-right-width: 1px;
+  opacity: 1;
+}
+
+.site :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .utility,
+  .nameplate,
+  .sectionbar,
+  .smallmark,
+  .tgInBar {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    The site footer.
 
    Ruled off rather than boxed, and set at --t2: it carries attribution and a

@@ -1,16 +1,14 @@
 import { NavLink } from "react-router-dom";
 
+import styles from "./shell.module.css";
+
 /**
- * Section navigation, and the only sticky element on the site.
+ * Section navigation. It lives inside the masthead's section bar and is the
+ * one part of the header that survives the collapse — the nameplate is worth
+ * seeing on arrival, the nav is worth having at every scroll position.
  *
- * One sticky bar is a wayfinding aid; two are a shrinking window. The masthead
- * scrolls away deliberately so that on a phone the reader keeps most of the
- * viewport for the table they came to read.
- *
- * The destinations are declared here; the routes that answer them land in
- * Unit 6. A tab pointing at a route that does not exist yet is a dead link for
- * one unit, which is preferable to the tab bar being rewritten once routing
- * arrives.
+ * `end` on Home keeps it from matching every path, which is the failure mode
+ * where two tabs read as current at once.
  */
 
 const TABS = [
@@ -23,21 +21,19 @@ const TABS = [
 
 export default function TabBar() {
   return (
-    <nav className="tabbar" aria-label="Sections">
-      <div className="shell-container tabbar-inner">
-        {TABS.map((tab) => (
-          <NavLink
-            key={tab.to}
-            to={tab.to}
-            end={tab.to === "/"}
-            className={({ isActive }) =>
-              isActive ? "tab tab-active" : "tab"
-            }
-          >
-            {tab.label}
-          </NavLink>
-        ))}
-      </div>
+    <nav className={styles.nav} aria-label="Sections">
+      {TABS.map((tab) => (
+        <NavLink
+          key={tab.to}
+          to={tab.to}
+          end={tab.to === "/"}
+          className={({ isActive }) =>
+            isActive ? `${styles.tab} ${styles.tabActive}` : styles.tab
+          }
+        >
+          {tab.label}
+        </NavLink>
+      ))}
     </nav>
   );
 }
