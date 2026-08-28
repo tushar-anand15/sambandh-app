@@ -1,25 +1,89 @@
 /**
  * The home page, and the one thing on it that can go quietly wrong.
  *
- * The prose is checked by reading, not by a test. What a test can hold is the
- * coverage table: it is the only place on the page where a number appears, and
- * a number typed into a page stays right until the next rebuild and then stays
- * wrong without saying so. The test that matters here is the one that changes a
- * fixture count and expects the rendered figure to move with it.
+ * The prose is GS's and is checked by reading, not by a test — except where a
+ * typo was fixed or a paragraph was nearly split, both of which a future edit
+ * could undo without anyone noticing. Those are pinned here.
+ *
+ * What the rest of the file holds is the Amboori example. It is the only place
+ * on the page where a figure appears, it states figures the finances and
+ * meetings sections state again in their own tables, and a figure typed into a
+ * page stays right until the next database build and then stays wrong with the
+ * same confidence. So the tests that matter are the ones that move a fixture
+ * and expect the sentence to move with it, and the ones that check the page
+ * says nothing rather than half a sentence when the endpoints fail.
  */
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import HomeSection from "../HomeSection";
 import SiteFooter from "@/components/shell/SiteFooter";
-import { bodies, districts, financialYears, provenance } from "@/test/handlers";
-import { resetBodiesCache } from "@/hooks/useBodies";
+import { provenance } from "@/test/handlers";
 import { server } from "@/test/setup";
 
+const AMBOORI = "G01014";
+const YEAR = "2023-2024";
 
+/** Amboori 2023-24 as the live API returns it. */
+const financesPayload = {
+  lb_code: AMBOORI,
+  year_label: YEAR,
+  is_complete: true,
+  available: true,
+  reason_code: null,
+  projects: 151,
+  formulation: 268282526,
+  expense: 50856455,
+  expense_pct: 19,
+  project_rows: [],
+  provenance,
+};
+
+/** 38 meetings, 32 of which published minutes. */
+function meetingRows(withMinutes: number, total: number) {
+  return Array.from({ length: total }, (_, i) => ({
+    meeting_id: 1000 + i,
+    meeting_date: "2023-04-22",
+    meeting_no: String(i + 1),
+    meeting_type: "ഭരണസമിതി യോഗം",
+    meeting_nature: "സാധാരണ യോഗം",
+    venue: null,
+    category_code: null,
+    documents: i < withMinutes ? ["dr", "minutes"] : [],
+  }));
+}
+
+function meetingsPayload(over: Record<string, unknown> = {}) {
+  return {
+    lb_code: AMBOORI,
+    year_label: YEAR,
+    is_complete: true,
+    available: true,
+    reason_code: null,
+    meetings: 38,
+    governing_body: 38,
+    standing_committee: 0,
+    ordinary: 25,
+    special: 13,
+    first_meeting: "2023-04-22",
+    last_meeting: "2024-03-30",
+    meeting_rows: meetingRows(32, 38),
+    scope_note: "",
+    provenance,
+    ...over,
+  };
+}
+
+/** The two endpoints the example reads. Amboori is outside the fixture slice. */
+function amboori(finances: unknown = financesPayload, meetings: unknown = meetingsPayload()) {
+  server.use(
+    http.get(`*/api/finances/${AMBOORI}/${YEAR}`, () => HttpResponse.json(finances)),
+    http.get(`*/api/meetings/${AMBOORI}/${YEAR}`, () => HttpResponse.json(meetings)),
+  );
+}
 
 function renderHome() {
   return render(
@@ -29,48 +93,50 @@ function renderHome() {
   );
 }
 
-/** The row for one section of the coverage table. */
-async function row(section: string) {
-  const cell = await screen.findByRole("rowheader", { name: section });
-  return cell.closest("tr")!;
-}
-
-beforeEach(() => {
-  resetBodiesCache();
-});
-
-describe("the argument", () => {
-  it("opens on the scale figures and the money", async () => {
+describe("GS's copy", () => {
+  it("keeps the opening paragraph whole", () => {
+    amboori();
     renderHome();
 
-    expect(screen.getByText(/about 260,000 panchayats/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/more than 800 million rural citizens/),
-    ).toBeInTheDocument();
-    expect(screen.getByText("₹2.36 lakh crore")).toBeInTheDocument();
-    // The figure carries its source and its period, not just its size.
-    expect(
-      screen.getByText(/15th Finance Commission \(Report of the Fifteenth/),
-    ).toBeInTheDocument();
+    // The allocation, the panchayat count and the population are one sentence
+    // run, in one element. An earlier draft split them to make a display
+    // figure out of ₹2.36 lakh crore, which is a number with a source in the
+    // sentence it came from and no business being a poster.
+    const opening = screen.getByText(/India devolves a substantial share/);
+    expect(opening.tagName).toBe("P");
+    expect(opening).toHaveTextContent("₹2.36 lakh crore");
+    expect(opening).toHaveTextContent("Roughly 260,000 panchayats");
+    expect(opening).toHaveTextContent("more than 800 million people");
   });
 
-  it("states the frame the rest of the site rests on", async () => {
+  it("keeps the two fixed typos fixed", () => {
+    amboori();
     renderHome();
 
-    expect(
-      screen.getByText(
-        /Before a rupee is spent, the law requires citizens and their elected/,
-      ),
-    ).toBeInTheDocument();
+    const portals = screen.getByText(/have always been publicly accessible/);
+    expect(portals).toHaveTextContent("not easy to decipher");
+    expect(document.body.textContent).not.toMatch(/publically/);
+    expect(document.body.textContent).not.toMatch(/not easy decipher/);
   });
 
-  it("names both portals and says they name a panchayat differently", async () => {
+  it("runs his four sections in his order", () => {
+    amboori();
     renderHome();
 
-    // The portals are named, and each name is the link. A bare URL in brackets
-    // is not something a reader clicks.
-    // Each portal is linked twice: once in this paragraph and again in the
-    // source list further down. Both should point at the portal.
+    const headings = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((h) => h.textContent);
+    expect(headings).toEqual([
+      "How do we do it",
+      "What happens if we join the records?",
+      "Who can use it?",
+    ]);
+  });
+
+  it("links both portals by name", () => {
+    amboori();
+    renderHome();
+
     for (const [name, href] of [
       ["Sulekha", "https://plan.lsgkerala.gov.in"],
       ["Sakarma", "https://meeting.lsgkerala.gov.in"],
@@ -80,92 +146,117 @@ describe("the argument", () => {
       for (const link of links) expect(link).toHaveAttribute("href", href);
     }
   });
-
-  it("ends on the citizens, not on prospects", async () => {
-    renderHome();
-
-    const paragraphs = screen.getByRole("heading", {
-      name: "Who this is for",
-    }).parentElement!;
-    expect(paragraphs).toHaveTextContent(/about 25 million residents/);
-    expect(paragraphs).toHaveTextContent(/theirs to attend/);
-  });
 });
 
-describe("the coverage table", () => {
-  it("renders one row per section, counted from the API", async () => {
+describe("the Amboori example", () => {
+  it("states the figures the two endpoints returned", async () => {
+    amboori();
     renderHome();
 
-    const finances = await row("Finances");
-    // Every body in the fixture slice has a plan record.
-    expect(within(finances).getByText("7 of 7")).toBeInTheDocument();
-    expect(within(finances).getByText("100.0%")).toBeInTheDocument();
+    const paragraph = await screen.findByText(/formulated 151 projects/);
+    expect(paragraph).toHaveTextContent("₹26.83 crore");
+    expect(paragraph).toHaveTextContent("spent ₹5.09 crore");
+    expect(paragraph).toHaveTextContent("19.0 per cent of the planned amount");
+    expect(paragraph).toHaveTextContent("council sat 38 times");
+    expect(paragraph).toHaveTextContent("25 ordinary meetings and 13 special ones");
+    // Counted from the rows, not read off a field: the payload has no count of
+    // meetings with minutes, and the sections count them the same way.
+    expect(paragraph).toHaveTextContent("published minutes for 32 of them");
+  });
 
-    // Panoor has no Sakarma record; Mattannur has no published result.
-    expect(within(await row("Meetings")).getByText("6 of 7")).toBeInTheDocument();
-    expect(within(await row("Elections")).getByText("6 of 7")).toBeInTheDocument();
+  it("moves when the record moves", async () => {
+    // The point of the whole component. The panchayat spends a third of a
+    // smaller plan and its council meets less; every figure in the section,
+    // the rail included, has to follow.
+    amboori(
+      { ...financesPayload, projects: 96, formulation: 100000000, expense: 33000000, expense_pct: 33 },
+      meetingsPayload({
+        meetings: 20,
+        ordinary: 15,
+        special: 5,
+        meeting_rows: meetingRows(11, 20),
+      }),
+    );
+    renderHome();
 
-    // Boundaries count against the map's own inventory, which is the thing
-    // that knows which bodies have geometry.
+    const paragraph = await screen.findByText(/formulated 96 projects/);
+    expect(paragraph).toHaveTextContent("₹10.00 crore");
+    expect(paragraph).toHaveTextContent("spent ₹3.30 crore");
+    expect(paragraph).toHaveTextContent("33.0 per cent");
+    expect(paragraph).toHaveTextContent("council sat 20 times");
+    expect(paragraph).toHaveTextContent("published minutes for 11 of them");
+
+    // "a fifth" is GS's phrase for 19%. At 33% it has to become his other one,
+    // or the sentence is a hardcoded figure wearing a disguise.
     expect(
-      within(await row("Boundaries")).getByText("1,033 of 1,238"),
+      screen.getByText(/a council that met 20 times spent a third of its plan/),
+    ).toBeInTheDocument();
+
+    const rail = screen.getByText(/this is the half Sakarma holds/);
+    expect(rail).toHaveTextContent("20");
+    expect(rail).toHaveTextContent("15 ordinary and 5 special");
+    expect(rail).toHaveTextContent("minutes published for 11");
+  });
+
+  it("says a fifth where the share is a fifth", async () => {
+    amboori();
+    renderHome();
+
+    expect(
+      await screen.findByText(/a council that met 38 times spent a fifth of its plan/),
     ).toBeInTheDocument();
   });
 
-  it("moves when the fixture moves", async () => {
-    // The point of the whole component. Three bodies lose their meeting record;
-    // the rendered figure has to follow, or the table is decoration.
-    const thinner = bodies.map((body, i) =>
-      i < 3 ? { ...body, has_meetings: false } : body,
-    );
+  it("gives the number where no fraction is close enough to name", async () => {
+    amboori({ ...financesPayload, expense_pct: 41.2 });
+    renderHome();
 
+    expect(
+      await screen.findByText(/spent 41.2 per cent of its plan/),
+    ).toBeInTheDocument();
+  });
+
+  it("shows nothing rather than half a sentence while it loads", () => {
+    amboori();
+    renderHome();
+
+    expect(screen.getByText(/Reading Amboori/)).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByText(/formulated 151 projects/)).not.toBeInTheDocument();
+    // No rail either: a rail drawn from a payload the prose did not get would
+    // be the contradiction the whole unit exists to prevent.
+    expect(screen.queryByText(/this is the half Sakarma holds/)).not.toBeInTheDocument();
+  });
+
+  it("says the figures did not load rather than stating a gap", async () => {
     server.use(
-      http.get("*/api/bodies", () =>
-        HttpResponse.json({
-          bodies: thinner,
-          count: thinner.length,
-          districts,
-          financial_years: financialYears,
-          cycles: [2010, 2015, 2020, 2025],
-          provenance,
-        }),
-      ),
+      http.get(`*/api/finances/${AMBOORI}/${YEAR}`, () => HttpResponse.error()),
+      http.get(`*/api/meetings/${AMBOORI}/${YEAR}`, () => HttpResponse.error()),
     );
-
-    renderHome();
-
-    expect(within(await row("Meetings")).getByText("3 of 7")).toBeInTheDocument();
-    expect(within(await row("Meetings")).getByText("42.9%")).toBeInTheDocument();
-  });
-
-  it("states the periods from the payload rather than from memory", async () => {
-    renderHome();
-
-    const period = await screen.findByText(/Finances run from/);
-    expect(period).toHaveTextContent("2012–13 to 2025–26");
-    expect(period).toHaveTextContent("2010, 2015, 2020, 2025");
-  });
-
-  it("carries the build the figures came from", async () => {
-    renderHome();
-
-    expect(await screen.findByTestId("source-line")).toHaveTextContent(
-      "Gram Sambandh master database · Built 13 August 2026",
-    );
-  });
-
-  it("says the figures did not load rather than showing zeroes", async () => {
-    server.use(
-      http.get("*/api/bodies", () => HttpResponse.error()),
-      http.get("*/api/maps", () => HttpResponse.error()),
-    );
-
     renderHome();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "The coverage figures did not load",
+      "Amboori’s figures did not load",
     );
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByText(/formulated 151 projects/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/this is the half Sakarma holds/)).not.toBeInTheDocument();
+  });
+
+  it("withholds the example when only one of the two portals answers", async () => {
+    amboori(financesPayload, {
+      lb_code: AMBOORI,
+      year_label: YEAR,
+      is_complete: true,
+      available: false,
+      reason_code: "no_record_for_year",
+      reason: "Sakarma publishes no meetings for 2023-2024.",
+      provenance,
+    });
+    renderHome();
+
+    // Half the paragraph is Sulekha's and half is Sakarma's. One half is not a
+    // sentence GS wrote.
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.queryByText(/formulated 151 projects/)).not.toBeInTheDocument();
   });
 });
 
@@ -204,14 +295,16 @@ describe("attribution", () => {
     ).not.toBeInTheDocument();
   });
 
-  // The ODbL attribution sits with the sources on the home page rather than in
-  // the footer, where a reader deciding whether to trust a boundary will see it.
-  // The layer cards carry it a second time, next to each download.
-  it("carries the OpenStreetMap attribution the licence requires", async () => {
+  // GS's copy carries no licence line, and this page held the site's only copy
+  // of it. It stays, in the colophon under his last section: the ODbL requires
+  // the attribution to travel with the boundary data, and a rewrite of the
+  // prose around it is not a reason to drop it.
+  it("keeps the OpenStreetMap attribution the licence requires", () => {
+    amboori();
     renderHome();
 
-    expect(
-      await screen.findByText(/OpenStreetMap contributors/),
-    ).toBeInTheDocument();
+    const colophon = screen.getByText(/OpenStreetMap contributors/);
+    expect(colophon).toHaveTextContent("Open Database License 1.0");
+    expect(colophon).toHaveTextContent("opendatakerala");
   });
 });

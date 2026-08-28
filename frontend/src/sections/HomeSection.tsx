@@ -1,134 +1,188 @@
 /**
  * The home page.
  *
- * The argument is the one in `docs/fellowship_proposal.md`, in the order that
- * document makes it: the scale of what panchayats spend, then the law that
- * requires the spending to be planned in the open, then the fact that Kerala
- * publishes both records and has never joined them, then who is left reading
- * neither.
+ * The copy is GS's own, from pages 3-6 of the review deck, used verbatim. Two
+ * typos are fixed and nothing else: "publically" reads "publicly", and "not
+ * easy decipher" reads "not easy to decipher". His opening paragraph is whole
+ * — an earlier draft split it across a display figure, which manufactured a
+ * poster number out of a sentence that already had a source in it.
  *
- * Every figure below is either sourced in the sentence that carries it or
- * computed by `CoverageTable` from `/api/bodies` and `/api/maps`. The counts in
- * prose are rounded, as `docs/instructions.md` section 8 requires; the exact
- * ones are in the table and in the CSV downloads each section offers.
+ * Four blocks, in his order: the title and lede, how the records are made, what
+ * joining them shows, and who the joined record answers to. Each block carries
+ * a rail: an aside, ruled rather than boxed, holding the record the running
+ * text is not holding. On the join block that is the Sakarma half, and it comes
+ * from the same endpoint the meetings section reads.
+ *
+ * The one thing here that is not GS's writing is the colophon at the foot. The
+ * ODbL requires the boundary attribution to travel with the data, and this page
+ * carried the site's only copy of it before the rewrite.
  */
 
 import { Link } from "react-router-dom";
-import CoverageTable from "@/components/home/CoverageTable";
+
+import AmbooriParagraph from "@/components/home/AmbooriParagraph";
 
 import styles from "@/components/home/home.module.css";
 
 export default function HomeSection() {
   return (
     <div className="shell-container section-page">
-      <h1>Kerala local government spending, and the meetings behind it</h1>
-      <p className="lede">
-        Projects, meetings and election results for the same panchayat, in one
-        place. Every figure on this site can be downloaded.
-      </p>
+      <div className={styles.block}>
+        <h1>What Kerala&rsquo;s local governments plan, and what they spend</h1>
+        <p className="lede">
+          Understanding how Kerala&rsquo;s local governments work through data.
+        </p>
 
-      <p>
-        India has about 260,000 panchayats. They are the institutions through
-        which more than 800 million rural citizens get essential public goods.
-      </p>
+        <p className={styles.prose}>
+          India devolves a substantial share of its rural development spending to
+          elected panchayats. The Fifteenth Finance Commission allocated
+          &#8377;2.36 lakh crore to rural local bodies for 2021&ndash;26 (Report
+          of the Fifteenth Finance Commission, 2021). Roughly 260,000 panchayats
+          administer it for more than 800 million people.
+        </p>
+        <p className={styles.prose}>How each body decides its share is set by statute.</p>
+        <p className={styles.prose}>
+          Kerala law requires a local government to formulate its annual plan in
+          open assembly, adopt each project by resolution of the elected council,
+          and spend only against what was adopted.
+        </p>
+        <p className={styles.prose}>The sequence is a precondition of the expenditure.</p>
+        <p className={styles.prose}>
+          In this website we deconstruct this sequence. We present development
+          project accounts, local council meeting records and election results
+          for each of Kerala&rsquo;s 1,238 local governments and display them in
+          an easy to read and digest format. Every table on this site can be
+          downloaded.
+        </p>
 
-      <p className={styles.figure} data-numeric>
-        &#8377;2.36 lakh crore
-      </p>
-      <p className={styles.figureCaption}>
-        allocated to rural local bodies for 2021&ndash;26 by the 15th Finance
-        Commission (Report of the Fifteenth Finance Commission, 2021).
-      </p>
+        <aside className={styles.rail}>
+          <span className={styles.railKey}>The sequence Kerala law requires</span>
+          <ol className={styles.railSteps}>
+            <li>Formulate the annual plan in open assembly.</li>
+            <li>Adopt each project by resolution of the elected council.</li>
+            <li>Spend only against what was adopted.</li>
+          </ol>
+        </aside>
+      </div>
 
-      <h2>The plan comes before the money</h2>
-      <p>
-        Before a rupee is spent, the law requires citizens and their elected
-        representatives to meet in open assembly and plan the work together.
-        The assembly leaves a record. The spending leaves a record. Reading one
-        against the other is how anyone outside the room finds out whether the
-        two matched.
-      </p>
+      <div className={styles.block}>
+        <h2>How do we do it</h2>
+        <ul className={styles.points}>
+          <li>
+            Kerala records its development plan proposals and local council
+            meetings in separate web portals.
+          </li>
+          <li>
+            <a href="https://plan.lsgkerala.gov.in" target="_blank" rel="noopener noreferrer">
+              Sulekha
+            </a>
+            , the plan monitoring portal, holds what each body formulated and
+            what it paid, 3.6 million projects since 2012&ndash;13.{" "}
+            <a
+              href="https://meeting.lsgkerala.gov.in"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Sakarma
+            </a>
+            , the meeting portal, holds when each council sat and what it
+            minuted, 443,000 meetings since 2015&ndash;16.
+          </li>
+          <li>
+            Both Sulekha and Sakarma have always been publicly accessible. But
+            they are not easy to decipher. Besides this, both the Sulekha and
+            Sakarma systems contain information about the same local
+            governments, but neither refers to the other in a meaningful manner.
+          </li>
+        </ul>
 
-      <h2>Kerala publishes both halves</h2>
-      <p>
+        <aside className={styles.rail}>
+          <span className={styles.railKey}>What the two portals hold</span>
+          <ul className={styles.railStats}>
+            <li>
+              <span className={styles.railFigure} data-numeric>
+                3.6M
+              </span>
+              Sulekha projects, since 2012&ndash;13
+            </li>
+            <li>
+              <span className={styles.railFigure} data-numeric>
+                443K
+              </span>
+              Sakarma meetings, since 2015&ndash;16
+            </li>
+            <li>
+              <span className={styles.railFigure} data-numeric>
+                1,238
+              </span>
+              local governments
+            </li>
+          </ul>
+        </aside>
+      </div>
+
+      <div className={styles.block}>
+        <h2>What happens if we join the records?</h2>
+        <p className={styles.prose}>
+          Let&rsquo;s take Amboori Grama Panchayat&rsquo;s example. A local body
+          located in Thiruvananthapuram district.
+        </p>
+        <AmbooriParagraph />
+      </div>
+
+      <div className={styles.block}>
+        <h2>Who can use it?</h2>
+        <ul className={styles.points}>
+          <li>
+            The Kerala Institute of Local Administration trains the officials who
+            file these records, and the state local government department sets
+            the terms they file under. The Union Ministry of Panchayati Raj sets
+            the national reporting standards Kerala&rsquo;s portals answer to,
+            through eGramSwaraj and Meri Panchayat. For each of them the joined
+            record answers a question the portals separately cannot: how far a
+            body&rsquo;s spending follows the plan its council adopted.
+          </li>
+          <li>
+            Kerala&rsquo;s grama panchayats have about 25 million residents. The
+            assembly that adopts the plan is open to all of them.
+          </li>
+        </ul>
+
+        <aside className={styles.rail}>
+          <span className={styles.railKey}>Who the records are filed by</span>
+          Officials trained by KILA, under terms set by the state local
+          government department, answering to national standards set by the Union
+          Ministry of Panchayati Raj.
+        </aside>
+      </div>
+
+      <p className={styles.colophon}>
+        Projects and payments from{" "}
         <a href="https://plan.lsgkerala.gov.in" target="_blank" rel="noopener noreferrer">
           Sulekha
-        </a>{" "}
-        holds 3.6 million projects, from
-        2012&ndash;13 onward.{" "}
+        </a>
+        , meetings from{" "}
         <a href="https://meeting.lsgkerala.gov.in" target="_blank" rel="noopener noreferrer">
           Sakarma
+        </a>
+        , results from the{" "}
+        <a href="https://www.sec.kerala.gov.in" target="_blank" rel="noopener noreferrer">
+          Kerala State Election Commission
+        </a>
+        , ward boundaries for 2025 from{" "}
+        <a href="https://wardmap.ksmart.live" target="_blank" rel="noopener noreferrer">
+          KSMART
+        </a>
+        . Boundary maps for 2015 and 2020 are &copy; OpenStreetMap contributors,
+        redistributed by{" "}
+        <a
+          href="https://github.com/opendatakerala/lsg-kerala-data"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          opendatakerala
         </a>{" "}
-        holds 443,000
-        meetings, the earliest from 2015&ndash;16. The two portals name the same
-        panchayat in two different ways, so until now the projects and the
-        meetings could only be read one portal at a time. Here they sit under
-        one name per local body.
-      </p>
-
-      <h2>What this site holds</h2>
-      <CoverageTable />
-
-      <h2>Who this is for</h2>
-      <p>
-        State local government departments set the terms of devolution and
-        monitor whether they are met, and the Kerala Institute of Local
-        Administration trains the officials who carry them out. Both work from
-        the portals this site reads.
-      </p>
-      <p>
-        The Union Ministry of Panchayati Raj coordinates the eGramSwaraj and
-        Meri Panchayat platforms and sets the national reporting standards
-        Kerala&rsquo;s own portals answer to.
-      </p>
-      <p>
-        Kerala&rsquo;s grama panchayats have about 25 million residents. The
-        assembly that plans the spending is theirs to attend.
-      </p>
-
-      <h2>Where the records come from</h2>
-      <p>Five sources, all of them public.</p>
-      <ul className={styles.sources}>
-        <li>
-          <a href="https://plan.lsgkerala.gov.in" target="_blank" rel="noopener noreferrer">
-            Sulekha
-          </a>
-          , the Kerala LSGD plan monitoring portal: the projects a local body
-          planned and what it spent
-        </li>
-        <li>
-          <a href="https://meeting.lsgkerala.gov.in" target="_blank" rel="noopener noreferrer">
-            Sakarma
-          </a>
-          , the Kerala LSGD meeting portal: when each council met and what it
-          wrote down
-        </li>
-        <li>
-          <a href="https://www.sec.kerala.gov.in" target="_blank" rel="noopener noreferrer">
-            Kerala State Election Commission
-          </a>
-          : candidates and results for four elections
-        </li>
-        <li>
-          <a
-            href="https://github.com/opendatakerala/lsg-kerala-data"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            opendatakerala
-          </a>
-          : local body boundaries for 2015 and 2020
-        </li>
-        <li>
-          <a href="https://wardmap.ksmart.live" target="_blank" rel="noopener noreferrer">
-            KSMART ward maps
-          </a>
-          , Government of Kerala: ward boundaries for 2025
-        </li>
-      </ul>
-      <p>
-        Boundary maps for 2015 and 2020 are &copy; OpenStreetMap contributors,
-        redistributed by opendatakerala under the Open Database License 1.0.{" "}
+        under the Open Database License 1.0.{" "}
         <Link to="/method">How the data was built</Link>.
       </p>
     </div>

@@ -105,3 +105,144 @@
   border-left: 2px solid var(--rule);
   padding-left: var(--s3);
 }
+
+/* ---------------------------------------------------------------------------
+   The rail.
+
+   In the prototype this was a margin note. The page is a single column, so it
+   sits in the flow instead, set apart by a rule down its left edge rather than
+   by position. It carries the record the running text is not carrying: on the
+   join section, the Sakarma half of a paragraph whose text column is Sulekha's.
+   --------------------------------------------------------------------------- */
+
+.block {
+  padding-block: var(--s7) 0;
+}
+
+.block:first-of-type {
+  padding-block: 0;
+}
+
+.block + .block {
+  border-top: 1px solid var(--rule);
+  margin-block: var(--s7) 0;
+}
+
+.rail {
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  border-left: 2px solid var(--rule-2);
+  padding: var(--s2) 0 var(--s2) var(--s5);
+  margin-block: var(--s6) 0;
+  max-width: var(--measure);
+}
+
+/* The join rail is the one carrying the other portal's record, so it is the
+   one the accent marks. */
+.railJoin {
+  border-left-color: var(--accent);
+}
+
+.railKey {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-block: 0 var(--s2);
+}
+
+.railFigure {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--t7);
+  line-height: var(--lh-tight);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin-block: 0 var(--s2);
+}
+
+/* A stack, not a row. Three figures side by side would be a second column. */
+.railStats {
+  list-style: none;
+  margin-block: var(--s4) 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.railStats .railFigure {
+  margin-block: 0 var(--s1);
+}
+
+.railSteps {
+  margin-block: 0;
+  padding-inline-start: var(--s5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+/* Running lists in the body. The base list styles are for source lines; these
+   are paragraphs that happen to be numbered. */
+.points {
+  margin-block: 0;
+  padding-inline-start: var(--s5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  max-width: var(--measure);
+  color: var(--ink-2);
+}
+
+.prose {
+  max-width: var(--measure);
+}
+
+/* ---------------------------------------------------------------------------
+   The spend bar. Same construction as the meetings split bar: a 100-unit
+   viewBox and no pixel dimension, so the drawing carries the ratio and the
+   stylesheet carries the size.
+   --------------------------------------------------------------------------- */
+
+.bar {
+  display: block;
+  width: 100%;
+  max-width: var(--measure);
+  margin-block: var(--s4) 0;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+}
+
+.barFill {
+  fill: var(--ink-2);
+}
+
+.barScale {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s4);
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  max-width: var(--measure);
+  margin-block: var(--s2) 0;
+}
+
+/* The colophon. Not GS's copy: the licence line the ODbL requires, kept on the
+   page it was removed from. */
+.colophon {
+  border-top: 1px solid var(--rule);
+  margin-block: var(--s7) 0;
+  padding-block: var(--s4) 0;
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-3);
+  max-width: var(--measure);
+}
