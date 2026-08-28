@@ -26,7 +26,23 @@ import {
   useFinancesSeries,
   useFinancesYear,
 } from "@/components/finances/useFinances";
-import type { ProjectRow } from "@/components/finances/types";
+import type { BodyBlock, ProjectRow } from "@/components/finances/types";
+import styles from "@/components/finances/finances.module.css";
+
+/**
+ * The page's own headline, in the client's construction: "What X planned, and
+ * what it spent". Before a body is chosen there is no X, and the sentence is
+ * written about a local body rather than left as the section's name.
+ */
+function headline(body: BodyBlock | undefined): string {
+  return `What ${body ? body.lb_name_en : "a local body"} planned, and what it spent`;
+}
+
+/** "Finances · Amboori Grama Panchayat · Thiruvananthapuram". */
+function eyebrow(body: BodyBlock | undefined): string {
+  if (!body) return "Finances";
+  return `Finances · ${body.lb_name_en} ${body.lb_type} · ${body.district_name}`;
+}
 
 export default function FinancesSection() {
   const params = useParams();
@@ -58,16 +74,19 @@ export default function FinancesSection() {
     previousRows = previous.data?.available ? (previous.data.project_rows ?? []) : [];
   }
 
+  const body = series.data?.body ?? year.data?.body;
+
   return (
     <div className="shell-container section-page">
-      <h1>Finances</h1>
+      <p className={styles.eyebrow}>{eyebrow(body)}</p>
+      <h1 className={styles.headline}>{headline(body)}</h1>
       <p className="lede">
-        What a local body planned and what it spent, year by year, from the Sulekha
-        plan monitoring portal.
+        The projects the council adopted, and the amount paid against each of
+        them, year by year, from the Sulekha plan monitoring portal.
       </p>
       <BodySelector section="finances" />
 
-      <div className="flex flex-col gap-s7">
+      <div className="mt-s7 flex flex-col gap-s7">
         {lbCode === null ? (
           <p className="notice">
             Choose a district, a local body and a financial year to see its

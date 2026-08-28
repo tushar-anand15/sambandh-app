@@ -48,6 +48,7 @@ import {
   type ProjectFilter,
   type SortKey,
 } from "./order";
+import styles from "./finances.module.css";
 import type { ProjectRow, YearPayload } from "./types";
 import { track } from "@/lib/telemetry";
 
@@ -69,7 +70,7 @@ function DocumentCell({ row, onOpen }: { row: ProjectRow; onOpen: () => void }) 
     return (
       <button
         type="button"
-        className="text-accent underline cursor-pointer"
+        className={styles.openButton}
         onClick={(event) => {
           event.stopPropagation();
           onOpen();
@@ -79,7 +80,7 @@ function DocumentCell({ row, onOpen }: { row: ProjectRow; onOpen: () => void }) 
       </button>
     );
   }
-  return <span className="text-ink-3">No document available</span>;
+  return <span className={styles.absent}>No document available</span>;
 }
 
 interface SortableHeaderProps {
@@ -107,11 +108,11 @@ function SortableHeader({
     <th
       scope="col"
       aria-sort={direction}
-      className={`label py-s2 ${align === "right" ? "text-right" : "text-left"}`}
+      className={align === "right" ? styles.num : undefined}
     >
       <button
         type="button"
-        className="label"
+        className={styles.sortButton}
         onClick={() => onSort(column)}
         data-testid={`sort-${column}`}
       >
@@ -171,7 +172,7 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
   if (all.length === 0) {
     return (
       <section aria-labelledby="projects-heading">
-        <h2 id="projects-heading">
+        <h2 className={styles.head} id="projects-heading">
           Projects, {name}, {year}
         </h2>
         <p className="notice">
@@ -189,7 +190,7 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
 
   return (
     <section aria-labelledby="projects-heading">
-      <h2 id="projects-heading">
+      <h2 className={styles.head} id="projects-heading">
         Projects, {name}, {year}
       </h2>
 
@@ -198,9 +199,9 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
         {payload.pdf_url_reason ? ` ${payload.pdf_url_reason}` : ""}
       </p>
 
-      <div className="flex flex-wrap items-end gap-s5">
-        <div className="flex flex-col gap-s2">
-          <label className="label" htmlFor="project-filter">
+      <div className={styles.controls}>
+        <div className="field">
+          <label className="field-label" htmlFor="project-filter">
             Show
           </label>
           <select
@@ -222,7 +223,7 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
           </select>
         </div>
 
-        <p>
+        <p className={styles.download}>
           <a
             href={csvHref(csv)}
             download={csvFilename(
@@ -253,8 +254,8 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
         </p>
       ) : (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-t3 leading-ui" data-testid="project-table">
+          <div className={styles.tableWrap}>
+            <table className={styles.table} data-testid="project-table">
               <caption className="sr-only">
                 Projects in {name}, {year}, with formulation and expense in rupees.
                 {arrangement.filter === "with-document"
@@ -266,7 +267,7 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
                 {count(rows.length)}.
               </caption>
               <thead>
-                <tr className="border-b border-rule-2">
+                <tr>
                   <SortableHeader
                     column="project_no"
                     align="left"
@@ -274,9 +275,7 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
                     direction={ariaSort(arrangement, "project_no")}
                     onSort={(column) => rearrange(toggle(arrangement, column))}
                   />
-                  <th scope="col" className="label py-s2 text-left">
-                    Project
-                  </th>
+                  <th scope="col">Project</th>
                   <SortableHeader
                     column="formulation"
                     align="right"
@@ -304,21 +303,19 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
                 {shown.map((row, index) => (
                   <tr
                     key={`${row.project_no}-${first + index}`}
-                    className="border-b border-rule"
+                    className={isOpenable(row) ? styles.rowOpenable : styles.row}
                     data-project-no={row.project_no ?? ""}
                     data-openable={String(isOpenable(row))}
                     onClick={() => openRow(row)}
                   >
-                    <td className="py-s2" data-numeric>
-                      {row.project_no}
-                    </td>
-                    <td className="py-s2">
+                    <td data-numeric>{row.project_no}</td>
+                    <td>
                       {isOpenable(row) ? (
                         // The row is clickable for a mouse; the button is what
                         // a keyboard and a screen reader reach it by.
                         <button
                           type="button"
-                          className="text-left text-accent underline"
+                          className={styles.nameButton}
                           onClick={(event) => {
                             event.stopPropagation();
                             openRow(row);
@@ -330,13 +327,13 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
                         row.project_name
                       )}
                     </td>
-                    <td className="py-s2 text-right" data-numeric>
+                    <td className={styles.num} data-numeric>
                       {exactRupees(row.formulation)}
                     </td>
-                    <td className="py-s2 text-right" data-numeric>
+                    <td className={styles.num} data-numeric>
                       {exactRupees(row.expense)}
                     </td>
-                    <td className="py-s2">
+                    <td>
                       <DocumentCell row={row} onOpen={() => openRow(row)} />
                     </td>
                   </tr>
@@ -346,25 +343,25 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
           </div>
 
           <nav
-            className="mt-s4 flex items-center gap-s4"
+            className={styles.pager}
             aria-label="Project table pages"
             data-testid="table-pages"
           >
             <button
               type="button"
-              className="label border border-rule px-s3 py-s2"
+              className={styles.pageButton}
               onClick={() => setPage((current) => Math.max(0, current - 1))}
               disabled={page === 0}
             >
               Previous
             </button>
-            <p className="text-t2 text-ink-2" data-testid="page-position">
+            <p className={styles.pagePosition} data-testid="page-position">
               Rows {count(first + 1)} to {count(first + shown.length)} of{" "}
               {count(rows.length)}
             </p>
             <button
               type="button"
-              className="label border border-rule px-s3 py-s2"
+              className={styles.pageButton}
               onClick={() => setPage((current) => Math.min(pages - 1, current + 1))}
               disabled={page >= pages - 1}
             >

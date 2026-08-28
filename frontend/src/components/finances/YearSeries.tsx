@@ -21,6 +21,7 @@
 import SourceLine from "@/components/shell/SourceLine";
 import { formatYearLabel } from "@/components/select/YearControl";
 import { bodyName, exactRupees, unitFor } from "./format";
+import styles from "./finances.module.css";
 import type { BodyBlock, Provenance, SeriesYear } from "./types";
 
 interface YearSeriesProps {
@@ -104,7 +105,13 @@ export default function YearSeries({ body, lbCode, years, provenance }: YearSeri
 
   return (
     <section aria-labelledby="year-series-heading">
-      <h2 id="year-series-heading">{title}</h2>
+      {/* A heading is set in capitals, and a sentence in capitals is a shout.
+          The heading names the section; the sentence that says which body,
+          which years and which unit sits under it as a caption. */}
+      <h2 className={styles.head} id="year-series-heading">
+        Formulation and expense by year
+      </h2>
+      <p className={styles.caption}>{title}</p>
 
       <svg
         data-chart
@@ -145,7 +152,7 @@ export default function YearSeries({ body, lbCode, years, provenance }: YearSeri
             key={`formulation-${points}`}
             points={points}
             fill="none"
-            className="stroke-accent"
+            className="stroke-ink"
             strokeWidth={2}
           />
         ))}
@@ -155,7 +162,7 @@ export default function YearSeries({ body, lbCode, years, provenance }: YearSeri
             key={`expense-${points}`}
             points={points}
             fill="none"
-            className="stroke-ink-2"
+            className="stroke-ink-3"
             strokeWidth={2}
             strokeDasharray="5 3"
           />
@@ -165,8 +172,8 @@ export default function YearSeries({ body, lbCode, years, provenance }: YearSeri
           <g key={year.year_label} data-year={year.year_label} data-has-data={String(year.has_data)}>
             {year.has_data ? (
               <>
-                <circle cx={x(index)} cy={y(year.formulation ?? 0)} r={3} className="fill-accent" />
-                <circle cx={x(index)} cy={y(year.expense ?? 0)} r={3} className="fill-ink-2" />
+                <circle cx={x(index)} cy={y(year.formulation ?? 0)} r={3} className="fill-ink" />
+                <circle cx={x(index)} cy={y(year.expense ?? 0)} r={3} className="fill-ink-3" />
               </>
             ) : (
               // A gap carries a tick of its own. An unmarked absence reads as
@@ -204,7 +211,7 @@ export default function YearSeries({ body, lbCode, years, provenance }: YearSeri
         />
       </svg>
 
-      <p className="text-t2 text-ink-2 font-sans">
+      <p className={styles.legend}>
         Solid line: formulation. Dashed line: expense. A break in a line is a year
         Sulekha holds no plan record for this body.
       </p>

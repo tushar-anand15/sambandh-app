@@ -54,8 +54,11 @@ export default function PdfDrawer({
 
   if (!open) return null;
 
+  // z-[60] puts the panel above the sticky masthead, which sits at 50: a
+  // document opened over the table it came from must not have the site header
+  // drawn across its head.
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-[60] flex justify-end">
       <div
         className="absolute inset-0 bg-ink/40"
         onClick={onClose}
@@ -68,18 +71,22 @@ export default function PdfDrawer({
         aria-modal="true"
         aria-label={title}
         data-testid="pdf-drawer"
-        className="relative flex h-full w-full max-w-4xl flex-col border-l border-rule-2 bg-paper"
+        className="relative flex h-full w-full max-w-4xl flex-col border-l border-rule-2 bg-paper rounded-none"
       >
         <header className="flex items-start justify-between gap-s4 border-b border-rule px-s5 py-s4">
           <div>
-            <h2 className="text-t5">{title}</h2>
-            {subtitle ? <p className="text-t2 text-ink-2">{subtitle}</p> : null}
+            {/* The drawer's heading is the page's heading: 20px, uppercase,
+                tracked, normal weight. */}
+            <h2 className="text-t6 font-normal uppercase tracking-head text-ink">
+              {title}
+            </h2>
+            {subtitle ? <p className="text-t2 text-ink-3">{subtitle}</p> : null}
           </div>
           <button
             ref={closeButton}
             type="button"
             onClick={onClose}
-            className="label border border-rule px-s3 py-s2"
+            className="label border border-rule-2 px-s3 py-s2"
           >
             Close
           </button>
@@ -101,7 +108,7 @@ export default function PdfDrawer({
 
         {url ? (
           <footer className="border-t border-rule px-s5 py-s3">
-            <a href={url} target="_blank" rel="noreferrer" className="text-t3">
+            <a href={url} target="_blank" rel="noreferrer" className="text-t2">
               Open the document in a new tab
             </a>
           </footer>

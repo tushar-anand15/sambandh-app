@@ -8,9 +8,37 @@ import MeetingList from "@/components/meetings/MeetingList";
 import MeetingsUnavailable from "@/components/meetings/MeetingsUnavailable";
 import RegisterDrawer from "@/components/meetings/RegisterDrawer";
 import ScopeNote from "@/components/meetings/ScopeNote";
-import { formatDate, type DocumentKind, type MeetingRow } from "@/components/meetings/payload";
+import {
+  formatDate,
+  type BodyBlock,
+  type DocumentKind,
+  type MeetingRow,
+} from "@/components/meetings/payload";
+import { formatYearLabel } from "@/components/select/YearControl";
 import type { RegisterRequest } from "@/components/meetings/useRegister";
 import { useMeetingsYear } from "@/components/meetings/useMeetingsYear";
+import styles from "@/components/meetings/meetings.module.css";
+
+/**
+ * The page's own headline, in the client's construction. Before a body is
+ * chosen there is no name for the council, and the sentence is written about a
+ * local body rather than left as the section's name.
+ */
+function headline(body: BodyBlock | undefined): string {
+  const whose = body ? `${body.lb_name_en}'s` : "a local body's";
+  return `When ${whose} council met, and what it wrote down`;
+}
+
+/** "Meetings · Amboori Grama Panchayat · 2023–24". */
+function eyebrow(body: BodyBlock | undefined, yearLabel: string): string {
+  return [
+    "Meetings",
+    body ? `${body.lb_name_en} ${body.lb_type}` : null,
+    yearLabel ? formatYearLabel(yearLabel) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 /**
  * The Meetings section.
@@ -49,12 +77,17 @@ export default function MeetingsSection() {
     });
   };
 
+  const body = state.status === "ready" || state.status === "missing"
+    ? state.payload.body
+    : undefined;
+
   return (
     <div className="shell-container section-page">
-      <h1>Meetings</h1>
+      <p className={styles.eyebrow}>{eyebrow(body, yearLabel)}</p>
+      <h1 className={styles.headline}>{headline(body)}</h1>
       <p className="lede">
-        Every meeting a local body held in one financial year, and what it
-        published from each one.
+        Every meeting the council recorded for the year, and whether it
+        published the minutes.
       </p>
       <BodySelector section="meetings" />
 

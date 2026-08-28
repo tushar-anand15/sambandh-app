@@ -1,33 +1,111 @@
 /* ---------------------------------------------------------------------------
    Meetings.
 
-   Co-located because these are the shapes a utility class cannot express: a
-   data table, two SVG fills, and the bordered note about what the register
-   holds that this release does not publish. Everything else on the page is a
-   token utility.
+   Co-located because these are the shapes a token utility cannot express: the
+   section heading with its hairline rule, the page's own headline, the ratio
+   bar, the meeting table, and the note about what the register holds.
+
+   The heading, the bar and the table are the same idioms as
+   `../finances/finances.module.css`. They are written out twice rather than
+   lifted into index.css, which is the settled design system and no place for a
+   page-level idiom; each page keeps its own file.
    --------------------------------------------------------------------------- */
 
-/* Bordered on all four sides, unlike `.notice`, which is ruled on one. The
-   scope note is a standing limit on the whole page, not a remark about the
-   figure beside it. */
+/* The page's kicker: which section, which body, which year. */
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-block: 0 var(--s3);
+}
+
+/* The headline, once per page, and never broken into a narrow stack. */
+.headline {
+  font-family: var(--font-display);
+  font-size: var(--t9);
+  font-weight: 300;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+  margin-block: 0 var(--s5);
+  max-width: none;
+}
+
+/* A section heading. 20px, uppercase, tracked, normal weight, on a hairline —
+   not a large serif. `h2` in index.css sets 600, so the weight is restated. */
+.head {
+  font-family: var(--font-sans);
+  font-size: var(--t6);
+  font-weight: 400;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--track-head);
+  text-transform: uppercase;
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule);
+  padding: 0 0 var(--s3);
+  /* The space above a heading comes from the gap between sections, not from
+     the heading: `h2:first-child` in index.css zeroes a margin here anyway,
+     and a heading that sets both would space unevenly down the page. */
+  margin-block: 0 var(--s5);
+  max-width: none;
+}
+
+/* A heading inside a section: smaller, still uppercase, no rule. */
+.splitHead {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  font-weight: 400;
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-block: 0 var(--s3);
+}
+
+/* A standing limit on the whole page, not a remark about the figure beside it.
+   Ruled on one side rather than boxed: nothing on the page is a card. */
 .scopeNote {
-  font-size: var(--t3);
+  font-size: var(--t2);
   line-height: var(--lh-body);
   color: var(--ink-2);
-  background: var(--surface);
-  border: 1px solid var(--rule-2);
-  border-radius: var(--radius);
-  padding: var(--s4);
+  border-left: 2px solid var(--rule-2);
+  padding: var(--s2) 0 var(--s2) var(--s5);
   margin-block: var(--s5) 0;
   max-width: var(--measure);
 }
 
+/* The one size above body. There is no second figure size. */
 .total {
+  font-family: var(--font-display);
   font-size: var(--t7);
+  font-weight: 300;
   line-height: var(--lh-tight);
   letter-spacing: var(--track-display);
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
   margin-block: 0;
+}
+
+/* The label under the figure, and the note beside it. */
+.totalLabel {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-block: var(--s2) 0;
+}
+
+.note {
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  margin-block: var(--s3) 0;
+  max-width: var(--measure);
 }
 
 .split {
@@ -39,11 +117,16 @@
    is its own percentage of it, so the bar carries no pixel dimension and
    nothing in it stretches when the container changes width. */
 .bar {
+  display: block;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
   margin-block: var(--s3) 0;
 }
 
+/* Ink, not the accent: the accent touches links, hovers and downloads, and
+   never data. */
 .barMajor {
-  fill: var(--accent);
+  fill: var(--ink-2);
 }
 
 .barMinor {
@@ -88,14 +171,20 @@
   width: 100%;
   font-size: var(--t3);
   line-height: var(--lh-ui);
+  font-variant-numeric: tabular-nums;
 }
 
+/* Hairlines, and no zebra: the rule between two rows is enough to follow one
+   across, and a shaded row is a second thing to read. */
 .table th,
 .table td {
   text-align: left;
   vertical-align: top;
-  padding: var(--s2) var(--s3);
   border-bottom: 1px solid var(--rule);
+}
+
+.table td {
+  color: var(--ink-2);
 }
 
 .table th {
@@ -106,7 +195,7 @@
   text-transform: uppercase;
   color: var(--ink-3);
   white-space: nowrap;
-  border-bottom: 1px solid var(--rule-2);
+  border-bottom: 1px solid var(--ink-3);
 }
 
 .table td:first-child {
@@ -157,6 +246,17 @@
 
 /* Above the document in the panel: whose meeting it was, and what was done to
    the file before it was shown. */
+/* An aside set apart by a rule rather than boxed: it is a sentence to read. */
+.rail {
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  border-left: 2px solid var(--rule-2);
+  padding: var(--s2) 0 var(--s2) var(--s5);
+  margin-block: var(--s5) 0;
+  max-width: var(--measure);
+}
+
 .registerHead {
   font-family: var(--font-sans);
   font-size: var(--t2);

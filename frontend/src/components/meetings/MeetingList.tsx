@@ -113,9 +113,11 @@ export default function MeetingList({ payload, onOpen }: MeetingListProps) {
 
   return (
     <section className="mt-s7" aria-labelledby="meeting-list-heading">
-      <h2 id="meeting-list-heading">Every meeting recorded in {year}</h2>
+      <h2 className={styles.head} id="meeting-list-heading">
+        Every meeting recorded in {year}
+      </h2>
 
-      <p className="text-t3 text-ink-2">
+      <p className={styles.note}>
         {formatCount(rows.length)} meetings
         {first && last ? `, ${first} to ${last}` : null}.
       </p>

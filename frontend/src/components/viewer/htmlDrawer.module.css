@@ -11,7 +11,9 @@
 .scrim {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  /* Above the sticky masthead, which sits at 50: a panel that opened over the
+     table it came from must not have the site header drawn across its head. */
+  z-index: 60;
   background: rgb(0 0 0 / 0.32);
   display: flex;
   justify-content: flex-end;
@@ -39,10 +41,15 @@
   border-bottom: 1px solid var(--rule);
 }
 
+/* The panel's heading is the page's heading: 20px, uppercase, tracked, and
+   normal weight, on nothing — the panel's own rule sits under the whole head. */
 .title {
-  font-family: var(--font-serif);
-  font-size: var(--t5);
-  line-height: var(--lh-tight);
+  font-family: var(--font-sans);
+  font-size: var(--t6);
+  font-weight: 400;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--track-head);
+  text-transform: uppercase;
   color: var(--ink);
   margin-block: 0;
 }
@@ -51,14 +58,16 @@
   font-family: var(--font-sans);
   font-size: var(--t2);
   line-height: var(--lh-ui);
-  color: var(--ink-2);
+  color: var(--ink-3);
   margin-block: var(--s1) 0;
 }
 
 .close {
   font-family: var(--font-sans);
-  font-size: var(--t2);
+  font-size: var(--t1);
   line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
   color: var(--ink-2);
   background: var(--surface);
   border: 1px solid var(--rule-2);
@@ -80,7 +89,7 @@
 /* The document itself. */
 .document {
   font-family: var(--font-serif);
-  font-size: var(--t3);
+  font-size: var(--t4);
   line-height: var(--lh-body);
   color: var(--ink);
   overflow-wrap: anywhere;
@@ -111,9 +120,11 @@
 
 .document th {
   font-family: var(--font-sans);
-  font-size: var(--t2);
+  font-size: var(--t1);
   font-weight: 400;
-  color: var(--ink-2);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
 
 .document ul,

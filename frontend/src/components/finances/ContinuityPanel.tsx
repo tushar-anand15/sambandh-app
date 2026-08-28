@@ -20,6 +20,7 @@
 import SourceLine from "@/components/shell/SourceLine";
 import { formatYearLabel } from "@/components/select/YearControl";
 import { count } from "./format";
+import styles from "./finances.module.css";
 import type { ProjectRow, YearPayload } from "./types";
 
 interface ContinuityPanelProps {
@@ -42,7 +43,7 @@ function names(rows: ProjectRow[] | undefined): string[] {
 
 function List({ items }: { items: string[] }) {
   return (
-    <ul className="mt-s3 flex flex-col gap-s1 text-t3 leading-ui">
+    <ul className={styles.list}>
       {items.map((item) => (
         <li key={item}>{item}</li>
       ))}
@@ -69,7 +70,7 @@ export default function ContinuityPanel({
 
   return (
     <section aria-labelledby="continuity-heading">
-      <h2 id="continuity-heading">
+      <h2 className={styles.head} id="continuity-heading">
         Projects carried from {previousLabel ? formatYearLabel(previousLabel) : "the year before"}
       </h2>
 
@@ -88,35 +89,35 @@ export default function ContinuityPanel({
       ) : null}
 
       <div className="flex flex-col gap-s4">
-        <details className="border-t border-rule pt-s3" data-testid="carried-projects">
-          <summary className="text-t3 leading-ui">
+        <details className={styles.details} data-testid="carried-projects">
+          <summary className={styles.summary}>
             Also in {previousLabel ? formatYearLabel(previousLabel) : "the previous year"}:{" "}
             {count(carriedCount)}
           </summary>
           {listsAgree ? (
             <List items={carried} />
           ) : (
-            <p className="text-t3 text-ink-2 leading-ui mt-s3">
+            <p className={styles.legend}>
               The names of these projects are not listed here.
             </p>
           )}
         </details>
 
-        <details className="border-t border-rule pt-s3" data-testid="new-projects">
-          <summary className="text-t3 leading-ui">
+        <details className={styles.details} data-testid="new-projects">
+          <summary className={styles.summary}>
             First seen in {formatYearLabel(payload.year_label)}: {count(newCount)}
           </summary>
           {listsAgree ? (
             <List items={fresh} />
           ) : (
-            <p className="text-t3 text-ink-2 leading-ui mt-s3">
+            <p className={styles.legend}>
               The names of these projects are not listed here.
             </p>
           )}
         </details>
       </div>
 
-      <p className="notice">
+      <p className={styles.rail}>
         Carry-forward is measured by a project name repeating from one year to the
         next. Sulekha issues a new project number each year, so the name is the only
         thread between two years. A name that recurs by habit, such as a line for

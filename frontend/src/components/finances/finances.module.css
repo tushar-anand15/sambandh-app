@@ -1,0 +1,371 @@
+/* ---------------------------------------------------------------------------
+   Finances.
+
+   The shapes a token utility cannot express: the section heading with its
+   hairline rule, the stack of figures, the ratio bar, and the project table.
+   Everything here is written against the tokens in index.css; nothing carries
+   a raw pixel, a radius or a bold weight.
+
+   These same four shapes appear in `../meetings/meetings.module.css`. They are
+   written out twice rather than lifted into index.css because index.css is the
+   settled design system and a page-level idiom does not belong in it; the two
+   copies are small, and each page keeps its own file.
+   --------------------------------------------------------------------------- */
+
+/* The page's kicker: which section, which body, which district. */
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-block: 0 var(--s3);
+}
+
+/* The headline, once per page, and never broken into a narrow stack. */
+.headline {
+  font-family: var(--font-display);
+  font-size: var(--t9);
+  font-weight: 300;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  text-transform: none;
+  color: var(--ink);
+  margin-block: 0 var(--s5);
+  max-width: none;
+}
+
+/* A section heading. 20px, uppercase, tracked, normal weight, on a hairline —
+   not a large serif. `h2` in index.css sets 600, so the weight is restated. */
+.head {
+  font-family: var(--font-sans);
+  font-size: var(--t6);
+  font-weight: 400;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--track-head);
+  text-transform: uppercase;
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule);
+  padding: 0 0 var(--s3);
+  /* The space above a heading comes from the gap between sections, not from
+     the heading: `h2:first-child` in index.css zeroes a margin here anyway,
+     and a heading that sets both would space unevenly down the page. */
+  margin-block: 0 var(--s5);
+  max-width: none;
+}
+
+/* The chart's title is a sentence, and a sentence does not go in capitals.
+   It sits under the heading as a caption instead. */
+.caption {
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-3);
+  margin-block: 0 var(--s4);
+  max-width: var(--measure);
+}
+
+/* --- figures ------------------------------------------------------------ */
+
+/* One column. Each figure is a ruled row: what it is, the number, and the
+   unrounded figure a reader checks against Sulekha. */
+.figures {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-block: 0;
+  max-width: var(--measure);
+}
+
+.figure {
+  border-top: 1px solid var(--rule);
+  padding: var(--s3) 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3) var(--s5);
+}
+
+.figureTerm {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0;
+}
+
+/* The one size above body. There is no second figure size. */
+.figureValue {
+  font-family: var(--font-display);
+  font-size: var(--t7);
+  font-weight: 300;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  text-align: right;
+}
+
+.figureExact {
+  flex: 1 0 100%;
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-3);
+  margin: 0;
+  text-align: right;
+}
+
+/* --- ratio bar ---------------------------------------------------------- */
+
+.bar {
+  margin-block: var(--s5) 0;
+  max-width: var(--measure);
+}
+
+.barTrack {
+  display: block;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+}
+
+.barFill {
+  fill: var(--ink-2);
+}
+
+.barScale {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--s3);
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  margin-block: var(--s2) 0;
+}
+
+/* --- the table ---------------------------------------------------------- */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s5);
+  margin-block: var(--s5) 0;
+}
+
+.download {
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  margin: 0;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  margin-block: var(--s4) 0;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hairlines, and no zebra: the rule between two rows is enough to follow one
+   across, and a shaded row is a second thing to read. */
+.table th,
+.table td {
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--rule);
+}
+
+.table th {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  font-weight: 400;
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--ink-3);
+}
+
+.table td {
+  color: var(--ink-2);
+}
+
+.num {
+  text-align: right;
+}
+
+.table td.num,
+.table th.num {
+  text-align: right;
+}
+
+/* A header that sorts. The button carries the header's own type so the row
+   reads as one line of labels, not as five controls. */
+.sortButton {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.sortButton:hover {
+  color: var(--ink);
+}
+
+.row {
+  cursor: default;
+}
+
+.rowOpenable {
+  cursor: pointer;
+}
+
+/* The way into a document: a link, so it takes the accent. */
+.openButton {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* The project name opens the same document as the last column. It is written
+   in ink rather than in the accent: a hundred and fifty accented rows would
+   turn the table orange and leave nothing for the way in to stand out as. */
+.nameButton {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.nameButton:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* Stated, never blank: the row has no document, and the cell says so. */
+.absent {
+  color: var(--ink-3);
+}
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s4);
+  margin-block: var(--s4) 0;
+}
+
+.pageButton {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-2);
+  background: transparent;
+  border: 1px solid var(--rule-2);
+  border-radius: 0;
+  padding: var(--s2) var(--s4);
+  cursor: pointer;
+}
+
+.pageButton:hover:enabled {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.pageButton:disabled {
+  color: var(--ink-3);
+  border-color: var(--rule);
+  cursor: default;
+}
+
+.pagePosition {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+/* --- the carry-forward panel -------------------------------------------- */
+
+.details {
+  border-top: 1px solid var(--rule);
+  padding: var(--s3) 0 0;
+  max-width: var(--measure);
+}
+
+.summary {
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  list-style: none;
+  padding: 0;
+  margin-block: var(--s3) 0;
+}
+
+/* An aside set apart by a rule rather than boxed: it is a sentence to read. */
+.rail {
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  border-left: 2px solid var(--rule-2);
+  padding: var(--s2) 0 var(--s2) var(--s5);
+  margin-block: var(--s5) 0;
+  max-width: var(--measure);
+}
+
+.legend {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-3);
+  margin-block: var(--s3) 0;
+  max-width: var(--measure);
+}
