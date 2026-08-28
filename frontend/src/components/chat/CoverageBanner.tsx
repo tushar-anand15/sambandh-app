@@ -16,6 +16,8 @@ import { useEffect, useState } from "react";
 
 import api from "@/lib/api";
 
+import styles from "./chat.module.css";
+
 export interface IndexedBody {
   lb_name: string;
   lb_type: string | null;
@@ -70,25 +72,27 @@ export function useAssistantIndex(): IndexState {
 export default function CoverageBanner({ state }: { state: IndexState }) {
   if (state.status === "loading") {
     return (
-      <p className="border-b border-border bg-surface-alt px-s4 py-s3 text-t2 text-ink-muted">
-        Loading what the assistant has read.
-      </p>
+      <div className={styles.coverage}>
+        <p>Loading what the assistant has read.</p>
+      </div>
     );
   }
 
   if (state.status === "error") {
     return (
-      <p className="border-b border-border bg-surface-alt px-s4 py-s3 text-t2 text-ink-muted">
-        What the assistant has read could not be loaded. It covers Thrissur
-        district, 2025&ndash;26.
-      </p>
+      <div className={styles.coverage}>
+        <p>
+          What the assistant has read could not be loaded. It covers Thrissur
+          district, 2025&ndash;26.
+        </p>
+      </div>
     );
   }
 
   const { index } = state;
 
   return (
-    <div className="border-b border-border bg-surface-alt px-s4 py-s3 text-t2 text-ink-muted">
+    <div className={styles.coverage}>
       <p>
         The assistant has read {COUNT.format(index.documents)} project documents
         from {index.local_bodies.length} local bodies in{" "}
@@ -96,7 +100,7 @@ export default function CoverageBanner({ state }: { state: IndexState }) {
         {list(index.years.map(shortYear))} only. It declines questions about
         any other local body or year.
       </p>
-      <p className="mt-s2">
+      <p>
         Finances, Meetings and Elections cover every local body in Kerala, and
         need no account.
       </p>

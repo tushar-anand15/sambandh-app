@@ -1,48 +1,22 @@
-import { Route, Droplets, BarChart3, Search, FileText, Building2 } from "lucide-react";
+/**
+ * Three questions the library can actually answer, offered before the first
+ * one is typed.
+ *
+ * They name bodies that are in the index — Chalakkudy, Adat, Athirappilly,
+ * Thrissur — because a suggested question about a body nobody ingested teaches
+ * the reader that the assistant refuses, which is the wrong first lesson. The
+ * Malayalam one is here because answers come back in Malayalam and a reader
+ * has no other way to learn that questions may go out in it.
+ */
 
-const prompts = [
-  {
-    icon: Route,
-    category: "Infrastructure",
-    text: "What road construction projects are in Chalakkudy?",
-    color: "from-amber-500/10 to-orange-500/10",
-    iconColor: "text-amber-600",
-  },
-  {
-    icon: Droplets,
-    category: "Water",
-    text: "List drinking water projects in Grama Panchayats",
-    color: "from-blue-500/10 to-cyan-500/10",
-    iconColor: "text-blue-600",
-  },
-  {
-    icon: BarChart3,
-    category: "Compare",
-    text: "Compare spending between Adat and Athirappally panchayats",
-    color: "from-emerald-500/10 to-teal-500/10",
-    iconColor: "text-emerald-600",
-  },
-  {
-    icon: FileText,
-    category: "Details",
-    text: "What is project 273 in Chalakkudy about?",
-    color: "from-violet-500/10 to-purple-500/10",
-    iconColor: "text-violet-600",
-  },
-  {
-    icon: Building2,
-    category: "Counts",
-    text: "How many projects does Thrissur Corporation have?",
-    color: "from-rose-500/10 to-pink-500/10",
-    iconColor: "text-rose-600",
-  },
-  {
-    icon: Search,
-    category: "Malayalam",
-    text: "റോഡ് നിർമ്മാണ പദ്ധതികൾ",
-    color: "from-indigo-500/10 to-blue-500/10",
-    iconColor: "text-indigo",
-  },
+import styles from "./chat.module.css";
+
+const PROMPTS = [
+  "What road construction projects are in Chalakkudy?",
+  "Compare spending between Adat and Athirappilly panchayats",
+  "What is project 273 in Chalakkudy about?",
+  "How many projects does Thrissur Corporation have?",
+  "റോഡ് നിർമ്മാണ പദ്ധതികൾ",
 ];
 
 interface SuggestedPromptsProps {
@@ -51,30 +25,17 @@ interface SuggestedPromptsProps {
 
 export default function SuggestedPrompts({ onSelect }: SuggestedPromptsProps) {
   return (
-    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      {prompts.map((p, i) => {
-        const Icon = p.icon;
-        return (
-          <button
-            key={p.text}
-            onClick={() => onSelect(p.text)}
-            className={`group relative flex items-start gap-3 rounded-xl border border-border bg-gradient-to-br ${p.color} p-3 text-left transition-all hover:border-indigo/30 hover:shadow-md sm:p-4`}>
-            <div
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface shadow-sm ${p.iconColor}`}
-            >
-              <Icon size={16} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                {p.category}
-              </span>
-              <p className="mt-0.5 text-xs leading-relaxed text-ink group-hover:text-indigo sm:text-sm">
-                {p.text}
-              </p>
-            </div>
-          </button>
-        );
-      })}
+    <div className={styles.prompts}>
+      {PROMPTS.map((prompt) => (
+        <button
+          key={prompt}
+          type="button"
+          className={styles.prompt}
+          onClick={() => onSelect(prompt)}
+        >
+          {prompt}
+        </button>
+      ))}
     </div>
   );
 }

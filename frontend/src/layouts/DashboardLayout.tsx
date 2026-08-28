@@ -1,97 +1,82 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+/**
+ * The frame the assistant sits in.
+ *
+ * Two jobs, and no state worth sharing. It pins the assistant to the viewport
+ * below the site chrome, and it stops the document behind it from scrolling —
+ * because there are now two scrollable things on the screen and only one of
+ * them should move when the reader spins the wheel over a transcript.
+ *
+ * `--assistant-top` is measured, not assumed. The masthead collapses on scroll
+ * and opens collapsed everywhere but the home page, so its height is a moving
+ * number owned by another part of the app; a constant here would leave a strip
+ * of dead page above the header strip or hide it under one. The measurement
+ * takes the lower of two edges: where the in-flow content of the page begins,
+ * and the bottom of the site header, which differ when the header is fixed
+ * rather than sticky.
+ *
+ * The sidebar this layout used to carry is gone. It held one link — Assistant —
+ * which the site's own tab bar already carries, under a second wordmark that
+ * competed with the masthead. Signing out moved to the assistant's header
+ * strip, next to the other things you can do to a conversation.
+ */
+
+import { useEffect, useRef } from "react";
 import { Outlet } from "react-router-dom";
-import { Menu } from "lucide-react";
-import Sidebar from "@/components/dashboard/Sidebar";
 
-interface SidebarContextType {
-  collapsed: boolean;
-  setCollapsed: (collapsed: boolean) => void;
-  mobileOpen: boolean;
-  setMobileOpen: (open: boolean) => void;
-  toggleCollapsed: () => void;
-  toggleMobile: () => void;
-}
-
-const SidebarContext = createContext<SidebarContextType | null>(null);
-
-export function useSidebar() {
-  const context = useContext(SidebarContext);
-  if (!context) {
-    throw new Error("useSidebar must be used within DashboardLayout");
-  }
-  return context;
-}
-
-const SIDEBAR_COLLAPSED_KEY = "sidebar_collapsed";
+import styles from "./appShell.module.css";
 
 export default function DashboardLayout() {
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-      return stored === "true";
-    }
-    return false;
-  });
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const anchor = useRef<HTMLDivElement>(null);
+  const shell = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
-  }, [collapsed]);
+    const measure = () => {
+      const start = anchor.current;
+      const frame = shell.current;
+      if (!start || !frame) return;
 
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setMobileOpen(false);
-      }
+      const header = document.querySelector("header");
+      const below = header ? header.getBoundingClientRect().bottom : 0;
+      const top = Math.max(0, Math.round(Math.max(start.getBoundingClientRect().top, below)));
+
+      frame.style.setProperty("--assistant-top", `${top}px`);
     };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+
+    measure();
+    // Web fonts and the header's own layout settle a frame late.
+    const frame = requestAnimationFrame(measure);
+
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, { passive: true });
+
+    // The header changing height changes the body's, which is what this
+    // watches: the anchor itself never resizes, it only moves.
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(document.body);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure);
+      observer?.disconnect();
+    };
   }, []);
 
-  const toggleCollapsed = useCallback(() => setCollapsed((c) => !c), []);
-  const toggleMobile = useCallback(() => setMobileOpen((o) => !o), []);
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
 
   return (
-    <SidebarContext.Provider
-      value={{
-        collapsed,
-        setCollapsed,
-        mobileOpen,
-        setMobileOpen,
-        toggleCollapsed,
-        toggleMobile,
-      }}
-    >
-      <div className="flex h-screen bg-canvas">
-        {/* Mobile header */}
-        <div className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center border-b border-border bg-surface px-4 lg:hidden">
-          <button
-            onClick={toggleMobile}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-surface-alt hover:text-ink"
-          >
-            <Menu size={22} />
-          </button>
-          <h1 className="ml-3 font-display text-lg tracking-tight text-indigo">
-            GramSAMBANDH
-          </h1>
-        </div>
-
-        {/* Mobile overlay */}
-        {mobileOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-ink/30 backdrop-blur-sm lg:hidden"
-            onClick={() => setMobileOpen(false)}
-          />
-        )}
-
-        {/* Sidebar */}
-        <Sidebar />
-
-        {/* Main content */}
-        <main className="flex-1 overflow-auto pt-14 lg:pt-0">
-          <Outlet />
-        </main>
+    <>
+      <div ref={anchor} className={styles.anchor} aria-hidden="true" />
+      <div ref={shell} className={styles.shell}>
+        <Outlet />
       </div>
-    </SidebarContext.Provider>
+    </>
   );
 }

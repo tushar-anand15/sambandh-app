@@ -1,21 +1,24 @@
+/**
+ * One turn of the conversation.
+ *
+ * Not a bubble any more, whatever the file is called: a rule, a label naming
+ * who is speaking, and the words. The reader's question is set in the display
+ * face at the one size above body; the answer is markdown through `.prose-chat`.
+ *
+ * Citations sit under the answer as underlined chips. The backend writes each
+ * source's title as "Project {no} — {local body}", so the chip already names
+ * both, and clicking it opens the scan that sentence was read from. An answer
+ * whose citations cannot be opened is an assertion, and this assistant is not
+ * allowed to make assertions.
+ */
+
 import { useState } from "react";
-import {
-  User,
-  Bot,
-  ChevronDown,
-  ChevronRight,
-  Search,
-  FileText,
-  BarChart3,
-  List,
-  ExternalLink,
-  CheckCircle2,
-  Loader2,
-  Sparkles,
-} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
 import type { ChatMessage, ChatSource, ToolCallEvent } from "@/types";
+
+import styles from "./chat.module.css";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -23,257 +26,139 @@ interface MessageBubbleProps {
   onSourceClick?: (source: ChatSource) => void;
 }
 
-const TOOL_ICONS: Record<string, typeof Search> = {
-  search_documents: Search,
-  get_project_details: FileText,
-  compare_projects: BarChart3,
-  list_projects: List,
-};
-
 const TOOL_LABELS: Record<string, string> = {
-  search_documents: "Searching documents",
-  get_project_details: "Looking up project details",
-  compare_projects: "Comparing projects",
-  list_projects: "Listing projects",
+  search_documents: "Searched the documents",
+  get_project_details: "Looked up a project",
+  compare_projects: "Compared projects",
+  list_projects: "Listed projects",
 };
 
-function ThinkingIndicator() {
-  return (
-    <div
-      className="flex items-center gap-3 rounded-xl border border-indigo/20 bg-gradient-to-r from-indigo-subtle/50 to-indigo-subtle/30 px-4 py-3">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo/10">
-        <Sparkles size={16} className="animate-pulse text-indigo" />
-      </div>
-      <div className="flex-1">
-        <p className="text-sm font-medium text-indigo">Thinking</p>
-        <p className="text-xs text-ink-muted">Reading the project documents</p>
-      </div>
-      <div className="flex gap-1">
-        <span className="h-2 w-2 animate-bounce rounded-full bg-indigo/60" style={{ animationDelay: "0ms" }} />
-        <span className="h-2 w-2 animate-bounce rounded-full bg-indigo/60" style={{ animationDelay: "150ms" }} />
-        <span className="h-2 w-2 animate-bounce rounded-full bg-indigo/60" style={{ animationDelay: "300ms" }} />
-      </div>
-    </div>
-  );
+function toolLabel(tc: ToolCallEvent): string {
+  return TOOL_LABELS[tc.tool] ?? tc.tool;
 }
 
-function ToolCallCard({ tc, isExpanded, onToggle }: { tc: ToolCallEvent; isExpanded: boolean; onToggle: () => void }) {
-  const Icon = TOOL_ICONS[tc.tool] || Search;
-  const label = TOOL_LABELS[tc.tool] || tc.tool;
-  const isRunning = tc.status === "running";
-
-  return (
-    <div
-      className={`overflow-hidden rounded-xl border transition-all ${
-        isRunning
-          ? "border-indigo/30 bg-gradient-to-r from-indigo-subtle/60 to-indigo-subtle/40"
-          : "border-border bg-surface-alt/50"
-      }`}>
-      {/* Header - always visible */}
-      <button
-        onClick={onToggle}
-        disabled={isRunning}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt/50 disabled:cursor-default"
-      >
-        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-          isRunning ? "bg-indigo/20" : "bg-surface"
-        }`}>
-          {isRunning ? (
-            <Loader2 size={16} className="animate-spin text-indigo" />
-          ) : (
-            <Icon size={16} className="text-ink-muted" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className={`text-sm font-medium ${isRunning ? "text-indigo" : "text-ink"}`}>
-              {label}
-            </span>
-            {!isRunning && (
-              <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
-                <CheckCircle2 size={10} />
-                Done
-              </span>
-            )}
-          </div>
-          {/* Show input parameters */}
-          {tc.input && Object.keys(tc.input).length > 0 && (
-            <p className="mt-0.5 truncate text-xs text-ink-muted">
-              {Object.entries(tc.input)
-                .filter(([_, v]) => v)
-                .map(([k, v]) => `${k}: ${v}`)
-                .join(" · ")}
-            </p>
-          )}
-        </div>
-        {!isRunning && tc.output && (
-          <ChevronRight
-            size={16}
-            className={`shrink-0 text-ink-faint transition-transform ${isExpanded ? "rotate-90" : ""}`}
-          />
-        )}
-      </button>
-
-      {/* Expanded output */}
-        {isExpanded && tc.output && !isRunning && (
-          <div
-            className="overflow-hidden">
-            <div className="border-t border-border/50 bg-canvas/50 px-4 py-3">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                Tool Output
-              </p>
-              <div className="max-h-[300px] overflow-auto rounded-lg bg-surface p-3">
-                <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-ink-muted">
-                  {tc.output}
-                </pre>
-              </div>
-            </div>
-          </div>
-        )}
-    </div>
-  );
+/** "Project 2023-24/GP/1147 — Amboori, p. 3". */
+export function citationLabel(source: ChatSource): string {
+  const title = source.document_title || "Document";
+  const named = source.lb_name && !title.includes(source.lb_name)
+    ? `${title} — ${source.lb_name}`
+    : title;
+  return source.page ? `${named}, p. ${source.page}` : named;
 }
 
-function SourceChip({ source, onClick }: { source: ChatSource; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="group flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-left transition-all hover:border-indigo/30 hover:bg-indigo-subtle/50 hover:shadow-sm"
-    >
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-subtle">
-        <FileText size={14} className="text-indigo" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-medium text-ink">
-          {source.document_title}
-        </p>
-        <p className="truncate text-[10px] text-ink-muted">
-          {source.lb_name && `${source.lb_name} · `}Page {source.page}
-        </p>
-      </div>
-      <ExternalLink
-        size={12}
-        className="shrink-0 text-ink-faint transition-colors group-hover:text-indigo"
-      />
-    </button>
-  );
-}
+function ToolCalls({ calls }: { calls: ToolCallEvent[] }) {
+  const [shown, setShown] = useState<number | null>(null);
+  const running = calls.some((tc) => tc.status === "running");
+  const [open, setOpen] = useState(false);
 
-export default function MessageBubble({ message, isThinking, onSourceClick }: MessageBubbleProps) {
-  const [expandedTools, setExpandedTools] = useState<Set<number>>(new Set());
-  const [showAllTools, setShowAllTools] = useState(false);
-  
-  const isUser = message.role === "user";
-  const hasTools = message.toolCalls && message.toolCalls.length > 0;
-  const hasRunningTools = message.toolCalls?.some((tc) => tc.status === "running");
-  const showThinking = !isUser && message.isStreaming && isThinking && !hasTools && !message.content;
-
-  const toggleTool = (index: number) => {
-    setExpandedTools((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
-  };
+  if (!running && !open) {
+    return (
+      <div className={styles.tools}>
+        <button
+          type="button"
+          className={styles.toolToggle}
+          onClick={() => setOpen(true)}
+        >
+          {calls.length} step{calls.length > 1 ? "s" : ""} before answering
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={`flex gap-3 ${isUser ? "justify-end" : ""}`}>
-      {!isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo to-indigo-light shadow-sm">
-          <Bot size={16} className="text-white" />
-        </div>
-      )}
+    <div className={styles.tools}>
+      {!running ? (
+        <button
+          type="button"
+          className={styles.toolToggle}
+          onClick={() => setOpen(false)}
+        >
+          Hide the steps
+        </button>
+      ) : null}
 
-      <div className={`max-w-[85%] min-w-0 space-y-3 ${isUser ? "order-first" : ""}`}>
-        {/* Thinking indicator */}
-        {showThinking && <ThinkingIndicator />}
-
-        {/* Tool calls - show all during streaming, collapsible after */}
-        {!isUser && hasTools && (
-          <div className="space-y-2">
-            {/* Show/hide toggle for completed tools */}
-            {!message.isStreaming && !hasRunningTools && message.toolCalls!.length > 0 && (
+      {calls.map((tc, i) => (
+        <div key={`${tc.tool}-${i}`} className={styles.tool}>
+          <span className={styles.toolName}>{toolLabel(tc)}</span>
+          {tc.status === "running" ? <span className={styles.caret} /> : null}
+          {tc.output ? (
+            <>
+              {" · "}
               <button
-                onClick={() => setShowAllTools(!showAllTools)}
-                className="flex items-center gap-1.5 text-[11px] font-medium text-ink-muted transition-colors hover:text-ink"
+                type="button"
+                className={styles.toolToggle}
+                onClick={() => setShown(shown === i ? null : i)}
               >
-                <ChevronDown
-                  size={12}
-                  className={`transition-transform ${showAllTools ? "rotate-0" : "-rotate-90"}`}
-                />
-                {message.toolCalls!.length} tool call{message.toolCalls!.length > 1 ? "s" : ""} completed
+                {shown === i ? "Hide what it read" : "What it read"}
               </button>
-            )}
-
-            {/* Tool cards */}
-            {(message.isStreaming || hasRunningTools || showAllTools) && (
-              <div className="space-y-2">
-                {message.toolCalls!.map((tc, i) => (
-                  <ToolCallCard
-                    key={`${tc.tool}-${i}`}
-                    tc={tc}
-                    isExpanded={expandedTools.has(i)}
-                    onToggle={() => toggleTool(i)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Message content */}
-        {(message.content || (!showThinking && !hasRunningTools)) && (
-          <div
-            className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-              isUser
-                ? "bg-gradient-to-br from-indigo to-indigo-light text-white shadow-md"
-                : "border-l-2 border-l-indigo/20 bg-surface text-ink shadow-sm"
-            }`}
-          >
-            {isUser ? (
-              <p className="whitespace-pre-wrap">{message.content}</p>
-            ) : message.content ? (
-              <div className="prose-chat">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {message.content}
-                </ReactMarkdown>
-                {message.isStreaming && (
-                  <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-indigo" />
-                )}
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        {/* Source citations as chips */}
-        {!isUser && message.sources && message.sources.length > 0 && !message.isStreaming && (
-          <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-              References ({message.sources.length})
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {message.sources.map((source) => (
-                <SourceChip
-                  key={source.chunk_id}
-                  source={source}
-                  onClick={() => onSourceClick?.(source)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-alt shadow-sm">
-          <User size={16} className="text-ink-muted" />
+              {shown === i ? <pre className={styles.toolOutput}>{tc.output}</pre> : null}
+            </>
+          ) : null}
         </div>
-      )}
+      ))}
+    </div>
+  );
+}
+
+export default function MessageBubble({
+  message,
+  isThinking,
+  onSourceClick,
+}: MessageBubbleProps) {
+  const isUser = message.role === "user";
+  const calls = message.toolCalls ?? [];
+  const hasRunningTools = calls.some((tc) => tc.status === "running");
+  const showThinking =
+    !isUser && message.isStreaming && isThinking && calls.length === 0 && !message.content;
+
+  if (isUser) {
+    return (
+      <div className={styles.turn}>
+        <p className={styles.who}>Asked</p>
+        <p className={styles.question}>{message.content}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.turn}>
+      <p className={styles.who}>From the sanctioning documents</p>
+
+      {showThinking ? (
+        <p className={styles.thinking}>
+          Reading the project documents
+          <span className={styles.caret} />
+        </p>
+      ) : null}
+
+      {calls.length > 0 ? <ToolCalls calls={calls} /> : null}
+
+      {message.content ? (
+        <div className="prose-chat">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+          {message.isStreaming ? <span className={styles.caret} /> : null}
+        </div>
+      ) : null}
+
+      {!message.content && !showThinking && !hasRunningTools ? (
+        <p className={styles.empty}>No answer came back. Ask again.</p>
+      ) : null}
+
+      {message.sources && message.sources.length > 0 && !message.isStreaming ? (
+        <div className={styles.cites}>
+          <span className={styles.citesLabel}>From</span>
+          {message.sources.map((source) => (
+            <button
+              key={source.chunk_id}
+              type="button"
+              className={styles.cite}
+              onClick={() => onSourceClick?.(source)}
+            >
+              {citationLabel(source)}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

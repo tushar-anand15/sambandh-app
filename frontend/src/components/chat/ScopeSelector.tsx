@@ -32,16 +32,13 @@ export default function ScopeSelector({
   disabled = false,
 }: ScopeSelectorProps) {
   return (
-    <div className="flex flex-col gap-s1">
-      <label
-        htmlFor="assistant-body"
-        className="font-sans text-t1 uppercase tracking-label text-ink-faint"
-      >
+    <div className="field">
+      <label htmlFor="assistant-body" className="field-label">
         Local body
       </label>
       <select
         id="assistant-body"
-        className="rounded-lg border border-border bg-surface px-s3 py-s2 text-t3 text-ink"
+        className="field-select"
         value={value}
         disabled={disabled || bodies.length === 0}
         onChange={(event) => onChange(event.target.value)}

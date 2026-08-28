@@ -1,0 +1,30 @@
+/* ---------------------------------------------------------------------------
+   The assistant's frame.
+
+   Everything else on this site is a document: it starts under the masthead and
+   runs as long as it needs to. The assistant is not a document. It is a room
+   you sit in — the conversation scrolls, the question box stays where you left
+   it, and the two drawers slide in over the top. Dissolved into page flow, the
+   composer walks off the bottom of the screen the moment an answer arrives,
+   which is what made the revamped version read as broken.
+
+   So the frame is taken out of flow and pinned to the viewport below whatever
+   chrome the site is carrying. `--assistant-top` is measured rather than
+   assumed: the masthead collapses, and hard-coding its height here would leave
+   a gap or a cover-up the first time it changed.
+   --------------------------------------------------------------------------- */
+
+/* In flow, zero-height, and the only thing that knows where the page begins. */
+.anchor {
+  height: 0;
+}
+
+.shell {
+  position: fixed;
+  inset: var(--assistant-top, 0px) 0 0 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-top: 1px solid var(--rule);
+}

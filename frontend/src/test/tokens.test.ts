@@ -27,16 +27,16 @@ import { describe, expect, it } from "vitest";
 const SRC = path.resolve(__dirname, "..");
 
 /**
- * Cleared by: Unit 10 (landing and explorer, both deleted), later units (chat,
- * dashboard, viewer, layouts, and the three pages that remain under `pages/`).
+ * Cleared by: Unit 10 (landing and explorer, both deleted), the assistant unit
+ * (chat, dashboard and layouts, all rewritten against the tokens), later units
+ * (viewer, and the three pages that remain under `pages/`).
+ *
+ * `pages/` stays only for LoginPage and RegisterPage. ChatbotPage was rewritten
+ * with the assistant and is clean, but the list is a directory list -- the
+ * check below calls `isDirectory()` -- so it cannot name two files out of
+ * three.
  */
-const QUARANTINE = [
-  "components/chat",
-  "components/dashboard",
-  "components/viewer",
-  "layouts",
-  "pages",
-];
+const QUARANTINE = ["components/viewer", "pages"];
 
 const SCALE_STEPS = 9;
 const SPACING_STEPS = 8;
