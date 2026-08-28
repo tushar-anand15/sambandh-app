@@ -15,7 +15,7 @@
  */
 
 import { render, screen } from "@testing-library/react";
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse, type JsonBodyType } from "msw";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
@@ -77,8 +77,17 @@ function meetingsPayload(over: Record<string, unknown> = {}) {
   };
 }
 
-/** The two endpoints the example reads. Amboori is outside the fixture slice. */
-function amboori(finances: unknown = financesPayload, meetings: unknown = meetingsPayload()) {
+/**
+ * The two endpoints the example reads. Amboori is outside the fixture slice.
+ *
+ * The payloads are typed loosely on purpose -- several tests hand in partial
+ * or malformed bodies to exercise the error path, which is the whole point of
+ * being able to override them. `JsonBodyType` is what HttpResponse.json takes.
+ */
+function amboori(
+  finances: JsonBodyType = financesPayload,
+  meetings: JsonBodyType = meetingsPayload(),
+) {
   server.use(
     http.get(`*/api/finances/${AMBOORI}/${YEAR}`, () => HttpResponse.json(finances)),
     http.get(`*/api/meetings/${AMBOORI}/${YEAR}`, () => HttpResponse.json(meetings)),

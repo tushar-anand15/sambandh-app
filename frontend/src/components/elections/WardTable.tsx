@@ -90,8 +90,8 @@ export default function WardTable({ result, selectedWard, onSelect }: WardTableP
         published for the winning candidate. The margin is the winner's votes
         less the runner-up's.
       </p>
-      <div className={styles.tableScroll}>
-        <table className={styles.table} aria-label={title}>
+      <div className="data-table-scroll">
+        <table className="data-table" aria-label={title}>
           <thead>
             <tr>
               <th scope="col" className={styles.numeric}>

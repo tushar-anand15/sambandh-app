@@ -122,8 +122,8 @@ export default function MeetingList({ payload, onOpen }: MeetingListProps) {
         {first && last ? `, ${first} to ${last}` : null}.
       </p>
 
-      <div className={styles.tableWrap}>
-        <table className={styles.table} aria-labelledby="meeting-list-heading">
+      <div className="data-table-scroll">
+        <table className={`data-table ${styles.dateColumn}`} aria-labelledby="meeting-list-heading">
           <thead>
             <tr>
               <th scope="col">Date</th>

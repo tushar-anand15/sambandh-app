@@ -96,29 +96,6 @@ export default function HomeSection() {
           </li>
         </ul>
 
-        <aside className={styles.rail}>
-          <span className={styles.railKey}>What the two portals hold</span>
-          <ul className={styles.railStats}>
-            <li>
-              <span className={styles.railFigure} data-numeric>
-                3.6M
-              </span>
-              Sulekha projects, since 2012&ndash;13
-            </li>
-            <li>
-              <span className={styles.railFigure} data-numeric>
-                443K
-              </span>
-              Sakarma meetings, since 2015&ndash;16
-            </li>
-            <li>
-              <span className={styles.railFigure} data-numeric>
-                1,238
-              </span>
-              local governments
-            </li>
-          </ul>
-        </aside>
       </div>
 
       <div className={styles.block}>

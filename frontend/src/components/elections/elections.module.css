@@ -272,32 +272,6 @@
   margin-block: var(--s4) 0;
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--t3);
-  line-height: var(--lh-ui);
-  margin-block: var(--s4) 0;
-}
-
-.table th,
-.table td {
-  border-bottom: 1px solid var(--rule);
-  padding: var(--s2);
-  text-align: left;
-  vertical-align: top;
-}
-
-.table th {
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--ink-3);
-  font-weight: 400;
-  white-space: nowrap;
-}
-
 /* A party keeps its dot and its name on one line: "CPI(M)" broken across two
    rows in a narrow column reads as two parties. */
 .nowrap {
@@ -307,10 +281,6 @@
 .numeric {
   text-align: right;
   font-variant-numeric: tabular-nums;
-}
-
-.tableScroll {
-  overflow-x: auto;
 }
 
 /* A row is the keyboard path to a ward. The map's polygons take a click and a

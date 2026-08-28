@@ -254,8 +254,8 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
         </p>
       ) : (
         <>
-          <div className={styles.tableWrap}>
-            <table className={styles.table} data-testid="project-table">
+          <div className="data-table-scroll">
+            <table className="data-table" data-testid="project-table">
               <caption className="sr-only">
                 Projects in {name}, {year}, with formulation and expense in rupees.
                 {arrangement.filter === "with-document"

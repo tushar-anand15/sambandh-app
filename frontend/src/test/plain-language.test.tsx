@@ -93,8 +93,8 @@ describe("the words a reader is never shown", () => {
         <HomeSection />
       </MemoryRouter>,
     );
-    // This used to wait on CoverageTable's "Finances" row. The adopted copy
-    // has no coverage table, so it waits on the Amboori example instead --
+    // This used to wait on a coverage table the adopted copy dropped, so it
+    // waits on the Amboori example instead --
     // and specifically on its loading line going away, which is the only
     // signal that means "settled" whether the figures arrived or the notice
     // did. Both are copy this test is here to read.

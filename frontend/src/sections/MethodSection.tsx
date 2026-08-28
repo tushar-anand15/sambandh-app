@@ -69,8 +69,8 @@ export default function MethodSection() {
       <h2>Local bodies listed per year</h2>
       <p>{body_diff_note}</p>
 
-      <div className={styles.tableScroll}>
-        <table className={styles.table}>
+      <div className="data-table-scroll">
+        <table className={`data-table ${styles.termsTable}`}>
           <caption>
             Local bodies listed by Sulekha per financial year, with those that
             entered and left against the previous year.
@@ -119,8 +119,8 @@ export default function MethodSection() {
       <h2>What each section covers per year</h2>
       <p>{meetings_coverage_note}</p>
 
-      <div className={styles.tableScroll}>
-        <table className={styles.table}>
+      <div className="data-table-scroll">
+        <table className={`data-table ${styles.termsTable}`}>
           <caption>
             Projects and meetings per financial year, across Kerala. The year
             still running is marked, and its figures cover part of a year.
@@ -182,8 +182,8 @@ export default function MethodSection() {
         use them to settle where a property or a ward line falls on the ground.
       </p>
 
-      <div className={styles.tableScroll}>
-        <table className={styles.table}>
+      <div className="data-table-scroll">
+        <table className={`data-table ${styles.termsTable}`}>
           <caption>
             The boundaries behind each election map.
           </caption>

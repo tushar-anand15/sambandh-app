@@ -25,67 +25,8 @@
   margin-block: var(--s3) 0;
 }
 
-.table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: var(--t3);
-  line-height: var(--lh-ui);
-  margin-block: var(--s5) 0;
-}
-
-.table caption {
-  font-size: var(--t2);
-  line-height: var(--lh-ui);
-  color: var(--ink-2);
-  text-align: left;
-  margin-block: 0 var(--s3);
-  max-width: var(--measure);
-}
-
-.table th,
-.table td {
-  border-bottom: 1px solid var(--rule);
-  padding: var(--s2) var(--s3);
-  text-align: left;
-  vertical-align: top;
-}
-
-.table th {
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--ink-3);
-  font-weight: 400;
-  border-bottom: 1px solid var(--rule-2);
-}
-
-.table td:first-child {
-  padding-left: 0;
-}
-
-.table th:first-child {
-  padding-left: 0;
-}
-
-.numeric {
-  text-align: right;
-}
-
 /* The table is the widest thing on the page and the only thing that may
    scroll sideways. The page body never does. */
-.tableScroll {
-  overflow-x: auto;
-  margin-block: var(--s5) 0;
-}
-
-.period {
-  font-size: var(--t3);
-  line-height: var(--lh-body);
-  color: var(--ink-2);
-  max-width: var(--measure);
-  margin-block: var(--s4) 0;
-}
 
 /* The source list. Each line names the portal and what it supplies, because a
    bare list of five government portals tells a reader nothing about which one
@@ -165,14 +106,6 @@
 }
 
 /* A stack, not a row. Three figures side by side would be a second column. */
-.railStats {
-  list-style: none;
-  margin-block: var(--s4) 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--s4);
-}
 
 .railStats .railFigure {
   margin-block: 0 var(--s1);

@@ -161,42 +161,8 @@
   white-space: nowrap;
 }
 
-.tableWrap {
-  overflow-x: auto;
-  margin-block: var(--s4) 0;
-}
-
-.table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: var(--t3);
-  line-height: var(--lh-ui);
-  font-variant-numeric: tabular-nums;
-}
-
 /* Hairlines, and no zebra: the rule between two rows is enough to follow one
    across, and a shaded row is a second thing to read. */
-.table th,
-.table td {
-  text-align: left;
-  vertical-align: top;
-  border-bottom: 1px solid var(--rule);
-}
-
-.table td {
-  color: var(--ink-2);
-}
-
-.table th {
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  font-weight: 400;
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--ink-3);
-  white-space: nowrap;
-  border-bottom: 1px solid var(--ink-3);
-}
 
 .table td:first-child {
   white-space: nowrap;
@@ -263,4 +229,9 @@
   line-height: var(--lh-ui);
   color: var(--ink-2);
   margin-block: 0 var(--s4);
+}
+
+/* A date column must not wrap; the shared table idiom has no opinion. */
+.dateColumn td:first-child {
+  white-space: nowrap;
 }

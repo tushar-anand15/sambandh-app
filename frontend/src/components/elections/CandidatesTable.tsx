@@ -86,8 +86,8 @@ export default function CandidatesTable({
         {formatCount(candidates.length)} candidates stood, of{" "}
         {formatCount(ward.valid_votes)} valid votes.
       </p>
-      <div className={styles.tableScroll}>
-        <table className={styles.table} aria-label={title}>
+      <div className="data-table-scroll">
+        <table className="data-table" aria-label={title}>
           <thead>
             <tr>
               <th scope="col">Candidate</th>

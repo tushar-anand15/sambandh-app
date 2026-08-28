@@ -466,6 +466,77 @@ hr {
   padding-inline: var(--s5);
 }
 
+/* ---------------------------------------------------------------------------
+   Tables.
+
+   One table idiom, used by every section. It was written out five times --
+   finances, meetings, elections, home and method -- and the copies had drifted:
+   the header rule was --ink-3 in two files, --rule-2 in two and --rule in the
+   fifth, and only two of the five set tabular figures, so three tables of
+   numbers were setting them in proportional widths.
+
+   Cell padding is NOT set here. The base `th, td` rules above already give
+   every cell its inline and block padding and flush the edge cells, and the
+   five copies were each re-stating it.
+   --------------------------------------------------------------------------- */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--rule);
+}
+
+.data-table td {
+  color: var(--ink-2);
+}
+
+/* Headers are uppercase micro-labels, and the rule under them is heavier than
+   the rules between rows so the head reads as the head. */
+.data-table th,
+.data-table thead th {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  font-weight: 400;
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--ink-3);
+}
+
+/* Figures line up on the right; the tabular figures above make the columns
+   stack. Marked per cell, because a column of names is not a column of money. */
+.data-table td.num,
+.data-table th.num {
+  text-align: right;
+}
+
+.data-table caption {
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+  text-align: left;
+  margin-block: 0 var(--s3);
+  max-width: var(--measure);
+}
+
+/* A table is the one thing on the page allowed to be wider than the measure,
+   so it scrolls inside its own box rather than pushing the page sideways. */
+.data-table-scroll {
+  overflow-x: auto;
+  margin-block: var(--s4) 0;
+}
+
 /* Provenance line. Small, quiet, and always present under data. */
 .source-line {
   font-family: var(--font-sans);

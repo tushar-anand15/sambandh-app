@@ -7,51 +7,6 @@
    be one caller's table with an escape hatch.
    --------------------------------------------------------------------------- */
 
-.tableScroll {
-  overflow-x: auto;
-  margin-block: var(--s5) 0;
-}
-
-.table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: var(--t3);
-  line-height: var(--lh-ui);
-}
-
-.table caption {
-  font-size: var(--t2);
-  line-height: var(--lh-ui);
-  color: var(--ink-2);
-  text-align: left;
-  margin-block: 0 var(--s3);
-  max-width: var(--measure);
-}
-
-.table th,
-.table td {
-  border-bottom: 1px solid var(--rule);
-  padding: var(--s2) var(--s3);
-  text-align: left;
-  vertical-align: top;
-  white-space: nowrap;
-}
-
-.table th:first-child,
-.table td:first-child {
-  padding-left: 0;
-}
-
-.table thead th {
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--ink-3);
-  font-weight: 400;
-  border-bottom: 1px solid var(--rule-2);
-}
-
 .wrap {
   white-space: normal;
   min-width: 28ch;
@@ -96,4 +51,10 @@
   margin: 0;
   color: var(--ink);
   overflow-wrap: anywhere;
+}
+
+/* The method tables are reference lists whose cells read as single terms. */
+.termsTable th,
+.termsTable td {
+  white-space: nowrap;
 }
