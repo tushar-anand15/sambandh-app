@@ -41,11 +41,13 @@ export interface GeoFeature {
 /**
  * What `/geo/districts/{cycle}.geojson` and its two siblings return.
  * `key_property` names the property that matches a feature to a map unit:
- * `district_name`, `lb_code` or `ward_no`.
+ * `district_name`, `lb_code` or `ward_no`. `level` names the tier: the three
+ * rural tiers are separate levels because they are separate elections, and no
+ * slice ever mixes two of them.
  */
 export interface GeoCollection {
   type: "FeatureCollection";
-  level: "district" | "local_body" | "ward";
+  level: "district" | "district_panchayat" | "block_panchayat" | "local_body" | "ward";
   cycle: number;
   key_property: string;
   features: GeoFeature[];

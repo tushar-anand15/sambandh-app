@@ -11,7 +11,7 @@
  * class is not a failure; a word a reader can see is.
  */
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, waitForElementToBeRemoved } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -28,9 +28,15 @@ import { server } from "@/test/setup";
 import { handlers as methodHandlers } from "@/test/handlers.method";
 
 /**
- * Section 0's list, as written there. `record` and `row` are left out on
- * purpose: both are banned only where a plainer word exists, which is a
- * judgement a regular expression cannot make.
+ * Reader-facing copy must not leak the vocabulary of the database underneath
+ * it. This list is the test's own -- docs/instructions.md governs voice and
+ * has no vocabulary section, so nothing here is quoting it.
+ *
+ * `record`, `row` and `join` are left out on purpose. Each is banned only
+ * where a plainer word exists, which is a judgement a regular expression
+ * cannot make: "What happens if we join the records?" is the site's central
+ * question in ordinary English and is the client's own heading. `joined on`
+ * stays, because that one is only ever SQL.
  */
 const BANNED = [
   "key",
@@ -39,7 +45,6 @@ const BANNED = [
   "payload",
   "schema",
   "manifest",
-  "join",
   "joined on",
   "crosswalk",
   "rollup",
@@ -88,7 +93,12 @@ describe("the words a reader is never shown", () => {
         <HomeSection />
       </MemoryRouter>,
     );
-    await screen.findByRole("rowheader", { name: "Finances" });
+    // This used to wait on CoverageTable's "Finances" row. The adopted copy
+    // has no coverage table, so it waits on the Amboori example instead --
+    // and specifically on its loading line going away, which is the only
+    // signal that means "settled" whether the figures arrived or the notice
+    // did. Both are copy this test is here to read.
+    await waitForElementToBeRemoved(() => screen.queryByText(/^Reading Amboori/i));
 
     expect(offences(readable())).toEqual([]);
   });

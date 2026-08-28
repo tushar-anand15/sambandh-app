@@ -10,13 +10,22 @@
  *
  * The legend, the line naming the unit under the pointer, and the selection are
  * the same either way, so stepping from a cycle with boundaries to one without
- * changes the picture and nothing else.
+ * changes the picture and nothing else. What does change is the note above the
+ * map, which says which of the two is on screen every time rather than only
+ * when something is missing: squares read as authoritatively as coastlines.
+ *
+ * One tier is drawn at a time, and `caption` is where that is said in words.
+ * The three rural tiers cover the same ground and are three separate
+ * elections; a reader who takes a block panchayat's colour for a summary of
+ * its grama panchayats is reading the map wrong, and nothing about the map
+ * looks wrong enough to correct them.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 
 import styles from "./elections.module.css";
 import PolygonMap from "./PolygonMap";
+import RenderNote from "./RenderNote";
 import TileMap from "./TileMap";
 import type { GeometryState } from "./useElections";
 import { frontLabel, frontToken, type MapUnit } from "./payload";
@@ -33,8 +42,16 @@ interface DrillMapProps {
   unitNoun: string;
   geometry: GeometryState;
   onSelect: (key: string) => void;
-  /** Stated under a drawn map: what the boundaries are. */
+  /**
+   * What this level is, in words: which tier it is, and that its colours are
+   * that tier's own election. Shown whether the map is drawn or tiled, because
+   * it is a fact about the election and not about the rendering.
+   */
   caption: string;
+  /** The cycle, for the note that says whether these are boundaries. */
+  cycle: number;
+  /** Placed between the heading and the map: the clicked body's own result. */
+  note?: ReactNode;
 }
 
 /** The four colours, and the fronts the commission names beyond them. */
@@ -66,6 +83,8 @@ export default function DrillMap({
   geometry,
   onSelect,
   caption,
+  cycle,
+  note,
 }: DrillMapProps) {
   const [hovered, setHovered] = useState<MapUnit | null>(null);
 
@@ -91,6 +110,16 @@ export default function DrillMap({
   return (
     <section aria-label={title}>
       <h2>{title}</h2>
+      {note}
+      {geometry.status === "loading" ? null : (
+        <RenderNote
+          drawn={drawn}
+          cycle={cycle}
+          unitNoun={unitNoun}
+          reason={fallback}
+        />
+      )}
+      <p className={styles.tierCaption}>{caption}</p>
       <Legend />
 
       {geometry.status === "loading" ? (
@@ -126,14 +155,6 @@ export default function DrillMap({
           : ""}
       </p>
 
-      {drawn ? <p className={styles.hoverLine}>{caption}</p> : null}
-
-      {fallback !== null ? (
-        <p className={styles.hoverLine}>
-          {fallback} Each square below is one {unitNoun}, coloured by front. The
-          squares are in no particular place.
-        </p>
-      ) : null}
     </section>
   );
 }

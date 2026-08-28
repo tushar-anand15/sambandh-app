@@ -58,7 +58,13 @@ export type TelemetryEvent =
       section: string;
     }
   | { name: "year_changed"; section: string; from: string | null; to: string | null }
-  | { name: "map_drill"; level: "district" | "body" | "ward"; cycle: number | null }
+  // "block" is the block panchayat tier, which sits between a district and a
+  // grama panchayat. It is its own level because it is its own election.
+  | {
+      name: "map_drill";
+      level: "district" | "block" | "body" | "ward";
+      cycle: number | null;
+    }
   | {
       name: "csv_download";
       section: string;

@@ -210,6 +210,27 @@ async def fronts(request: Request, cycle: int):
     district: those are separate elections to separate bodies, and a district
     with a UDF district panchayat can hold a majority of LDF grama panchayats.
 
+    That holds at every level below it too, and the map has three of them. A
+    voter in rural Kerala casts three ballots — a grama panchayat ward, a block
+    panchayat ward, a district panchayat ward — to three bodies elected
+    separately over the same ground. So a block panchayat's front in `bodies`
+    is that block panchayat's own result and never a summary of the grama
+    panchayats inside it, exactly as a district's is never a summary of the
+    bodies inside it. The map draws one tier at a time for the same reason:
+    stacking two would invite the reading that the upper one aggregates the
+    lower, and nothing about the picture would look wrong enough to correct it.
+
+    Which grama panchayats sit inside a given block panchayat is not in this
+    payload, because it is not in the database: `core.local_body` carries a
+    body's district and its type and no parent. It is derived from the
+    published geometry at `/geo/block-membership.json`, and carried per body by
+    `/api/bodies`.
+
+    Bodies that contested in 2010 and had no successor are in `bodies` like any
+    other, with their result, and appear in no boundary layer at any level.
+    Their `last_cycle` is 2010, which is what a caller reads to say they could
+    not be placed rather than dropping them.
+
     A body with no row for this cycle has a null front. The reason is the
     body's own cycle range, which `/api/bodies` already carries, so it is not
     repeated here.

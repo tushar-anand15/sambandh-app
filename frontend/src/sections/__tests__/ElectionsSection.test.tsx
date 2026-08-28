@@ -75,15 +75,17 @@ beforeEach(() => {
 });
 
 describe("the map, three levels deep", () => {
-  it("opens a district's local bodies and moves the breadcrumb", async () => {
+  it("opens a district on its block panchayats and moves the breadcrumb", async () => {
     const user = userEvent.setup();
     renderAt("/elections?cycle=2025");
 
-    await user.click(await screen.findByRole("button", { name: /open the .* in THRISSUR/ }));
+    await user.click(await screen.findByRole("button", { name: /THRISSUR/ }));
 
+    // A district is three elections, and the block panchayats are the tier the
+    // site could not reach at all before. That is where it opens.
     expect(address()).toBe("/elections?cycle=2025&district=THRISSUR");
     expect(
-      await screen.findByRole("button", { name: /open the wards of Chalakudy/ }),
+      await screen.findByRole("heading", { name: /Block panchayats in THRISSUR/ }),
     ).toBeInTheDocument();
 
     const crumbs = screen.getByRole("navigation", { name: "Map level" });
@@ -91,9 +93,25 @@ describe("the map, three levels deep", () => {
     expect(within(crumbs).getByText("THRISSUR")).toHaveAttribute("aria-current", "page");
   });
 
-  it("opens a body's wards and populates the ward table", async () => {
+  it("puts the chosen tier in the address", async () => {
     const user = userEvent.setup();
     renderAt("/elections?cycle=2025&district=THRISSUR");
+
+    await user.click(
+      await screen.findByRole("button", { name: /Grama panchayats and urban bodies/ }),
+    );
+
+    expect(address()).toBe(
+      "/elections?cycle=2025&district=THRISSUR&tier=grama_panchayat",
+    );
+    expect(
+      await screen.findByRole("button", { name: /open the wards of Chalakudy/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens a body's wards and populates the ward table", async () => {
+    const user = userEvent.setup();
+    renderAt("/elections?cycle=2025&district=THRISSUR&tier=grama_panchayat");
 
     await user.click(await screen.findByRole("button", { name: /open the wards of Chalakudy/ }));
 
@@ -138,10 +156,10 @@ describe("the map, three levels deep", () => {
     const user = userEvent.setup();
     renderAt("/elections?cycle=2025");
 
-    await user.hover(await screen.findByRole("button", { name: /open the .* in THRISSUR/ }));
+    await user.hover(await screen.findByRole("button", { name: /THRISSUR/ }));
 
     expect(screen.getByTestId("map-hover")).toHaveTextContent(
-      /THRISSUR.*Click to open the .* local bodies in THRISSUR\./,
+      /THRISSUR.*Click to open the three tiers elected in THRISSUR\./,
     );
   });
 });
@@ -151,12 +169,19 @@ describe("what the drill-down reports", () => {
     const user = userEvent.setup();
     renderAt("/elections?cycle=2025");
 
-    await user.click(await screen.findByRole("button", { name: /open the .* in THRISSUR/ }));
+    await user.click(await screen.findByRole("button", { name: /THRISSUR/ }));
     expect(tracked).toHaveBeenCalledWith({
       name: "map_drill",
       level: "district",
       cycle: 2025,
     });
+
+    // Choosing a tier is not a step down the map: it changes which of the
+    // district's three elections is on screen, not which body is open.
+    await user.click(
+      await screen.findByRole("button", { name: /Grama panchayats and urban bodies/ }),
+    );
+    expect(tracked).toHaveBeenCalledTimes(1);
 
     await user.click(await screen.findByRole("button", { name: /open the wards of Chalakudy/ }));
     expect(tracked).toHaveBeenLastCalledWith({
@@ -188,7 +213,7 @@ describe("what the drill-down reports", () => {
     const user = userEvent.setup();
     renderAt("/elections?cycle=2025");
 
-    await user.hover(await screen.findByRole("button", { name: /open the .* in THRISSUR/ }));
+    await user.hover(await screen.findByRole("button", { name: /THRISSUR/ }));
 
     expect(tracked).not.toHaveBeenCalled();
   });
@@ -216,7 +241,7 @@ describe("the cycle", () => {
 
     expect(address()).toBe("/elections?cycle=2020&district=THRISSUR");
     expect(
-      await screen.findByRole("button", { name: /open the wards of Chalakudy/ }),
+      await screen.findByRole("heading", { name: /Block panchayats in THRISSUR by ruling front, 2020/ }),
     ).toBeInTheDocument();
   });
 });
@@ -267,12 +292,18 @@ describe("what is missing, stated", () => {
   });
 
   it("lists a body with no boundary polygon, with its reason", async () => {
-    renderAt("/elections?cycle=2025&district=KANNUR");
+    // Panoor contested in 2015 and no layer holds a polygon for it. It is not
+    // dropped from the page for that: the result is published, the shape is
+    // what is missing, and those are different facts.
+    renderAt("/elections?cycle=2015&district=KANNUR&tier=grama_panchayat");
 
     expect(
-      await screen.findByText(/not on the\s+map\. No boundary has been published for them/),
+      await screen.findByText(/In this cycle, not on this map/),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Panoor, Grama Panchayat/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/holds no polygon for these bodies, so they are not drawn/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Panoor" })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /open the wards of Panoor/ }),
     ).not.toBeInTheDocument();
@@ -457,5 +488,192 @@ describe("the sources", () => {
     expect(payload.type).toBe("FeatureCollection");
     expect(Object.keys(payload.provenance).length).toBeGreaterThan(0);
     expect(payload.provenance.licence).toMatch(/licence/i);
+  });
+});
+
+/**
+ * The three rural tiers.
+ *
+ * A voter in rural Kerala casts three ballots — a grama panchayat ward, a
+ * block panchayat ward, a district panchayat ward — to three bodies elected
+ * separately over the same ground. The fixture slice has no district holding
+ * both a block panchayat and its grama panchayats, so these cases build one:
+ * a district panchayat, two block panchayats, three grama panchayats and a
+ * municipality that belongs to none of them.
+ */
+describe("the three elections a district holds", () => {
+  const DISTRICT = "THRISSUR";
+
+  const tierBodies = [
+    { code: "D08001", name: "Thrissur DP", type: "District Panchayat", front: "LDF" },
+    { code: "B08076", name: "Chalakudy Block", type: "Block Panchayat", front: "UDF" },
+    { code: "B08077", name: "Mala Block", type: "Block Panchayat", front: "LDF" },
+    { code: "G08001", name: "Kadukutty", type: "Grama Panchayat", front: "LDF" },
+    { code: "G08002", name: "Koratty", type: "Grama Panchayat", front: "LDF" },
+    { code: "G08003", name: "Annamanada", type: "Grama Panchayat", front: "UDF" },
+    { code: "M08032", name: "Chalakudy", type: "Municipality", front: "UDF" },
+  ];
+
+  /** Two of the three grama panchayats are in the first block, one in the second. */
+  const OF_BLOCK: Record<string, string> = {
+    G08001: "B08076",
+    G08002: "B08076",
+    G08003: "B08077",
+  };
+
+  function useTierFixture(lastCycleOf: Record<string, number> = {}) {
+    server.use(
+      http.get("*/api/bodies", () =>
+        HttpResponse.json({
+          bodies: tierBodies.map((body) => ({
+            lb_code: body.code,
+            lb_name_en: body.name,
+            lb_name_ml: null,
+            district_name: DISTRICT,
+            lb_type: body.type,
+            has_finances: false,
+            has_meetings: false,
+            has_geometry: true,
+            in_elections: true,
+            first_cycle: 2010,
+            last_cycle: lastCycleOf[body.code] ?? 2025,
+            finance_years: [],
+            meeting_years: [],
+            years_with_finance: 0,
+            years_with_meetings: 0,
+            block_lb_code: OF_BLOCK[body.code] ?? null,
+            district_panchayat_lb_code:
+              body.type === "Grama Panchayat" ? "D08001" : null,
+          })),
+          count: tierBodies.length,
+          districts: [DISTRICT],
+          financial_years: [],
+          cycles: [2010, 2015, 2020, 2025],
+          provenance,
+        }),
+      ),
+      http.get("*/api/elections/fronts/:cycle", ({ params }) => {
+        const cycle = Number((params as { cycle: string }).cycle);
+        const entries = tierBodies
+          .filter((body) => cycle <= (lastCycleOf[body.code] ?? 2025))
+          .map((body) => ({
+            lb_code: body.code,
+            district_name: DISTRICT,
+            lb_type: body.type,
+            ruling_front: body.front,
+            control_type: "majority",
+            total_wards: 13,
+          }));
+        const dp = entries.find((e) => e.lb_type === "District Panchayat");
+        return HttpResponse.json({
+          cycle,
+          bodies: entries,
+          districts: [
+            {
+              district_name: DISTRICT,
+              bodies: entries.length,
+              lb_code: dp?.lb_code ?? null,
+              ruling_front: dp?.ruling_front ?? null,
+              control_type: dp?.control_type ?? null,
+            },
+          ],
+          count: entries.length,
+          provenance,
+        });
+      }),
+      http.get("*/geo/block-membership.json", () =>
+        HttpResponse.json({
+          of_block: OF_BLOCK,
+          blocks: [
+            { lb_code: "B08076", grama_panchayats: ["G08001", "G08002"] },
+            { lb_code: "B08077", grama_panchayats: ["G08003"] },
+          ],
+          count: 3,
+          blocks_count: 2,
+        }),
+      ),
+    );
+  }
+
+  it("opens a block panchayat on the grama panchayats inside it", async () => {
+    useTierFixture();
+    const user = userEvent.setup();
+    renderAt(`/elections?cycle=2025&district=${DISTRICT}`);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: /open the grama panchayats in Chalakudy Block/,
+      }),
+    );
+
+    expect(address()).toBe(
+      "/elections?cycle=2025&district=THRISSUR&block=B08076",
+    );
+    // Its two grama panchayats and neither of the other block's.
+    expect(
+      await screen.findByRole("button", { name: /open the wards of Kadukutty/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /open the wards of Koratty/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /open the wards of Annamanada/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says the clicked body's own result is not a summary of the tier below", async () => {
+    useTierFixture();
+    renderAt(`/elections?cycle=2025&district=${DISTRICT}&block=B08076`);
+
+    const line = await screen.findByText(/Chalakudy Block Block Panchayat/);
+    expect(line.parentElement).toHaveTextContent(/was won by UDF majority/);
+    expect(line.parentElement).toHaveTextContent(
+      /their colours are not a summary of this one/,
+    );
+    // Its own grama panchayats are LDF. The block is UDF. That is the case the
+    // sentence exists for.
+    expect(
+      screen.getByRole("button", { name: /open the wards of Kadukutty/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("lists urban bodies alongside the block panchayats rather than inside one", async () => {
+    useTierFixture();
+    renderAt(`/elections?cycle=2025&district=${DISTRICT}`);
+
+    expect(
+      await screen.findByText(/listed alongside and not on this map/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Chalakudy" })).toBeInTheDocument();
+    // A municipality is in no block, so it is not on the block map either.
+    expect(
+      screen.queryByRole("button", { name: /Chalakudy\. Municipality/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("names the bodies that contested in 2010 and were never placed", async () => {
+    // Annamanada's last election was 2010: it was absorbed into a municipality
+    // in 2015, before any boundary layer was drawn, so no map of any cycle has
+    // a place for it. Its result is published all the same.
+    useTierFixture({ G08003: 2010 });
+    renderAt(`/elections?cycle=2010&district=${DISTRICT}`);
+
+    expect(
+      await screen.findByText(/Contested in 2010, no position published/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Annamanada" })).toBeInTheDocument();
+    expect(
+      screen.getByText(/Their results are here; a place on the map is what does not exist/),
+    ).toBeInTheDocument();
+  });
+
+  it("says whether the shapes on screen are boundaries or squares", async () => {
+    useTierFixture();
+    renderAt(`/elections?cycle=2010&district=${DISTRICT}`);
+
+    // 2010 has no layer at any level, deliberately, so everything is squares
+    // and the page says so rather than letting a grid read as geography.
+    expect(await screen.findByText(/Squares, not boundaries/)).toBeInTheDocument();
+    expect(screen.queryByText(/Published boundaries/)).not.toBeInTheDocument();
   });
 });

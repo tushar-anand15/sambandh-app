@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 
 import type { GeoCollection } from "./geometry";
 import type { CyclePayload, FrontsPayload, MapsPayload } from "./payload";
+import type { Level, Tier } from "./selection";
 
 export type Fetched<T> =
   | { status: "idle" }
@@ -83,6 +84,31 @@ export function useFronts(cycle: number): Fetched<FrontsPayload> {
 /** The boundary layer inventory, its licences and what this server holds. */
 export function useMaps(): Fetched<MapsPayload> {
   return useJson<MapsPayload>("/api/maps", "The list of boundary files");
+}
+
+/**
+ * Which block panchayat each grama panchayat sits in.
+ *
+ * The master database carries a body's district and its type and no parent, so
+ * this is derived server-side from the published geometry — a block panchayat
+ * is exactly the union of its grama panchayats. It is one small payload for
+ * the whole state, cached hard, and it is what lets the reader ask "which
+ * grama panchayats are in this block?" at all.
+ *
+ * It is stated once, not per cycle: every layer the build publishes is
+ * crosswalked onto the same boundary snapshot, so a per-cycle answer would be
+ * the same answer three times. Bodies the layers do not hold are simply absent
+ * from it, which is how the page knows they cannot be placed.
+ */
+export interface BlockMembership {
+  of_block: Record<string, string>;
+  blocks: { lb_code: string; grama_panchayats: string[] }[];
+  count: number;
+  blocks_count: number;
+}
+
+export function useBlockMembership(): Fetched<BlockMembership> {
+  return useJson<BlockMembership>("/geo/block-membership.json", "The block membership");
 }
 
 // ---------------------------------------------------------------------------
@@ -154,16 +180,34 @@ export function useGeometry(url: string | null): GeometryState {
   return state;
 }
 
-/** The address of the slice one map level needs. */
+/**
+ * The address of the slice one map level needs.
+ *
+ * One tier per request, always. The three rural tiers cover the same ground,
+ * and asking for two of them at once would stack polygons and invite the
+ * reading that the upper tier summarises the lower one. It does not: each is
+ * its own ballot to its own body.
+ */
 export function geometryUrl(
-  level: "state" | "district" | "body" | "ward",
+  level: Level,
   cycle: number,
   district: string | null,
   lbCode: string | null,
+  tier: Tier = "block_panchayat",
+  block: string | null = null,
 ): string | null {
+  const name = district ? encodeURIComponent(district) : null;
+
   if (level === "state") return `/geo/districts/${cycle}.geojson`;
   if (level === "district") {
-    return district ? `/geo/local-bodies/${encodeURIComponent(district)}.geojson?cycle=${cycle}` : null;
+    if (!name) return null;
+    return tier === "block_panchayat"
+      ? `/geo/blocks/${name}.geojson?cycle=${cycle}`
+      : `/geo/local-bodies/${name}.geojson?cycle=${cycle}`;
+  }
+  if (level === "block") {
+    if (!name || !block) return null;
+    return `/geo/local-bodies/${name}.geojson?cycle=${cycle}&block=${encodeURIComponent(block)}`;
   }
   return lbCode ? `/geo/wards/${encodeURIComponent(lbCode)}.geojson?cycle=${cycle}` : null;
 }

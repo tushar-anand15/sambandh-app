@@ -557,15 +557,83 @@ export const handlers = [
     });
   }),
 
-  http.get("*/geo/local-bodies/:district.geojson", ({ params, request }) => {
+  // Which grama panchayat sits in which block panchayat. Derived from the
+  // fixture rather than written out, so it cannot claim a parentage the bodies
+  // list does not support: a grama panchayat is placed in a block panchayat of
+  // its own district, and in nothing where its district has none.
+  http.get("*/geo/block-membership.json", () => {
+    const blockOf: Record<string, string> = {};
+    for (const body of bodies) {
+      if (body.lb_type !== "Grama Panchayat") continue;
+      const block = bodies.find(
+        (other) =>
+          other.lb_type === "Block Panchayat" &&
+          other.district_name === body.district_name,
+      );
+      if (block) blockOf[body.lb_code] = block.lb_code;
+    }
+
+    const grouped: Record<string, string[]> = {};
+    for (const [gp, block] of Object.entries(blockOf)) {
+      (grouped[block] ??= []).push(gp);
+    }
+
+    return HttpResponse.json({
+      of_block: blockOf,
+      blocks: Object.entries(grouped).map(([lb_code, grama_panchayats]) => ({
+        lb_code,
+        grama_panchayats,
+      })),
+      count: Object.keys(blockOf).length,
+      blocks_count: Object.keys(grouped).length,
+    });
+  }),
+
+  // The block panchayat tier. Its own level, because it is its own election:
+  // a block panchayat's polygon is never drawn under or over another tier's.
+  http.get("*/geo/blocks/:district.geojson", ({ params, request }) => {
     const cycle = Number(new URL(request.url).searchParams.get("cycle"));
-    if (!LOCAL_BODY_CYCLES.includes(cycle)) return noLayer("local body", cycle);
+    if (!LOCAL_BODY_CYCLES.includes(cycle)) return noLayer("block panchayat", cycle);
 
     const district = (params as { district: string }).district.toUpperCase();
     const drawn = bodies.filter(
       (body) =>
         body.district_name === district &&
+        body.lb_type === "Block Panchayat" &&
+        !NO_POLYGON.has(body.lb_code),
+    );
+
+    return HttpResponse.json({
+      type: "FeatureCollection",
+      level: "block_panchayat",
+      cycle,
+      district_name: district,
+      key_property: "lb_code",
+      features: drawn.map((body, i) =>
+        square(i, {
+          lb_code: body.lb_code,
+          lb_name: body.lb_name_en,
+          lb_type: body.lb_type,
+          district_name: body.district_name,
+        }),
+      ),
+    });
+  }),
+
+  http.get("*/geo/local-bodies/:district.geojson", ({ params, request }) => {
+    const url = new URL(request.url);
+    const cycle = Number(url.searchParams.get("cycle"));
+    if (!LOCAL_BODY_CYCLES.includes(cycle)) return noLayer("local body", cycle);
+
+    const district = (params as { district: string }).district.toUpperCase();
+    const block = url.searchParams.get("block");
+    const drawn = bodies.filter(
+      (body) =>
+        body.district_name === district &&
         DIRECT_TYPES.has(body.lb_type) &&
+        // Inside one block, only its grama panchayats: no block panchayat
+        // contains a municipality or a corporation.
+        (block === null || body.lb_type === "Grama Panchayat") &&
         !NO_POLYGON.has(body.lb_code),
     );
 
@@ -574,6 +642,7 @@ export const handlers = [
       level: "local_body",
       cycle,
       district_name: district,
+      ...(block === null ? {} : { block_lb_code: block }),
       key_property: "lb_code",
       features: drawn.map((body, i) =>
         square(i, {

@@ -117,3 +117,53 @@ async def test_the_counts_are_the_lengths_of_the_lists(client):
     for body in payload["bodies"]:
         assert body["years_with_meetings"] == len(body["meeting_years"])
         assert body["years_with_finance"] == len(body["finance_years"])
+
+
+# ---------------------------------------------------------------------------
+# The two tiers above a grama panchayat
+#
+# A voter in rural Kerala elects three bodies over the same ground. The
+# database carries a body's district and its type and no parent, so the
+# explorer could not ask which grama panchayats sit inside a given block. These
+# two fields are that answer, and they are null wherever it is not knowable
+# rather than guessed.
+# ---------------------------------------------------------------------------
+
+
+async def test_urban_bodies_carry_no_parent(client):
+    """Municipalities and corporations sit outside the rural hierarchy."""
+    payload = (await client.get("/api/bodies")).json()
+    by_code = {b["lb_code"]: b for b in payload["bodies"]}
+
+    assert by_code["M08032"]["block_lb_code"] is None
+    assert by_code["M08032"]["district_panchayat_lb_code"] is None
+    # A block panchayat is a parent, not a child. So is a district panchayat.
+    assert by_code["B03024"]["block_lb_code"] is None
+    assert by_code["D12001"]["district_panchayat_lb_code"] is None
+
+
+async def test_a_grama_panchayats_district_panchayat_is_its_districts(client):
+    payload = (await client.get("/api/bodies")).json()
+    by_code = {b["lb_code"]: b for b in payload["bodies"]}
+    wayanad = by_code["D12001"]["district_name"]
+
+    for body in payload["bodies"]:
+        if body["lb_type"] != "Grama Panchayat":
+            continue
+        expected = "D12001" if body["district_name"] == wayanad else None
+        assert body["district_panchayat_lb_code"] == expected
+
+
+async def test_the_block_parent_is_null_where_no_layer_is_mounted(client, monkeypatch):
+    """Not a guess and not a nearest neighbour. Absent, so the page can say so."""
+    from app import geo_store
+    from app.config import settings
+
+    geo_store.reset_geo_cache()
+    monkeypatch.setattr(settings, "geo_dir", "")
+    try:
+        payload = (await client.get("/api/bodies")).json()
+    finally:
+        geo_store.reset_geo_cache()
+
+    assert all(b["block_lb_code"] is None for b in payload["bodies"])

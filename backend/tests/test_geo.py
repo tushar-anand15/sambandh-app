@@ -183,6 +183,15 @@ LOCAL_BODIES = {
         ),
         feature(
             {
+                "lb_code": "D01001",
+                "lb_name": "Alpha District Panchayat",
+                "lb_type": "District Panchayat",
+                "district_name": "ALPHA",
+            },
+            [[[0, 0], [2, 0], [2, 1], [0, 1], [0, 0]]],
+        ),
+        feature(
+            {
                 "lb_code": "M02001",
                 "lb_name": "Beta Town",
                 "lb_type": "Municipality",
@@ -247,11 +256,72 @@ WARDS = {
 }
 
 
+# The 2025 tier layers are shaped differently from the 2015/2020 one: they hold
+# one feature per *division*, not one per body, so a block panchayat's outline
+# has to be dissolved from its own wards. Alpha Block's two divisions share the
+# edge at x=1 and must come back as one rectangle.
+BLOCK_DIVISIONS = {
+    "type": "FeatureCollection",
+    "provenance": {"licence": "KSMART wardmap, no open licence published"},
+    "features": [
+        feature(
+            {
+                "lb_code": "B01001",
+                "lb_name": "Alpha Block",
+                "lb_type": "Block Panchayat",
+                "district_name": "ALPHA",
+                "ward_code": "B010011",
+                "ward_no": "1",
+                "ward_name": "ALPHA WEST DIVISION",
+            },
+            square(0, 0),
+        ),
+        feature(
+            {
+                "lb_code": "B01001",
+                "lb_name": "Alpha Block",
+                "lb_type": "Block Panchayat",
+                "district_name": "ALPHA",
+                "ward_code": "B010012",
+                "ward_no": "2",
+                "ward_name": "ALPHA EAST DIVISION",
+            },
+            square(1, 0),
+        ),
+    ],
+}
+
+DP_DIVISIONS = {
+    "type": "FeatureCollection",
+    "provenance": {"licence": "KSMART wardmap, no open licence published"},
+    "features": [
+        feature(
+            {
+                "lb_code": "D01001",
+                "lb_name": "Alpha District Panchayat",
+                "lb_type": "District Panchayat",
+                "district_name": "ALPHA",
+                "ward_code": "D010011",
+                "ward_no": "1",
+                "ward_name": "ALPHA DIVISION",
+            },
+            [[[0, 0], [2, 0], [2, 1], [0, 1], [0, 0]]],
+        ),
+    ],
+}
+
+
 @pytest.fixture
 def layers(tmp_path, monkeypatch):
-    """A directory holding a 2025 ward layer and three local-body layers."""
+    """A directory holding every layer the build publishes, at fixture size."""
     (tmp_path / "wards_2025.geojson").write_text(
         json.dumps(WARDS, ensure_ascii=False), encoding="utf-8"
+    )
+    (tmp_path / "block_panchayats_2025.geojson").write_text(
+        json.dumps(BLOCK_DIVISIONS), encoding="utf-8"
+    )
+    (tmp_path / "district_panchayats_2025.geojson").write_text(
+        json.dumps(DP_DIVISIONS), encoding="utf-8"
     )
     for year in (2015, 2020, 2025):
         (tmp_path / f"local_bodies_{year}.geojson").write_text(
@@ -436,3 +506,136 @@ def test_simplify_drops_a_point_on_the_line_and_keeps_the_corner():
 
 def test_simplify_keeps_the_ends_of_a_two_point_ring():
     assert geo_store.simplify([(0.0, 0.0), (1.0, 1.0)], 10.0) == [(0.0, 0.0), (1.0, 1.0)]
+
+
+# ---------------------------------------------------------------------------
+# Tiers
+#
+# Three separately elected bodies cover the same ground: a grama panchayat, the
+# block panchayat above it, the district panchayat above that. The filter that
+# used to keep them from stacking was global, which meant the two upper tiers
+# could never be drawn at all. It is a choice of level now, and these tests
+# pin both halves of that: each level answers its own tier complete, and no
+# level answers two.
+# ---------------------------------------------------------------------------
+
+
+async def test_a_block_tier_is_served_from_the_body_layer(client, layers):
+    """2015 and 2020 draw block panchayats as whole bodies."""
+    payload = (await client.get("/geo/blocks/ALPHA.geojson?cycle=2020")).json()
+
+    assert payload["level"] == "block_panchayat"
+    assert payload["key_property"] == "lb_code"
+    assert [f["properties"]["lb_code"] for f in payload["features"]] == ["B01001"]
+
+
+async def test_a_block_tier_is_dissolved_from_divisions_for_2025(client, layers):
+    """2025 publishes block panchayat *wards*, so the body is their union.
+
+    Two divisions sharing the edge at x=1 come back as one rectangle. A map
+    that drew them undissolved would show an internal line that is a division
+    boundary, not a block boundary.
+    """
+    payload = (await client.get("/geo/blocks/ALPHA.geojson?cycle=2025")).json()
+
+    assert [f["properties"]["lb_code"] for f in payload["features"]] == ["B01001"]
+    geometry = payload["features"][0]["geometry"]
+    assert len(geometry["coordinates"]) == 1
+    assert {(x, y) for x, y in geometry["coordinates"][0][0]} == {
+        (0.0, 0.0),
+        (2.0, 0.0),
+        (2.0, 1.0),
+        (0.0, 1.0),
+    }
+
+
+async def test_no_tier_is_drawn_under_another(client, layers):
+    """The three levels are disjoint. Each answers its own and nothing else."""
+    first = (await client.get("/geo/local-bodies/ALPHA.geojson?cycle=2020")).json()
+    blocks = (await client.get("/geo/blocks/ALPHA.geojson?cycle=2020")).json()
+    districts = (await client.get("/geo/district-panchayats/2020.geojson")).json()
+
+    def codes(payload):
+        return {f["properties"]["lb_code"] for f in payload["features"]}
+
+    assert codes(first) == {"G01001", "G01002"}
+    assert codes(blocks) == {"B01001"}
+    assert codes(districts) == {"D01001"}
+    assert codes(first) & codes(blocks) == set()
+    assert codes(blocks) & codes(districts) == set()
+
+
+async def test_district_panchayats_are_the_body_not_the_district(client, layers):
+    """`/geo/districts` draws the administrative district; this draws the body."""
+    payload = (await client.get("/geo/district-panchayats/2025.geojson")).json()
+
+    assert payload["level"] == "district_panchayat"
+    assert [f["properties"]["lb_code"] for f in payload["features"]] == ["D01001"]
+
+
+async def test_a_tier_with_no_layer_for_the_cycle_says_which_level(client, layers):
+    response = await client.get("/geo/blocks/ALPHA.geojson?cycle=2010")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == (
+        "No block panchayat boundaries have been published for the 2010 election."
+    )
+
+
+async def test_a_block_panchayats_own_divisions_are_its_wards(client, layers):
+    """A block panchayat's ward map comes from its own layer, not the GP one."""
+    payload = (await client.get("/geo/wards/B01001.geojson?cycle=2025")).json()
+
+    assert payload["level"] == "ward"
+    assert [f["properties"]["ward_no"] for f in payload["features"]] == ["1", "2"]
+
+
+async def test_a_district_panchayats_own_divisions_are_its_wards(client, layers):
+    payload = (await client.get("/geo/wards/D01001.geojson?cycle=2025")).json()
+
+    assert [f["properties"]["ward_no"] for f in payload["features"]] == ["1"]
+
+
+# ---------------------------------------------------------------------------
+# Membership
+# ---------------------------------------------------------------------------
+
+
+async def test_membership_places_every_grama_panchayat_in_its_block(client, layers):
+    payload = (await client.get("/geo/block-membership.json")).json()
+
+    assert payload["of_block"] == {"G01001": "B01001", "G01002": "B01001"}
+    assert payload["blocks"] == [
+        {"lb_code": "B01001", "grama_panchayats": ["G01001", "G01002"]}
+    ]
+    assert payload["count"] == 2
+    assert payload["blocks_count"] == 1
+
+
+async def test_membership_leaves_urban_bodies_out(client, layers):
+    """No block panchayat contains a municipality or a corporation."""
+    payload = (await client.get("/geo/block-membership.json")).json()
+
+    assert "M02001" not in payload["of_block"]
+    assert "C02001" not in payload["of_block"]
+
+
+async def test_one_blocks_grama_panchayats_can_be_asked_for(client, layers):
+    payload = (
+        await client.get("/geo/local-bodies/ALPHA.geojson?cycle=2025&block=B01001")
+    ).json()
+
+    assert payload["block_lb_code"] == "B01001"
+    assert sorted(f["properties"]["lb_code"] for f in payload["features"]) == [
+        "G01001",
+        "G01002",
+    ]
+
+
+async def test_an_unmounted_server_has_no_membership_rather_than_a_guess(
+    client, unmounted
+):
+    payload = (await client.get("/geo/block-membership.json")).json()
+
+    assert payload["of_block"] == {}
+    assert payload["count"] == 0

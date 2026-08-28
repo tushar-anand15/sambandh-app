@@ -500,3 +500,170 @@
   margin-block: 0 var(--s1);
   break-inside: avoid;
 }
+
+/* ---------------------------------------------------------------------------
+   Tiers.
+
+   The three rural tiers are three elections over one piece of ground, and none
+   of them summarises another. Most of what follows is that sentence in
+   different places: the control that chooses a tier, the line that carries the
+   clicked body's own result over the tier below it, the note that says whether
+   the shapes on screen are boundaries, and the two lists of bodies that belong
+   to the district but not to the map — urban bodies, which are outside the
+   hierarchy, and the 2010 bodies, which have no published position at all.
+
+   None of it is painted with the accent. #ff6653 sits close to LDF red, and a
+   panel bordered in it beside a map of fronts reads as a fifth front.
+   --------------------------------------------------------------------------- */
+
+.tierPicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s2) var(--s4);
+  margin-block: var(--s4) var(--s4);
+  padding-block: var(--s3);
+  border-block: 1px solid var(--rule);
+}
+
+.tierLabel {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.tierLink {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+}
+
+.tierButton {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  padding: var(--s1) var(--s3);
+  background: transparent;
+  color: var(--ink-2);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.tierButton:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+
+/* Pressed is ink on surface, not accent on surface: the control sits inches
+   from four front colours and must not read as a fifth. */
+.tierButton[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+
+/* What the map is, in words. Sits above the map, because a reader who has
+   already formed a reading of the colours will not go looking for a caption. */
+.tierCaption {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  max-width: 78ch;
+  margin-block: var(--s3) 0;
+}
+
+/* Boundaries or squares. The undrawn case gets the heavier rule, because that
+   is the one a reader can misread. */
+.renderNote {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  max-width: 78ch;
+  border-inline-start: 2px solid var(--ink-3);
+  padding-inline-start: var(--s3);
+  margin-block: var(--s3) 0;
+}
+
+.renderNoteDrawn {
+  border-inline-start-color: var(--rule-2);
+}
+
+/* The clicked body's own result, above the tier it opened. */
+.ownResult {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  max-width: 78ch;
+  padding-block: var(--s3);
+  border-block: 1px solid var(--rule);
+  margin-block: var(--s3) 0;
+}
+
+.ownSwatch {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: var(--radius);
+}
+
+/* Urban bodies: in the district, outside the hierarchy. */
+.alongside,
+.unplaced {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  max-width: 78ch;
+  border-block-start: 1px solid var(--rule);
+  padding-block-start: var(--s3);
+  margin-block: var(--s5) 0;
+}
+
+.alongsideLabel,
+.unplacedLabel {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-block: 0 var(--s2);
+}
+
+.alongsideNote {
+  margin-block: 0 var(--s2);
+}
+
+.alongsideList,
+.unplacedList {
+  list-style: none;
+  padding: 0;
+  margin-block: var(--s2) 0;
+  columns: 2;
+}
+
+.alongsideList li,
+.unplacedList li {
+  margin-block: 0 var(--s1);
+  break-inside: avoid;
+}
+
+.alongsideSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius);
+  display: inline-block;
+  margin-inline-end: var(--s2);
+}
+
+.alongsideMeta {
+  color: var(--ink-3);
+}

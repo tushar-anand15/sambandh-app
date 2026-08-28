@@ -112,11 +112,73 @@ LOCAL_BODY_LAYER: dict[int, str] = {
     2025: "local_bodies_2025.geojson",
 }
 
-# The three levels that tile the state exactly once. The 2015 and 2020 layers
-# also carry Block and District Panchayat polygons, which cover the same ground
-# a second and third time; drawing them together would stack three polygons on
-# every point in Kerala.
-DIRECT_TYPES = frozenset({"Grama Panchayat", "Municipality", "Corporation"})
+# ---------------------------------------------------------------------------
+# Tiers
+# ---------------------------------------------------------------------------
+
+# A voter in rural Kerala elects three bodies over the same ground: a grama
+# panchayat, a block panchayat and a district panchayat. Each is drawn on its
+# own map, never on top of another, so a tier is a *choice of level* rather
+# than a filter applied everywhere. `TIERS` names which `lb_type` values belong
+# to each choice; a request names one tier and gets the complete set at it.
+#
+# Municipalities and Corporations sit in the first tier because that is the
+# level they tile at, but they are outside the rural hierarchy: no block
+# panchayat contains one, and they are listed alongside a district's blocks
+# rather than nested under them.
+GRAMA_PANCHAYAT = "Grama Panchayat"
+BLOCK_PANCHAYAT = "Block Panchayat"
+DISTRICT_PANCHAYAT = "District Panchayat"
+
+TIERS: dict[str, frozenset[str]] = {
+    "local_body": frozenset({GRAMA_PANCHAYAT, "Municipality", "Corporation"}),
+    "block_panchayat": frozenset({BLOCK_PANCHAYAT}),
+    "district_panchayat": frozenset({DISTRICT_PANCHAYAT}),
+}
+
+# The tier that tiles the state exactly once and is what a district outline is
+# dissolved from. Named separately because `districts_of` means this set and
+# not "whatever tier was asked for".
+DIRECT_TYPES = TIERS["local_body"]
+
+# Where each tier's geometry comes from, per cycle.
+#
+# 2015 and 2020 publish all three tiers as *body* polygons in one file. 2025
+# publishes the first tier as bodies in `local_bodies_2025.geojson` and the
+# other two as **divisions** — 2,252 block panchayat wards and 345 district
+# panchayat wards, one feature per ward, keyed by the body's `lb_code` and the
+# ward's `ward_code`. A block panchayat's outline for 2025 is therefore
+# dissolved from its own divisions rather than read off a feature, which is
+# what `_by_division` records.
+#
+# 2010 is absent from every table here, deliberately: no boundary layer was
+# published for it and none is invented. See `sulekha/src/geo/build/emit.py`.
+BLOCK_LAYER: dict[int, str] = {
+    2015: "local_bodies_2015.geojson",
+    2020: "local_bodies_2020.geojson",
+    2025: "block_panchayats_2025.geojson",
+}
+
+DISTRICT_PANCHAYAT_LAYER: dict[int, str] = {
+    2015: "local_bodies_2015.geojson",
+    2020: "local_bodies_2020.geojson",
+    2025: "district_panchayats_2025.geojson",
+}
+
+# The 2025 tier files hold one feature per division, so a body is the union of
+# its rows. Everything else holds one feature per body.
+DIVISION_LAYERS = frozenset(
+    {"block_panchayats_2025.geojson", "district_panchayats_2025.geojson"}
+)
+
+# The ward layer a body's own divisions come from. Ward geometry exists for the
+# 2025 cycle alone, and which file holds it depends on the tier: a grama
+# panchayat's wards are in `wards_2025.geojson`, a block panchayat's divisions
+# in `block_panchayats_2025.geojson`, a district panchayat's in its own file.
+DIVISION_LAYER_BY_TIER: dict[str, dict[int, str]] = {
+    "block_panchayat": {2025: "block_panchayats_2025.geojson"},
+    "district_panchayat": {2025: "district_panchayats_2025.geojson"},
+}
 
 # Simplification tolerance in degrees, per level, with the distance it stands
 # for at Kerala's latitude. Each is well under half a pixel at the width the
@@ -158,10 +220,31 @@ class LayerIndex:
     provenance: dict[str, Any] | None
     #: lb_code -> [(offset, length)], in the order the file writes them.
     by_code: dict[str, list[tuple[int, int]]] = field(default_factory=dict)
-    #: district_name -> lb_codes, Grama Panchayat / Municipality / Corporation only.
-    direct_by_district: dict[str, list[str]] = field(default_factory=dict)
-    #: lb_code -> district_name, for the bodies above.
+    #: (tier, district_name) -> lb_codes. One entry per tier the file carries,
+    #: so a level can be served without the others being drawn under it.
+    by_tier: dict[tuple[str, str], list[str]] = field(default_factory=dict)
+    #: lb_code -> district_name, for every body in the file.
     district_of: dict[str, str] = field(default_factory=dict)
+    #: lb_code -> lb_type, for every body in the file.
+    type_of: dict[str, str] = field(default_factory=dict)
+    #: lb_code -> lb_name, where the file carries one.
+    name_of: dict[str, str] = field(default_factory=dict)
+
+    @property
+    def direct_by_district(self) -> dict[str, list[str]]:
+        """district_name -> the bodies that tile it exactly once.
+
+        What `districts_of` dissolves and what the first tier serves. Derived
+        from `by_tier` rather than stored beside it, so the two cannot drift.
+        """
+        return {
+            district: codes
+            for (tier, district), codes in self.by_tier.items()
+            if tier == "local_body"
+        }
+
+    def codes(self, tier: str, district: str) -> list[str]:
+        return self.by_tier.get((tier, district), [])
 
 
 _indexes: dict[str, LayerIndex] = {}
@@ -216,11 +299,20 @@ def _build_index(path: Path) -> LayerIndex:
         code = properties.get("lb_code")
         if code:
             index.by_code.setdefault(code, []).append((byte_position, length))
-            if properties.get("lb_type") in DIRECT_TYPES:
-                district = properties.get("district_name")
-                if district and code not in index.district_of:
-                    index.district_of[code] = district
-                    index.direct_by_district.setdefault(district, []).append(code)
+            lb_type = properties.get("lb_type")
+            district = properties.get("district_name")
+            if district and code not in index.district_of:
+                index.district_of[code] = district
+                if lb_type:
+                    index.type_of[code] = lb_type
+                if properties.get("lb_name"):
+                    index.name_of[code] = properties["lb_name"]
+                # A body is listed under exactly one tier, so no level can draw
+                # it twice and no two levels can draw the same ground.
+                for tier, members in TIERS.items():
+                    if lb_type in members:
+                        index.by_tier.setdefault((tier, district), []).append(code)
+                        break
 
         byte_position += length
         previous_end = end
@@ -461,6 +553,9 @@ def _cached(key: tuple, build) -> GeoSlice:
 
 def reset_geo_cache() -> None:
     """Drop every index and slice. For tests, and after a layer is replaced."""
+    global _membership
+    with _membership_lock:
+        _membership = None
     with _index_lock:
         _indexes.clear()
     with _slice_lock:
@@ -500,9 +595,33 @@ def _resolve(filename: str | None, level: str, cycle: int) -> Path:
     return path
 
 
+def _tier_of_code(lb_code: str) -> str:
+    """Which tier a code belongs to, read off the code itself.
+
+    `lb_code` is the master database's own identifier and its first character
+    is the tier: `B` a block panchayat, `D` a district panchayat, `G`/`M`/`C`
+    the bodies that tile the state once. Used only to pick which file a body's
+    own divisions are in, so a wrong guess is a 404 naming the level rather
+    than a wrong shape.
+    """
+    if lb_code.startswith("B"):
+        return "block_panchayat"
+    if lb_code.startswith("D"):
+        return "district_panchayat"
+    return "local_body"
+
+
 def wards_of(lb_code: str, cycle: int) -> GeoSlice:
-    """One body's ward polygons, for a cycle that has ward geometry."""
-    path = _resolve(WARD_LAYER.get(cycle), "ward", cycle)
+    """One body's ward polygons, for a cycle that has ward geometry.
+
+    Which file they are in depends on the body's tier: a grama panchayat's or a
+    municipality's wards are in `wards_2025.geojson`, a block panchayat's
+    divisions in `block_panchayats_2025.geojson`, a district panchayat's in
+    `district_panchayats_2025.geojson`. All three are the 2025 cycle only.
+    """
+    tier = _tier_of_code(lb_code)
+    layer = DIVISION_LAYER_BY_TIER.get(tier, WARD_LAYER)
+    path = _resolve(layer.get(cycle), "ward", cycle)
 
     def build() -> GeoSlice:
         index = _index_for(path)
@@ -520,25 +639,274 @@ def wards_of(lb_code: str, cycle: int) -> GeoSlice:
     return _cached(("wards", str(path), lb_code, cycle), build)
 
 
-def local_bodies_of(district: str, cycle: int) -> GeoSlice:
-    """The Grama Panchayat, Municipality and Corporation polygons of one district."""
+def local_bodies_of(district: str, cycle: int, block: str | None = None) -> GeoSlice:
+    """The Grama Panchayat, Municipality and Corporation polygons of one district.
+
+    `block` narrows the answer to the grama panchayats inside one block
+    panchayat — the third step of the tier drill. Municipalities and
+    Corporations are dropped when it is given, because no block panchayat
+    contains one: they sit outside the rural hierarchy and are listed alongside
+    it rather than inside it.
+    """
     path = _resolve(LOCAL_BODY_LAYER.get(cycle), "local body", cycle)
 
     def build() -> GeoSlice:
         index = _index_for(path)
-        codes = index.direct_by_district.get(district, [])
+        codes = index.codes("local_body", district)
+        if block is not None:
+            membership = block_membership()
+            codes = [code for code in codes if membership.get(code) == block]
         ranges = [span for code in codes for span in index.by_code.get(code, [])]
         features = _read_features(path, ranges)
+        extra: dict[str, Any] = {"district_name": district}
+        if block is not None:
+            extra["block_lb_code"] = block
         return _collection(
             [_simplified_feature(feature, BODY_TOLERANCE) for feature in features],
             index.provenance,
             level="local_body",
             cycle=cycle,
-            district_name=district,
             key_property="lb_code",
+            **extra,
         )
 
-    return _cached(("bodies", str(path), district, cycle), build)
+    return _cached(("bodies", str(path), district, cycle, block), build)
+
+
+def _dissolved_tier(
+    path: Path,
+    index: LayerIndex,
+    codes: list[str],
+    tolerance: float,
+) -> list[dict[str, Any]]:
+    """One feature per body, from a file that publishes its divisions.
+
+    The 2025 block and district panchayat layers hold one feature per ward, so
+    a body's outline is the union of its own rows. `_dissolve` does that by
+    dropping every border two of them share, which holds because divisions
+    scraped from one source carry the identical border vertices.
+    """
+    ranges = [span for code in codes for span in index.by_code.get(code, [])]
+    outlines = _dissolve(_read_features(path, ranges), "lb_code")
+
+    drawn: list[dict[str, Any]] = []
+    for code in codes:
+        rings = [simplify(ring, tolerance) for ring in outlines.get(code, [])]
+        rings = [ring for ring in rings if len(ring) >= 4]
+        if not rings:
+            continue
+        drawn.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "lb_code": code,
+                    "lb_name": index.name_of.get(code),
+                    "lb_type": index.type_of.get(code),
+                    "district_name": index.district_of.get(code),
+                },
+                "geometry": _as_multipolygon(rings),
+            }
+        )
+    return drawn
+
+
+def _tier_slice(
+    tier: str,
+    layers: dict[int, str],
+    level_name: str,
+    cycle: int,
+    district: str | None,
+) -> GeoSlice:
+    """One tier's bodies, whether the file draws them or their divisions."""
+    filename = layers.get(cycle)
+    path = _resolve(filename, level_name, cycle)
+    by_division = filename in DIVISION_LAYERS
+
+    def build() -> GeoSlice:
+        index = _index_for(path)
+        if district is None:
+            districts = sorted({d for t, d in index.by_tier if t == tier})
+        else:
+            districts = [district]
+        codes = [code for name in districts for code in index.codes(tier, name)]
+
+        if by_division:
+            features = _dissolved_tier(path, index, codes, BODY_TOLERANCE)
+        else:
+            ranges = [span for code in codes for span in index.by_code.get(code, [])]
+            features = [
+                _simplified_feature(feature, BODY_TOLERANCE)
+                for feature in _read_features(path, ranges)
+            ]
+
+        extra: dict[str, Any] = {}
+        if district is not None:
+            extra["district_name"] = district
+        return _collection(
+            features,
+            index.provenance,
+            level=tier,
+            cycle=cycle,
+            key_property="lb_code",
+            **extra,
+        )
+
+    return _cached((tier, str(path), district, cycle), build)
+
+
+def blocks_of(district: str, cycle: int) -> GeoSlice:
+    """Every block panchayat in one district — the complete set, never a subset.
+
+    Their colour is the block panchayat's **own** election. It is not a summary
+    of the grama panchayats inside them; those are a separate ballot to a
+    separate body, and a block can be held by one front while most of its
+    grama panchayats are held by another.
+    """
+    return _tier_slice(
+        "block_panchayat", BLOCK_LAYER, "block panchayat", cycle, district
+    )
+
+
+def district_panchayats_of(cycle: int) -> GeoSlice:
+    """The fourteen district panchayats, as their own territories.
+
+    Not the same shape as a district outline: municipalities and corporations
+    are not part of a district panchayat, so its territory has holes where they
+    sit. `districts_of` draws the administrative district; this draws the body.
+    """
+    return _tier_slice(
+        "district_panchayat", DISTRICT_PANCHAYAT_LAYER, "district panchayat", cycle, None
+    )
+
+
+# ---------------------------------------------------------------------------
+# Which block panchayat a grama panchayat sits in
+# ---------------------------------------------------------------------------
+
+# The layer membership is read from, best first. Every published layer
+# describes the same 1,033 first-tier bodies and the same 152 block panchayats,
+# because 2015, 2020 and 2025 are all crosswalked onto the one November 2020
+# snapshot; so membership is derived once rather than per cycle, and the 2020
+# file is preferred because it is the one that draws block panchayats as whole
+# bodies. Bodies that no longer existed by then — the ones that contested in
+# 2010 and had no successor — appear in no layer and get no block, which is
+# what the page reports rather than guesses at.
+MEMBERSHIP_LAYERS = ("local_bodies_2020.geojson", "local_bodies_2015.geojson")
+
+_membership: dict[str, str] | None = None
+_membership_lock = threading.Lock()
+
+
+def _interior_point(rings: list[Ring]) -> Point | None:
+    """A point certainly inside the largest ring of a shape.
+
+    The centroid is not safe here: a crescent-shaped coastal panchayat has its
+    centroid outside itself, and Kerala has many of those. This casts a
+    horizontal line through the ring's mid-latitude and takes the middle of the
+    widest interior span, which is inside the ring by construction.
+    """
+    if not rings:
+        return None
+    largest = max(rings, key=lambda ring: abs(_ring_area(ring)))
+    ys = [y for _, y in largest]
+    y = (min(ys) + max(ys)) / 2
+
+    crossings: list[float] = []
+    for (x0, y0), (x1, y1) in zip(largest, largest[1:]):
+        if (y0 > y) != (y1 > y):
+            crossings.append(x0 + (y - y0) * (x1 - x0) / (y1 - y0))
+    crossings.sort()
+    if len(crossings) < 2:
+        return (sum(x for x, _ in largest) / len(largest), y)
+
+    spans = [
+        (crossings[i + 1] - crossings[i], (crossings[i] + crossings[i + 1]) / 2)
+        for i in range(0, len(crossings) - 1, 2)
+    ]
+    return (max(spans)[1], y)
+
+
+def _contains(point: Point, rings: list[Ring]) -> bool:
+    """Even-odd ray casting across every ring, holes included."""
+    x, y = point
+    inside = False
+    for ring in rings:
+        for (x0, y0), (x1, y1) in zip(ring, ring[1:]):
+            if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
+                inside = not inside
+    return inside
+
+
+def _derive_membership(path: Path) -> dict[str, str]:
+    """grama panchayat lb_code -> the block panchayat that contains it.
+
+    Derived from geometry rather than read from a column, because the master
+    database carries a body's district and type and no parent. The upstream
+    source does carry one — opendatakerala's `Block_QID`, which is what the
+    block panchayat polygons were dissolved on — but it is not in this
+    application's inputs, and where it can be compared it is the less reliable
+    of the two: a handful of identically named panchayats (two Kallaras, two
+    Thuravoors, Kalady and Kaladi) carry each other's `LSGI_Code` upstream, so
+    the codes disagree with the geometry that was built from them.
+
+    A block panchayat is exactly the union of its grama panchayats, so a point
+    inside a grama panchayat is inside its block and no other. That makes this
+    a containment test rather than a nearest-neighbour guess, and a body that
+    lands in no block gets no block rather than the closest one.
+    """
+    index = _index_for(path)
+    blocks: list[tuple[str, float, float, float, float, list[Ring]]] = []
+    for district in {d for t, d in index.by_tier if t == "block_panchayat"}:
+        for code in index.codes("block_panchayat", district):
+            for feature in _read_features(path, index.by_code.get(code, [])):
+                rings = _rings(feature.get("geometry") or {})
+                if not rings:
+                    continue
+                xs = [x for ring in rings for x, _ in ring]
+                ys = [y for ring in rings for _, y in ring]
+                blocks.append(
+                    (code, min(xs), min(ys), max(xs), max(ys), rings)
+                )
+
+    membership: dict[str, str] = {}
+    for district in {d for t, d in index.by_tier if t == "local_body"}:
+        for code in index.codes("local_body", district):
+            if index.type_of.get(code) != GRAMA_PANCHAYAT:
+                continue
+            for feature in _read_features(path, index.by_code.get(code, [])):
+                point = _interior_point(_rings(feature.get("geometry") or {}))
+                if point is None:
+                    continue
+                for block, x0, y0, x1, y1, rings in blocks:
+                    if x0 <= point[0] <= x1 and y0 <= point[1] <= y1:
+                        if _contains(point, rings):
+                            membership[code] = block
+                            break
+    return membership
+
+
+def block_membership() -> dict[str, str]:
+    """The whole state's grama panchayat -> block panchayat map, built once.
+
+    Empty when no layer that draws block panchayats as bodies is on this
+    server. An empty map is not an error: it means the tier drill cannot be
+    offered, and the caller says so rather than showing an incomplete set.
+    """
+    global _membership
+    with _membership_lock:
+        if _membership is not None:
+            return _membership
+
+    derived: dict[str, str] = {}
+    for filename in MEMBERSHIP_LAYERS:
+        path = layer_path(filename)
+        if path is not None:
+            derived = _derive_membership(path)
+            break
+
+    with _membership_lock:
+        _membership = derived
+        return derived
 
 
 def districts_of(cycle: int) -> GeoSlice:

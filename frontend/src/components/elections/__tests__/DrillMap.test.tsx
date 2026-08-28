@@ -85,6 +85,7 @@ describe("the drawn map", () => {
         units={wards(100)}
         variant="ward"
         unitNoun="ward"
+        cycle={2025}
         geometry={wardGeometry(100)}
         onSelect={() => {}}
         caption="Ward boundaries as delimited for 2025."
@@ -106,6 +107,7 @@ describe("the drawn map", () => {
         units={units}
         variant="ward"
         unitNoun="ward"
+        cycle={2025}
         geometry={geometry}
         onSelect={onSelect}
         caption="Ward boundaries as delimited for 2025."
@@ -131,6 +133,7 @@ describe("the drawn map", () => {
         units={units}
         variant="ward"
         unitNoun="ward"
+        cycle={2025}
         geometry={geometry}
         onSelect={onSelect}
         caption="Ward boundaries as delimited for 2025."
@@ -147,6 +150,7 @@ describe("the drawn map", () => {
         units={wards(4)}
         variant="ward"
         unitNoun="ward"
+        cycle={2025}
         geometry={wardGeometry(4)}
         onSelect={() => {}}
         caption="Ward boundaries as delimited for 2025."
@@ -167,6 +171,7 @@ describe("the drawn map", () => {
         units={wards(4)}
         variant="ward"
         unitNoun="ward"
+        cycle={2025}
         geometry={wardGeometry(4)}
         onSelect={() => {}}
         caption="Ward boundaries as delimited for 2025."
@@ -187,6 +192,7 @@ describe("the drawn map", () => {
         units={wards(4)}
         variant="ward"
         unitNoun="ward"
+        cycle={2025}
         geometry={wardGeometry(4)}
         onSelect={onSelect}
         caption="Ward boundaries as delimited for 2025."
@@ -207,6 +213,7 @@ describe("the drawn map", () => {
         units={wards(3)}
         variant="ward"
         unitNoun="ward"
+        cycle={2025}
         geometry={wardGeometry(4)}
         onSelect={() => {}}
         caption="Ward boundaries as delimited for 2025."
@@ -226,6 +233,7 @@ describe("the fallback, where no boundary was published", () => {
         units={wards(4)}
         variant="ward"
         unitNoun="ward"
+        cycle={2025}
         geometry={NO_LAYER}
         onSelect={() => {}}
         caption="Ward boundaries as delimited for 2025."
@@ -238,8 +246,14 @@ describe("the fallback, where no boundary was published", () => {
         /No ward geometry has been published for the 2020 cycle\./,
       ),
     ).toBeInTheDocument();
-    // The 2025 caption belongs to a drawn map and must not follow the tiles.
-    expect(screen.queryByText(/as delimited for 2025/)).not.toBeInTheDocument();
+    // The squares are named as squares. A grid reads as authoritatively as a
+    // coastline, and the reason the endpoint gave is not on its own enough:
+    // it says what is missing, not what the shapes on screen are.
+    expect(screen.getByText(/Squares, not boundaries/)).toBeInTheDocument();
+    expect(screen.queryByText(/Published boundaries/)).not.toBeInTheDocument();
+    // The caption survives the fallback. It says which election these colours
+    // are, which is a fact about the ballot and not about the rendering.
+    expect(screen.getByText(/as delimited for 2025/)).toBeInTheDocument();
   });
 
   it("falls back when the layer holds no polygon for this unit", () => {
@@ -249,6 +263,7 @@ describe("the fallback, where no boundary was published", () => {
         units={wards(4)}
         variant="ward"
         unitNoun="ward"
+        cycle={2025}
         geometry={wardGeometry(0)}
         onSelect={() => {}}
         caption="Ward boundaries as delimited for 2025."
@@ -268,6 +283,7 @@ describe("the fallback, where no boundary was published", () => {
         units={wards(4)}
         variant="ward"
         unitNoun="ward"
+        cycle={2025}
         geometry={{ status: "loading" }}
         onSelect={() => {}}
         caption="Ward boundaries as delimited for 2025."
