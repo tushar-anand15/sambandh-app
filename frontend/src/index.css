@@ -24,105 +24,116 @@
 /* ---------------------------------------------------------------------------
    Palette — three-state theming.
 
-   The bare :root below carries the COMPLETE light palette. The two dark blocks
-   only redefine values that already exist here. Nothing may be declared for the
-   first time inside a media query or an attribute selector: a viewer whose
-   system reports neither preference must still get a full set of colours.
+   The bare :root below carries the COMPLETE light palette. The two dark
+   blocks only redefine values that already exist here. Nothing may be
+   declared for the first time inside a media query or an attribute selector:
+   a viewer whose system reports neither preference must still get a full set
+   of colours, and `tokens.test.ts` fails the build if one is missing.
 
-   Ground is paddy husk — a yellow-green neutral, not a warm cream. Accent is
-   wet paddy. Laterite (--earth) appears exactly once in the whole site, as the
-   4px band above the masthead; it sits close enough to LDF red that a second
-   use would read as a party colour.
+   Values follow the Atlas of Urban Expansion. The laterite band that used to
+   sit above the masthead is gone with the paddy palette it belonged to; the
+   Atlas separates the header from the page with a single black rule.
    --------------------------------------------------------------------------- */
 
 :root {
-  /* Ground and surfaces */
-  --paper: #f1f3e9;
-  --surface: #fcfdf7;
-  --surface-2: #e7ebda;
+  /* -----------------------------------------------------------------------
+     Ground and surfaces. The page is a white sheet on a grey ground, after
+     the Atlas of Urban Expansion, whose body is
+     `linear-gradient(to bottom, #f5f5f5, #dadada)`.
+     ----------------------------------------------------------------------- */
+  --paper: #f5f5f5;
+  --ground-far: #dadada;
+  --surface: #ffffff;
+  --surface-2: #f5f5f5;
 
-  /* Text */
-  --ink: #1d2417;
-  --ink-2: #59634e;
-  --ink-3: #8b9480;
+  /* Text. Body copy is grey, not black -- the Atlas sets #5a5a5a and reserves
+     #333 for emphasis. */
+  --ink: #333333;
+  --ink-2: #5a5a5a;
+  --ink-3: #929292;
 
-  /* Rules and hairlines */
-  --rule: #dbe0cc;
-  --rule-2: #c2c9af;
+  --rule: #dadada;
+  --rule-2: #cccccc;
 
-  /* Accent */
-  --accent: #3e5c2a;
-  --accent-ink: #fcfdf7;
-  --accent-wash: #e4ebd6;
-
-  /* Laterite. One use only: the band above the masthead. */
-  --earth: #8c4a2f;
+  /* The one accent, and it touches links, hovers and downloads only. It never
+     colours data: it sits close enough to LDF red that a second use on a chart
+     would read as a party colour. */
+  --accent: #ff6653;
+  --accent-ink: #ffffff;
+  --accent-wash: #ffeeeb;
 
   /* -----------------------------------------------------------------------
-     Front colours. Semantic and identical in both themes — a reader learns
-     "that red is LDF" once and it must stay true in dark mode. They are NOT
-     derived from --accent and must never be harmonised with it.
+     Front colours. Semantic and identical in both themes -- a reader learns
+     "that red is LDF" once and it must stay true in dark mode. Deepened away
+     from the coral accent so a link is never mistaken for a party.
      ----------------------------------------------------------------------- */
-  --ldf: #b23a2f;
-  --udf: #1f5fa8;
-  --nda: #d8891b;
-  --oth: #7d8a85;
+  --ldf: #a8322a;
+  --udf: #2f6fb5;
+  --nda: #c07d12;
+  --oth: #8b8b8b;
 
   /* -----------------------------------------------------------------------
-     Type scale. Nine steps, and every font-size in src/ is one of them.
-     Steps are finer at the bottom because small sizes need finer steps.
+     Type scale. Nine names, six values: --t1..--t9 are kept because every
+     font-size in src/ is written against them and the token lint checks the
+     names. The six values are the whole scale, and a seventh is a bug.
      ----------------------------------------------------------------------- */
-  --t1: 11.5px; /* uppercase micro-labels, table headers, dt */
-  --t2: 13px;   /* source lines, captions, metadata */
-  --t3: 15px;   /* tables, dense UI, list rows */
-  --t4: 17px;   /* body */
-  --t5: 20px;   /* lede, panel titles */
-  --t6: 24px;   /* section headings, stat values */
-  --t7: 29px;   /* page headings, opening figures */
-  --t8: 35px;   /* home heading only */
-  --t9: 56px;   /* one stark figure. Used ONCE on the site. A second use means
-                   the device has stopped working — pick --t7 instead. */
+  --t1: 12px;  /* uppercase micro-labels, table headers */
+  --t2: 15px;  /* captions, notes, source lines */
+  --t3: 15px;  /* dense UI and table cells */
+  --t4: 19px;  /* running text */
+  --t5: 20px;  /* lede and panel titles */
+  --t6: 20px;  /* section headings, uppercase */
+  --t7: 30px;  /* every figure on the site */
+  --t8: 30px;  /* figures again: there is no second figure size */
+  --t9: clamp(32px, 3.6vw, 52px); /* the page headline, once per page */
 
-  /* -----------------------------------------------------------------------
-     Spacing. 8px base. Every margin, padding and gap resolves to one of these.
-     ----------------------------------------------------------------------- */
+  /* Named for what they do, for anything written from here on. */
+  --t-label: var(--t1);
+  --t-small: var(--t2);
+  --t-body: var(--t4);
+  --t-head: var(--t6);
+  --t-fig: var(--t7);
+  --t-title: var(--t9);
+
+  /* Spacing. 8px base. */
   --s1: 4px;
   --s2: 8px;
   --s3: 12px;
   --s4: 16px;
   --s5: 24px;
   --s6: 32px;
-  --s7: 48px;
-  --s8: 72px;
+  --s7: 44px;
+  --s8: 64px;
 
-  /* Line height by role, not one global value. */
-  --lh-tight: 1.14; /* display */
-  --lh-snug: 1.28;  /* headings */
-  --lh-body: 1.62;  /* prose */
-  --lh-ui: 1.45;    /* tables and controls */
+  --lh-tight: 1.1;
+  --lh-snug: 1.375;
+  --lh-body: 1.6;
+  --lh-ui: 1.5;
 
-  /* Tracking. Large serif tightens; uppercase micro-labels open up. */
-  --track-display: -0.021em;
-  --track-head: -0.012em;
-  --track-label: 0.085em;
+  --track-display: -0.008em;
+  --track-head: 1px;
+  --track-label: 1.2px;
 
-  /* Measures. These apply to headings too — without a cap a 35px heading runs
-     the full container width and stops being readable. */
-  --measure: 66ch;
-  --measure-h1: 19ch;
-  --measure-h2: 28ch;
-  --measure-lede: 52ch;
+  /* One measure, sized so 19px text lands near 70 characters a line. */
+  --measure: 70ch;
+  --measure-h1: none;
+  --measure-h2: none;
+  --measure-lede: none;
 
-  /* Families */
-  --font-serif: "Iowan Old Style", Charter, Georgia, "Times New Roman", Times,
-    serif;
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
+  /* -----------------------------------------------------------------------
+     Families. The Atlas pairs DIN Next LT Pro UltraLight for display with
+     Neue Haas Grotesk for everything else; both are Monotype commercial
+     licences, so Barlow and Archivo stand in. --font-serif keeps its name
+     because every component is written against it -- the site is all sans
+     now, and the display face is opt-in through --font-display.
+     ----------------------------------------------------------------------- */
+  --font-sans: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-serif: var(--font-sans);
+  --font-display: "Barlow", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
-  /* Chrome */
-  --container: 1120px;
-  --band: 4px;
-  --radius: 2px;
+  --container: 1240px;
+  --band: 0px;
+  --radius: 0px;
 
   color-scheme: light;
 }
@@ -130,48 +141,48 @@
 /* Dark, by system preference — unless the reader has explicitly chosen light. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #14170f;
-    --surface: #1b1f15;
-    --surface-2: #242a1c;
+    --paper: #1e1e1e;
+    --ground-far: #0c0c0c;
+    --surface: #161616;
+    --surface-2: #1f1f1f;
 
-    --ink: #e9ece0;
-    --ink-2: #a8b09b;
-    --ink-3: #737b67;
+    --ink: #e8e8e8;
+    --ink-2: #b0b0b0;
+    --ink-3: #7e7e7e;
 
-    --rule: #2e3524;
-    --rule-2: #3e4632;
+    --rule: #2f2f2f;
+    --rule-2: #414141;
 
-    --accent: #9cc271;
-    --accent-ink: #12160c;
-    --accent-wash: #232c18;
-
-    --earth: #b96a46;
+    --accent: #ff7a68;
+    --accent-ink: #141414;
+    --accent-wash: #2a1a17;
 
     color-scheme: dark;
+
   }
 }
 
 /* Dark, by explicit choice. Repeated rather than shared with the media block so
    the toggle wins in both directions. */
 :root[data-theme="dark"] {
-  --paper: #14170f;
-  --surface: #1b1f15;
-  --surface-2: #242a1c;
+  --paper: #1e1e1e;
+  --ground-far: #0c0c0c;
+  --surface: #161616;
+  --surface-2: #1f1f1f;
 
-  --ink: #e9ece0;
-  --ink-2: #a8b09b;
-  --ink-3: #737b67;
+  --ink: #e8e8e8;
+  --ink-2: #b0b0b0;
+  --ink-3: #7e7e7e;
 
-  --rule: #2e3524;
-  --rule-2: #3e4632;
+  --rule: #2f2f2f;
+  --rule-2: #414141;
 
-  --accent: #9cc271;
-  --accent-ink: #12160c;
-  --accent-wash: #232c18;
-
-  --earth: #b96a46;
+  --accent: #ff7a68;
+  --accent-ink: #141414;
+  --accent-wash: #2a1a17;
 
   color-scheme: dark;
+
 }
 
 /* ---------------------------------------------------------------------------
@@ -185,6 +196,7 @@
 
 @theme inline {
   --color-paper: var(--paper);
+  --color-ground-far: var(--ground-far);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-ink: var(--ink);
@@ -195,7 +207,6 @@
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-accent-wash: var(--accent-wash);
-  --color-earth: var(--earth);
   --color-ldf: var(--ldf);
   --color-udf: var(--udf);
   --color-nda: var(--nda);
@@ -203,6 +214,7 @@
 
   --font-serif: var(--font-serif);
   --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
 
   --text-t1: var(--t1);
   --text-t2: var(--t2);
@@ -466,14 +478,8 @@ hr {
    --------------------------------------------------------------------------- */
 
 .masthead {
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--rule-2);
-}
-
-/* The one use of laterite on the site. */
-.masthead-band {
-  height: var(--band);
-  background: var(--earth);
+  background: var(--surface);
+  border-bottom: 1px solid var(--ink);
 }
 
 .masthead-inner {

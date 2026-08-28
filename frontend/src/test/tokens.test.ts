@@ -326,10 +326,23 @@ describe("the token definitions themselves", () => {
     }
   });
 
-  it("spends laterite exactly once", () => {
-    // The @theme bridge is a declaration, not a use, so it does not count
-    // against the budget — the band above the masthead is the only use.
-    const styles = css.replace(block("@theme inline"), "");
-    expect([...styles.matchAll(/var\(--earth\)/g)]).toHaveLength(1);
+  it("never paints election data with the accent", () => {
+    // The Atlas spends its accent on links, hovers and downloads and nowhere
+    // else. Here that is not only taste: #ff6653 sits close to LDF red, so a
+    // tile filled or bordered with the accent reads as a fifth front. It
+    // caught exactly that on .tileSelected, which now outlines in ink.
+    //
+    // Controls are the exception and are allowed it: a focus ring, a range
+    // input's accent-color and the active cycle tick are chrome, not data.
+    const PAINTS = /(?:^|[^-])(background|background-color|border-color|fill|stroke):\s*var\(--accent\)/m;
+    const dir = path.resolve(SRC, "components/elections");
+    for (const file of readdirSync(dir)) {
+      if (!file.endsWith(".css") && !file.endsWith(".tsx")) continue;
+      const body = readFileSync(path.resolve(dir, file), "utf8");
+      expect(
+        PAINTS.test(body),
+        `${file} paints with the accent; fronts use --ldf/--udf/--nda/--oth`,
+      ).toBe(false);
+    }
   });
 });

@@ -156,7 +156,10 @@
 }
 
 .tileSelected {
-  border-color: var(--accent);
+  /* The tile you clicked to go deeper, outlined in ink. Not the accent: an
+     accent border sits directly beside LDF-red tiles and reads as a fifth
+     front rather than as a selection. */
+  border-color: var(--ink);
   border-width: 2px;
 }
 

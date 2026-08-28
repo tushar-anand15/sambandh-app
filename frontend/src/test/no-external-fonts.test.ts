@@ -79,11 +79,11 @@ describe("the built bundle", () => {
   });
 
   it("ships the token palette rather than a stale @theme", () => {
-    // Cheap proof the stylesheet in the bundle is the designed one — paddy
-    // husk ground and wet paddy accent, in both themes.
-    expect(bundle.toLowerCase()).toContain("#f1f3e9");
-    expect(bundle.toLowerCase()).toContain("#3e5c2a");
-    expect(bundle.toLowerCase()).toContain("#9cc271");
+    // Cheap proof the stylesheet in the bundle is the designed one — the
+    // Atlas ground and coral accent, in both themes.
+    expect(bundle.toLowerCase()).toContain("#f5f5f5");
+    expect(bundle.toLowerCase()).toContain("#ff6653");
+    expect(bundle.toLowerCase()).toContain("#ff7a68");
   });
 
   /**
