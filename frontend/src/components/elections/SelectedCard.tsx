@@ -1,10 +1,9 @@
 /**
- * What is selected, at the top of the page.
+ * The ward the reader chose, in figures.
  *
- * A ward once one is chosen, and the local body until then. It sits above the
- * map because it answers the question the click was asking: a reader who picks
- * ward 8 should not have to scroll past the map they picked it on to read what
- * ward 8 did.
+ * It opens the ward's own pane, under the map and the table the ward was
+ * picked on, because a selection appends a chapter rather than replacing the
+ * one it was made in.
  *
  * The margin is given twice, as a count and as a share of valid votes, because
  * 412 votes means one thing in a ward of 900 and another in a ward of 9,000.
@@ -15,19 +14,16 @@
 
 import styles from "./elections.module.css";
 import {
-  controlSentence,
   formatCount,
   formatShare,
   frontToken,
   wardLabel,
-  type CycleResult,
   type WardRow,
 } from "./payload";
 
 interface SelectedCardProps {
-  result: CycleResult;
-  /** Null until a ward is chosen, which is when the card is about the body. */
-  ward: WardRow | null;
+  /** The ward the reader chose. The card is only ever about one. */
+  ward: WardRow;
   /** "Chalakudy Municipality", built once by the page. */
   bodyName: string;
   cycle: number;
@@ -53,51 +49,7 @@ function Figure({
   );
 }
 
-/** The body, until a ward is chosen. */
-function BodyCard({ result, bodyName, cycle }: Omit<SelectedCardProps, "ward">) {
-  return (
-    <section
-      className={[styles.panel, styles.swap].join(" ")}
-      aria-label={`Result for ${bodyName}`}
-    >
-      <h2 className={styles.panelTitle}>
-        {bodyName}, {cycle}
-      </h2>
-
-      <p className={styles.layerMeta}>
-        <span
-          className={styles.partyDot}
-          style={{ backgroundColor: `var(--${frontToken(result.ruling_front)})` }}
-        />
-        {controlSentence(result.ruling_front, result.control_type)}. Choose a ward
-        on the map or in the table below to see its result here.
-      </p>
-
-      <div className={styles.figures}>
-        <Figure label="Wards" value={formatCount(result.wards.length)} />
-        <Figure
-          label="Largest front"
-          value={result.largest_front ?? "None"}
-          note={`${formatCount(result.largest_front_seats)} wards`}
-        />
-        <Figure
-          label="Majority at"
-          value={formatCount(result.majority_threshold)}
-          note="wards"
-        />
-        <Figure
-          label="Candidates"
-          value={formatCount(result.candidates.length)}
-          note="stood across every ward"
-        />
-      </div>
-    </section>
-  );
-}
-
-export default function SelectedCard({ result, ward, bodyName, cycle }: SelectedCardProps) {
-  if (!ward) return <BodyCard result={result} bodyName={bodyName} cycle={cycle} />;
-
+export default function SelectedCard({ ward, bodyName, cycle }: SelectedCardProps) {
   return (
     <section
       className={[styles.panel, styles.swap].join(" ")}

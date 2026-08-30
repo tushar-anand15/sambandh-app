@@ -13,8 +13,10 @@
  * usable from the keyboard and legible to a screen reader.
  *
  * **The fallback states its cause.** Where the cycle has no published layer the
- * same units are drawn as tiles, and the map says so in the endpoint's own
- * words rather than leaving a reader to take a tile for a boundary.
+ * same units are drawn as tiles or as cells, and the map says so in the
+ * endpoint's own words rather than leaving a reader to take a square for a
+ * boundary. A drawn map says nothing at all: it does not need a caption
+ * telling the reader it is a map.
  */
 
 import { render, screen } from "@testing-library/react";
@@ -88,7 +90,6 @@ describe("the drawn map", () => {
         cycle={2025}
         geometry={wardGeometry(100)}
         onSelect={() => {}}
-        caption="Ward boundaries as delimited for 2025."
       />,
     );
 
@@ -110,7 +111,6 @@ describe("the drawn map", () => {
         cycle={2025}
         geometry={geometry}
         onSelect={onSelect}
-        caption="Ward boundaries as delimited for 2025."
       />,
     );
 
@@ -136,7 +136,6 @@ describe("the drawn map", () => {
         cycle={2025}
         geometry={geometry}
         onSelect={onSelect}
-        caption="Ward boundaries as delimited for 2025."
       />,
     );
     expect(screen.getAllByRole("button")[0]).toBe(first);
@@ -153,7 +152,6 @@ describe("the drawn map", () => {
         cycle={2025}
         geometry={wardGeometry(4)}
         onSelect={() => {}}
-        caption="Ward boundaries as delimited for 2025."
       />,
     );
 
@@ -174,7 +172,6 @@ describe("the drawn map", () => {
         cycle={2025}
         geometry={wardGeometry(4)}
         onSelect={() => {}}
-        caption="Ward boundaries as delimited for 2025."
       />,
     );
 
@@ -195,13 +192,31 @@ describe("the drawn map", () => {
         cycle={2025}
         geometry={wardGeometry(4)}
         onSelect={onSelect}
-        caption="Ward boundaries as delimited for 2025."
       />,
     );
 
     await user.click(screen.getByRole("button", { name: /result in ward 3\./ }));
 
     expect(onSelect).toHaveBeenCalledWith("3");
+  });
+
+  it("says nothing about itself when it is a map", () => {
+    // The note that used to sit above every drawn map told the reader the
+    // shapes were the real shapes. A map does not need that.
+    render(
+      <DrillMap
+        title="Wards, 2025"
+        units={wards(4)}
+        variant="ward"
+        unitNoun="ward"
+        cycle={2025}
+        geometry={wardGeometry(4)}
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(screen.queryByText(/not boundaries/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Published boundaries/)).not.toBeInTheDocument();
   });
 
   it("draws a shape no result covers, without a hit target", () => {
@@ -216,7 +231,6 @@ describe("the drawn map", () => {
         cycle={2025}
         geometry={wardGeometry(4)}
         onSelect={() => {}}
-        caption="Ward boundaries as delimited for 2025."
       />,
     );
 
@@ -236,7 +250,6 @@ describe("the fallback, where no boundary was published", () => {
         cycle={2025}
         geometry={NO_LAYER}
         onSelect={() => {}}
-        caption="Ward boundaries as delimited for 2025."
       />,
     );
 
@@ -246,14 +259,10 @@ describe("the fallback, where no boundary was published", () => {
         /No ward geometry has been published for the 2020 cycle\./,
       ),
     ).toBeInTheDocument();
-    // The squares are named as squares. A grid reads as authoritatively as a
+    // The cells are named as cells. A grid reads as authoritatively as a
     // coastline, and the reason the endpoint gave is not on its own enough:
     // it says what is missing, not what the shapes on screen are.
-    expect(screen.getByText(/Squares, not boundaries/)).toBeInTheDocument();
-    expect(screen.queryByText(/Published boundaries/)).not.toBeInTheDocument();
-    // The caption survives the fallback. It says which election these colours
-    // are, which is a fact about the ballot and not about the rendering.
-    expect(screen.getByText(/as delimited for 2025/)).toBeInTheDocument();
+    expect(screen.getByText(/Cells, not boundaries/)).toBeInTheDocument();
   });
 
   it("falls back when the layer holds no polygon for this unit", () => {
@@ -266,7 +275,6 @@ describe("the fallback, where no boundary was published", () => {
         cycle={2025}
         geometry={wardGeometry(0)}
         onSelect={() => {}}
-        caption="Ward boundaries as delimited for 2025."
       />,
     );
 
@@ -274,6 +282,79 @@ describe("the fallback, where no boundary was published", () => {
     expect(
       screen.getByText(/No boundaries have been published at this level/),
     ).toBeInTheDocument();
+  });
+
+  it("draws the body's own outline around the cells where one was published", () => {
+    // 2015 and 2020 publish local body boundaries and no wards at all. The
+    // outline is real; the cells inside it are the wards in number order and
+    // claim nothing about which ward is where.
+    const outline: GeoCollection = {
+      type: "FeatureCollection",
+      level: "local_body",
+      cycle: 2020,
+      key_property: "lb_code",
+      features: [
+        {
+          type: "Feature",
+          properties: { lb_code: "G04036", lb_name: "Amboori" },
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              [
+                [76.9, 8.5],
+                [77.0, 8.5],
+                [77.0, 8.6],
+                [76.9, 8.6],
+                [76.9, 8.5],
+              ],
+            ],
+          },
+        },
+      ],
+    };
+
+    render(
+      <DrillMap
+        title="Wards of Amboori Grama Panchayat by winning front, 2020"
+        units={wards(13)}
+        variant="ward"
+        unitNoun="ward"
+        cycle={2020}
+        geometry={NO_LAYER}
+        outline={outline}
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(screen.getByTestId("drill-map")).toHaveAttribute("data-outline", "published");
+    expect(screen.getAllByRole("button")).toHaveLength(13);
+    expect(
+      screen.getByText(/where a cell sits says nothing about where its ward was/),
+    ).toBeInTheDocument();
+    // Not a ward map: the outline is one path, and it was not cut into 13.
+    expect(document.querySelectorAll("path")).toHaveLength(1);
+  });
+
+  it("draws the cells alone for 2010, which publishes no outline either", () => {
+    render(
+      <DrillMap
+        title="Wards of Amboori Grama Panchayat by winning front, 2010"
+        units={wards(13)}
+        variant="ward"
+        unitNoun="ward"
+        cycle={2010}
+        geometry={{
+          status: "absent",
+          reason: "No ward boundaries have been published for the 2010 election.",
+        }}
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(screen.getByTestId("drill-map")).toHaveAttribute("data-outline", "none");
+    expect(screen.getAllByRole("button")).toHaveLength(13);
+    expect(screen.getByText(/Cells, not boundaries/)).toBeInTheDocument();
+    expect(document.querySelectorAll("path")).toHaveLength(0);
   });
 
   it("draws nothing while the boundaries are on their way", () => {
@@ -286,7 +367,6 @@ describe("the fallback, where no boundary was published", () => {
         cycle={2025}
         geometry={{ status: "loading" }}
         onSelect={() => {}}
-        caption="Ward boundaries as delimited for 2025."
       />,
     );
 

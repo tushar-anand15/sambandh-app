@@ -25,7 +25,7 @@ import {
 interface CandidatesTableProps {
   /** Already filtered to one ward and sorted by votes. */
   candidates: CandidateRow[];
-  ward: WardRow | null;
+  ward: WardRow;
   cycle: number;
 }
 
@@ -51,20 +51,7 @@ export default function CandidatesTable({
   ward,
   cycle,
 }: CandidatesTableProps) {
-  if (!ward) {
-    return (
-      <section aria-label="Candidates">
-        <h2>Candidates</h2>
-        <p className={styles.layerMeta}>
-          No ward is selected. Choose a ward on the map or in the table above to
-          list its candidates here.
-        </p>
-      </section>
-    );
-  }
-
-  // The body is named by the ward table directly above this one, so the title
-  // names the ward and the cycle and stops.
+  // The pane heading names the ward, so the table names the ward and stops.
   const title = `Candidates in ${wardLabel(ward)}, ${cycle}`;
 
   if (candidates.length === 0) {
@@ -119,10 +106,6 @@ export default function CandidatesTable({
           </tbody>
         </table>
       </div>
-      <p className={styles.layerMeta}>
-        The margin is how many votes behind the winner each candidate finished.
-        The winner's own margin is over the runner-up.
-      </p>
     </section>
   );
 }

@@ -1,15 +1,18 @@
 /**
  * The boundary layers this page is drawn from, as a list of downloads.
  *
- * One line per layer: what it is, its vintage, its size and its file. The
- * licence and the attribution are the same for every layer from the same
- * source, so they are stated once per source under the list. The ODbL
- * attribution is a condition on redistribution and a rendered map is
+ * A line is a label, a size and a link. The vintage, the licence and the
+ * attribution are properties of the source rather than of the file, so they
+ * are stated once per source under the list — `what(layer)` used to append the
+ * vintage to every layer, which put "as KSMART publishes them today" on the
+ * page four times.
+ *
+ * The ODbL attribution is a condition on redistribution and a rendered map is
  * redistribution, so it stays on the page whatever else moves.
  *
- * Which cycle was delimited when, and why 2010, 2015 and 2020 share one
- * November 2020 snapshot, is the method page's subject and is not repeated
- * here.
+ * The fronts the commission names beyond the four with colours are named here
+ * too. That belongs at the foot of the page with the rest of the accounting
+ * for what the colours are, not in a legend beside every map.
  */
 
 import SourceLine from "@/components/shell/SourceLine";
@@ -18,34 +21,23 @@ import styles from "./elections.module.css";
 import { formatBytes, formatCount, type MapLayer, type MapsPayload } from "./payload";
 import { track } from "@/lib/telemetry";
 
-const LEVELS: Record<string, string> = {
-  ward: "ward boundaries",
-  local_body: "local body boundaries",
-  block_panchayat: "block panchayat boundaries",
-  district_panchayat: "district panchayat boundaries",
-};
-
-function what(layer: MapLayer): string {
-  return `${LEVELS[layer.level] ?? `${layer.level} polygons`}, ${layer.boundary_vintage}`;
-}
-
-/** One licence line per source, in the order the layers first name them. */
-function licenceLines(layers: MapLayer[]): string[] {
-  const lines: string[] = [];
+/** One block per source, in the order the layers first name them. */
+function sources(layers: MapLayer[]): { source: string; lines: string[] }[] {
+  const blocks: { source: string; lines: string[] }[] = [];
   const seen = new Set<string>();
   for (const layer of layers) {
-    const key = `${layer.source}|${layer.licence ?? ""}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    lines.push(
-      [
-        `${layer.source}: ${layer.licence ?? "no licence published"}.`,
-        layer.licence_note,
+    if (seen.has(layer.source)) continue;
+    seen.add(layer.source);
+    blocks.push({
+      source: layer.source,
+      lines: [
+        `Boundaries: ${layer.boundary_vintage}.`,
+        `${layer.licence ?? "No open licence published"}. ${layer.licence_note}`,
         `Attribution: ${layer.attribution}.`,
-      ].join(" "),
-    );
+      ],
+    });
   }
-  return lines;
+  return blocks;
 }
 
 export default function Sources({ maps }: { maps: MapsPayload }) {
@@ -64,7 +56,6 @@ export default function Sources({ maps }: { maps: MapsPayload }) {
         {maps.layers.map((layer) => (
           <li key={layer.id} className={styles.sourceItem}>
             <span className={styles.sourceName}>{layer.label}</span>
-            <span>{what(layer)}</span>
             {layer.available ? (
               <>
                 <span>{formatBytes(layer.bytes)}</span>
@@ -85,11 +76,17 @@ export default function Sources({ maps }: { maps: MapsPayload }) {
         ))}
       </ul>
 
-      {licenceLines(maps.layers).map((line) => (
-        <p key={line} className={styles.layerMeta}>
-          {line}
+      {sources(maps.layers).map((block) => (
+        <p key={block.source} className={styles.layerMeta}>
+          {block.source}. {block.lines.join(" ")}
         </p>
       ))}
+
+      <p className={styles.layerMeta}>
+        Four fronts have a colour. Any other group the commission names, BJP+
+        among them, takes the OTH colour and keeps its own name in every table
+        it appears in.
+      </p>
 
       <SourceLine
         dataset={maps.provenance.dataset}

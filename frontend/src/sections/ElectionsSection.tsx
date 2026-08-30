@@ -1,60 +1,55 @@
 /**
- * The Elections section.
+ * The Elections section: chapters that stack.
  *
- * The map is the interface and it comes first on the page. Everything below it
- * — the card, the seat bar, the ward table, the candidates, the selector — is
- * an answer to something clicked on it, and a reader who has to scroll past
- * five tables to find the map has been shown the answers before the question.
+ * The map is the first thing on the page and there is no prose above it. Each
+ * selection appends a pane below the one it was made in and scrolls to it,
+ * and the panes above stay on screen and stay live — so going back a level is
+ * a scroll, not a click that throws the level away, and the address bar holds
+ * every level at once.
  *
  * **Four levels, not three.** Rural Kerala elects three bodies over the same
  * ground: a grama panchayat, the block panchayat above it, the district
  * panchayat above that. A voter casts three ballots and gets three results.
- * The page used to collapse the lower two into one flat list of "local bodies
- * in a district", which is not a level — it is two levels flattened. So a
- * district now offers a choice of tier: the district panchayat's own result,
- * its block panchayats, or its grama panchayats; and a block panchayat opens
- * the grama panchayats inside it. Municipalities and corporations are listed
- * alongside rather than nested, because they sit outside that hierarchy
- * entirely and are atomic bodies in their own right.
+ * A district therefore opens three panes rather than one — the district
+ * panchayat's own result, its block panchayats, its grama panchayats — and a
+ * block panchayat opens the grama panchayats inside it. Municipalities and
+ * corporations are named beside the block map rather than nested under it,
+ * because they sit outside that hierarchy and are atomic bodies.
  *
- * **No level summarises the level below it.** A block panchayat's colour is
- * the block panchayat's own election, not a roll-up of its grama panchayats,
- * exactly as a district's colour has always been its district panchayat's own
- * result. The map cannot show that, and a reader who assumes otherwise sees
- * nothing wrong, so `OwnResult` says it in words at every step down.
+ * The page does not say in words that no level summarises the level below it.
+ * A pane headed "THRISSUR District Panchayat" and a separate pane headed
+ * "16 block panchayats in THRISSUR" have said it already; a sentence repeating
+ * a heading is a sentence a reader learns to skip.
  *
- * Each level is an address — `/elections?cycle=2025&district=THRISSUR&tier=grama_panchayat`,
- * `/elections?cycle=2025&district=THRISSUR&block=B08076`,
- * `/elections/M08032/2025?ward=7` — so a view can be linked, and the
- * breadcrumb walks back out without dropping the cycle or the tier.
- *
- * The map and the ward table are one selection. A click on the map and a click
- * on a row write the same URL, and both read it back. One selection has three
- * views: the card, the map's zoom, and the candidates listed beside the ward
- * table. Clicking a ward moves all three.
+ * **A ward selection never survives a cycle change.** 1,136 of 1,199 bodies
+ * change ward count between two cycles, so ward 7 of 2020 and ward 7 of 2025
+ * are different ground in 95% of them. Moving the cycle closes the ward pane
+ * and rests the drill at the body. Where the cycle takes the body itself —
+ * 29 bodies first contested in 2015, 38 last contested in 2010 — the drill
+ * rests at the deepest pane that still exists and that pane says which body
+ * went and why.
  *
  * Four empty cases are kept apart, because a reader should be able to tell
  * them apart: the commission published no result for the body at all
- * (Mattannur); the body has results but was not constituted for the cycle
- * asked for; the body exists in the cycle but the layer being drawn holds no
- * polygon for it; and the body contested in 2010, had no successor, and so has
- * no published position on any map of any cycle. Each states its own cause;
- * none of them renders an empty chart or drops a result.
+ * (Mattannur); the body exists but was not constituted for the cycle asked
+ * for; the body exists in the cycle but the layer being drawn holds no polygon
+ * for it; and the body contested in 2010, had no successor, and so has no
+ * published position on any map of any cycle.
  */
 
+import { useEffect, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import BodySelector from "@/components/select/BodySelector";
 import Alongside from "@/components/elections/Alongside";
-import Breadcrumb, { type Crumb } from "@/components/elections/Breadcrumb";
 import CandidatesTable from "@/components/elections/CandidatesTable";
 import CycleSlider from "@/components/elections/CycleSlider";
 import DrillMap from "@/components/elections/DrillMap";
 import OwnResult from "@/components/elections/OwnResult";
+import Pane from "@/components/elections/Pane";
 import SeatsBar from "@/components/elections/SeatsBar";
 import SelectedCard from "@/components/elections/SelectedCard";
 import Sources from "@/components/elections/Sources";
-import TierPicker from "@/components/elections/TierPicker";
 import Unplaced, { type UnplacedBody } from "@/components/elections/Unplaced";
 import WardTable from "@/components/elections/WardTable";
 import styles from "@/components/elections/elections.module.css";
@@ -62,58 +57,29 @@ import {
   candidatesInWard,
   controlSentence,
   formatCount,
+  wardLabel,
+  CYCLES,
   type CycleResult,
   type FrontEntry,
   type FrontsPayload,
   type MapUnit,
 } from "@/components/elections/payload";
+import { electionsPath, paneKey, readSelection } from "@/components/elections/selection";
 import {
-  electionsPath,
-  readSelection,
-  type Tier,
-} from "@/components/elections/selection";
-import {
-  geometryUrl,
+  blocksUrl,
+  districtsUrl,
+  featureFor,
+  localBodiesUrl,
   useBlockMembership,
   useCycleResult,
   useFronts,
   useGeometry,
   useMaps,
+  wardsUrl,
+  type GeometryState,
 } from "@/components/elections/useElections";
 import { useBodies, type BodySummary } from "@/hooks/useBodies";
 import { track } from "@/lib/telemetry";
-
-/**
- * What each level is, said above the map rather than under it. A reader who
- * has already formed a reading of the colours will not go looking for a
- * caption to correct it.
- */
-const DISTRICT_CAPTION =
-  "Kerala's fourteen districts, coloured by the front that runs the district " +
-  "panchayat. The district panchayat is a body of its own, elected on its own " +
-  "ballot; a district's colour is its result and not a tally of the bodies " +
-  "inside the district.";
-
-const BLOCK_CAPTION =
-  "Every block panchayat in the district, coloured by the front that runs it. " +
-  "A block panchayat is elected on its own ballot to its own body. Its colour " +
-  "is that election and not a summary of the grama panchayats inside it — a " +
-  "block held by one front can contain a majority of panchayats held by another.";
-
-const BODY_CAPTION =
-  "Grama Panchayats, Municipalities and Corporations, coloured by the front " +
-  "that runs each one. These are the bodies that tile the district exactly " +
-  "once; the block and district panchayats cover the same ground again and " +
-  "are shown at their own levels.";
-
-const GP_IN_BLOCK_CAPTION =
-  "Every grama panchayat inside this block panchayat, coloured by the front " +
-  "that runs it. These are separate elections from the block panchayat's own, " +
-  "and from each other.";
-
-const WARD_CAPTION =
-  "Ward boundaries as drawn for the 2025 election, from KSMART, coloured by " +
-  "the winning candidate's front.";
 
 /**
  * The three levels that tile the state exactly once. Block and District
@@ -133,13 +99,14 @@ const FIRST_MAPPED_CYCLE = 2015;
 const NO_SUCCESSOR_LABEL = "Contested in 2010, no position published";
 
 const NO_SUCCESSOR_NOTE =
-  "These bodies fought the 2010 election and had no successor: they were " +
-  "absorbed into municipalities and corporations at the 2015 reorganisation. " +
-  "No boundary layer holds them, at any tier, for any cycle — the earliest one " +
-  "published is a November 2020 snapshot, by which time they had been gone for " +
-  "five years. Their results are here; a place on the map is what does not exist.";
+  "These bodies were absorbed into municipalities and corporations at the 2015 " +
+  "reorganisation, five years before the earliest boundary layer was drawn. " +
+  "Their results are here; a place on the map is what does not exist.";
 
 const NO_POLYGON_LABEL = "In this cycle, not on this map";
+
+/** The sentence a climb lands on, so the reader is taken to the reason. */
+const CLIMB = "pane-climb";
 
 /** Districts, from the fronts payload, which returns them in LSGD order. */
 function districtUnits(fronts: FrontsPayload): MapUnit[] {
@@ -210,6 +177,39 @@ function contested(body: BodySummary, cycle: number): boolean {
   return true;
 }
 
+/**
+ * The body stood at some cycle, and not at this one.
+ *
+ * Kept apart from a body the commission published nothing for: that one has a
+ * sentence of the commission's own, which the page shows where the body's
+ * result would have been.
+ */
+function outOfCycle(body: BodySummary | null | undefined, cycle: number): boolean {
+  return Boolean(body && body.in_elections && !contested(body, cycle));
+}
+
+/** Which cycle took the body away, in the body list's own numbers. */
+function whyGone(body: BodySummary, cycle: number): string {
+  const name = `${body.lb_name_en} ${body.lb_type}`;
+  if (body.first_cycle !== null && cycle < body.first_cycle) {
+    return `${name} first contested in ${body.first_cycle}. The ${cycle} cycle has no result for it.`;
+  }
+  return `${name} last contested in ${body.last_cycle}. The ${cycle} cycle has no result for it.`;
+}
+
+/** Bodies of one tier in the district that the drawn layer holds no polygon for. */
+function missingFrom(
+  geometry: GeometryState,
+  candidates: BodySummary[],
+  belongs: (body: BodySummary) => boolean,
+): UnplacedBody[] {
+  if (geometry.status !== "ready") return [];
+  const drawn = new Set(
+    geometry.collection.features.map((feature) => String(feature.properties.lb_code)),
+  );
+  return candidates.filter((body) => belongs(body) && !drawn.has(body.lb_code));
+}
+
 export default function ElectionsSection() {
   const params = useParams();
   const [search] = useSearchParams();
@@ -224,15 +224,36 @@ export default function ElectionsSection() {
     search,
     selectedBody?.district_name ?? null,
   );
-  const { cycle, district, block, tier, lbCode, ward, level } = selection;
+  const { cycle, district, block, lbCode, ward, level } = selection;
+
+  const blockBody =
+    bodies.data?.bodies.find((body) => body.lb_code === block) ?? null;
+
+  // The two ways a cycle can take a level away. The pane closes and the pane
+  // above it says which body went and when it last stood.
+  const blockGone = outOfCycle(blockBody, cycle);
+  const bodyGone = outOfCycle(selectedBody, cycle);
+  const openBody = bodyGone ? null : lbCode;
 
   const fronts = useFronts(cycle);
-  const result = useCycleResult(lbCode ?? "", cycle);
+  const result = useCycleResult(openBody ?? "", cycle);
   const maps = useMaps();
   const membership = useBlockMembership();
-  const geometry = useGeometry(
-    geometryUrl(level, cycle, district, lbCode, tier, block),
+
+  // The cycle before this one, for the ward count the body pane compares
+  // against. Nothing to compare at 2010, which is the first.
+  const previous = CYCLES[CYCLES.indexOf(cycle as (typeof CYCLES)[number]) - 1] ?? null;
+  const before = useCycleResult(openBody ?? "", openBody ? (previous ?? null) : null);
+
+  // One slice per open pane. A body's own outline is not a request of its own:
+  // it is the feature keyed to that body in the slice its tier was drawn from.
+  const districtsGeo = useGeometry(districtsUrl(cycle));
+  const blocksGeo = useGeometry(blocksUrl(district, cycle));
+  const bodiesGeo = useGeometry(localBodiesUrl(district, cycle));
+  const inBlockGeo = useGeometry(
+    blockGone ? null : localBodiesUrl(district, cycle, block),
   );
+  const wardsGeo = useGeometry(wardsUrl(openBody, cycle));
 
   const go = (next: Parameters<typeof electionsPath>[0]) => navigate(electionsPath(next));
 
@@ -268,14 +289,18 @@ export default function ElectionsSection() {
     fronts.status === "ready"
       ? (fronts.payload.districts.find((d) => d.district_name === district) ?? null)
       : null;
+  const districtPanchayat = frontEntries.find(
+    (entry) => districtEntry !== null && entry.lb_code === districtEntry.lb_code,
+  );
 
   const blockEntries = frontEntries.filter(
     (entry) => inDistrict(entry) && entry.lb_type === "Block Panchayat",
   );
   // Only the ones that stood in this cycle. The fronts payload lists every
   // body that ever contested, with a null front where it has no row, and a
-  // list headed "urban local bodies" reading "no front in control" for a
-  // corporation that did not yet exist is a worse answer than leaving it out.
+  // list headed "municipalities and corporations" reading "no front in
+  // control" for a corporation that did not yet exist is a worse answer than
+  // leaving it out.
   const urbanEntries = frontEntries.filter((entry) => {
     if (!inDistrict(entry) || !URBAN_TYPES.has(entry.lb_type)) return false;
     const body = bodies.data?.bodies.find((row) => row.lb_code === entry.lb_code);
@@ -295,264 +320,392 @@ export default function ElectionsSection() {
   // What is not on the map, and why
   // ---------------------------------------------------------------------
 
-  // Bodies whose last election was before any layer was drawn. Not "missing
-  // from this map" — absent from every map there is, at every tier.
-  const noSuccessor: UnplacedBody[] =
+  const inThisDistrict =
     district && bodies.data
       ? bodies.data.bodies.filter(
-          (body) =>
-            body.district_name === district &&
-            contested(body, cycle) &&
-            body.last_cycle !== null &&
-            body.last_cycle < FIRST_MAPPED_CYCLE,
+          (body) => body.district_name === district && contested(body, cycle),
         )
       : [];
 
-  // Bodies in the open district that the drawn layer holds no polygon for.
-  // Stated only where a map was drawn: a grid of squares claims no geography,
-  // so nothing can be missing from it.
-  const drawnCodes =
-    geometry.status === "ready"
-      ? new Set(geometry.collection.features.map((f) => String(f.properties.lb_code)))
+  // Bodies whose last election was before any layer was drawn. Not "missing
+  // from this map" — absent from every map there is, at every tier.
+  const noSuccessor: UnplacedBody[] = inThisDistrict.filter(
+    (body) => body.last_cycle !== null && body.last_cycle < FIRST_MAPPED_CYCLE,
+  );
+  const placeable = inThisDistrict.filter(
+    (body) => !noSuccessor.some((other) => other.lb_code === body.lb_code),
+  );
+
+  // Bodies the drawn layer holds no polygon for. Stated only where a map was
+  // drawn: a grid of squares claims no geography, so nothing can be missing
+  // from it.
+  const noBlockPolygon = missingFrom(
+    blocksGeo,
+    placeable,
+    (body) => body.lb_type === "Block Panchayat",
+  );
+  const noBodyPolygon = missingFrom(bodiesGeo, placeable, (body) =>
+    DIRECT_TYPES.has(body.lb_type),
+  );
+
+  // ---------------------------------------------------------------------
+  // Which panes are open, and which of them is the last
+  // ---------------------------------------------------------------------
+
+  const wardPane = openBody !== null && selectedWardRow !== null;
+  const bodyPane = openBody !== null;
+  const blockPane = block !== null && !blockGone;
+  const districtPanes = district !== null;
+
+  const PANE = {
+    state: "pane-kerala",
+    districtOwn: "pane-district-panchayat",
+    blocks: "pane-block-panchayats",
+    bodies: "pane-grama-panchayats",
+    inBlock: "pane-in-block",
+    body: "pane-wards",
+    ward: "pane-ward",
+  };
+
+  const deepest = wardPane
+    ? PANE.ward
+    : bodyPane
+      ? PANE.body
+      : blockPane
+        ? PANE.inBlock
+        : districtPanes
+          ? PANE.bodies
+          : PANE.state;
+
+  /**
+   * The pane a selection opens at, which is the one it is scrolled to.
+   *
+   * A district opens three panes at once, and the reader is put at the first
+   * of them rather than the last: the district panchayat's own result is the
+   * answer to the click, and the two tiers under it are what to read next.
+   * It is also the pane whose position is settled, because the panes above it
+   * were already drawn.
+   */
+  const entered = wardPane
+    ? PANE.ward
+    : bodyPane
+      ? PANE.body
+      : blockPane
+        ? PANE.inBlock
+        : districtPanes
+          ? PANE.districtOwn
+          : PANE.state;
+
+  // The sentence that says which body the cycle took away. It hangs on the
+  // deepest pane that survived, which is the one the reader has been left on.
+  const climb = bodyGone
+    ? whyGone(selectedBody as BodySummary, cycle)
+    : blockGone && !bodyPane
+      ? whyGone(blockBody as BodySummary, cycle)
       : null;
-  const noPolygon: UnplacedBody[] =
-    district && bodies.data && drawnCodes && geometry.status === "ready"
-      ? bodies.data.bodies.filter((body) => {
-          if (body.district_name !== district || !contested(body, cycle)) return false;
-          if (noSuccessor.some((other) => other.lb_code === body.lb_code)) return false;
-          if (geometry.collection.level === "local_body") {
-            if (!DIRECT_TYPES.has(body.lb_type)) return false;
-            if (block !== null && ofBlock[body.lb_code] !== block) return false;
-          } else if (geometry.collection.level === "block_panchayat") {
-            if (body.lb_type !== "Block Panchayat") return false;
-          } else {
-            return false;
-          }
-          return !drawnCodes.has(body.lb_code);
-        })
-      : [];
+
+  // Ward numbers are a division of a delimitation. Where the count moved
+  // between two cycles, the body pane says so once.
+  const beforeWards =
+    before.status === "ready" && before.payload.available
+      ? before.payload.total_wards
+      : null;
+  const nowWards = cycleResult?.total_wards ?? null;
+  const delimitation =
+    previous !== null && beforeWards !== null && nowWards !== null && beforeWards !== nowWards
+      ? `${formatCount(nowWards)} wards in ${cycle}, ${formatCount(beforeWards)} in ${previous}. ` +
+        "Ward numbers are not the same divisions across a delimitation."
+      : null;
 
   // ---------------------------------------------------------------------
-  // The breadcrumb
+  // A new chapter is scrolled to; a new ward inside one is not
   // ---------------------------------------------------------------------
 
-  const crumbs: Crumb[] = [
-    { label: "Kerala", to: level === "state" ? undefined : electionsPath({ cycle }) },
-  ];
-  if (district) {
-    crumbs.push({
-      label: district,
-      to: level === "district" ? undefined : electionsPath({ cycle, district, tier }),
-    });
-  }
-  if (block) {
-    crumbs.push({
-      label: blockEntry ? nameOf(block) : block,
-      to: level === "block" ? undefined : electionsPath({ cycle, district, block }),
-    });
-  }
-  if (lbCode) {
-    crumbs.push({
-      label: selectedBody?.lb_name_en ?? lbCode,
-      to: level === "body" ? undefined : electionsPath({ cycle, lbCode }),
-    });
-  }
-  if (ward !== null) crumbs.push({ label: `Ward ${ward}` });
+  // A climb is a chapter change of its own: the pane the reader was on has
+  // gone, and they are moved to the sentence that says which and why rather
+  // than left looking at the space it left.
+  const chapter = `${paneKey(selection)}|${climb ? "climb" : ""}`;
+  const target = useRef(entered);
+  target.current = climb ? CLIMB : entered;
+  // The chapter the page last settled on, rather than a "have we mounted"
+  // flag: an effect that runs twice on one mount must not read as a move.
+  const settled = useRef<string | null>(null);
 
-  // ---------------------------------------------------------------------
-  // The map for the level the reader is on
-  // ---------------------------------------------------------------------
+  useEffect(() => {
+    // The first paint is wherever the reader arrived, including a pasted link
+    // three levels deep. Nothing has been chosen yet, so nothing is scrolled.
+    if (settled.current === null || settled.current === chapter) {
+      settled.current = chapter;
+      return;
+    }
+    settled.current = chapter;
 
-  let drillMap = null;
-  if (fronts.status === "ready" && level === "state") {
-    drillMap = (
-      <DrillMap
-        title={`Districts of Kerala by ruling front, ${cycle}`}
-        units={districtUnits(fronts.payload)}
-        variant="area"
-        unitNoun="district"
-        cycle={cycle}
-        geometry={geometry}
-        onSelect={(name) => drill("district", { cycle, district: name })}
-        caption={DISTRICT_CAPTION}
-      />
-    );
-  } else if (fronts.status === "ready" && level === "district" && district) {
-    const showBlocks = tier === "block_panchayat";
-    drillMap = (
-      <DrillMap
-        title={
-          showBlocks
-            ? `Block panchayats in ${district} by ruling front, ${cycle}`
-            : `Grama panchayats and urban bodies in ${district} by ruling front, ${cycle}`
+    let live = true;
+    const stop = () => {
+      live = false;
+    };
+    const scroll = () => {
+      document
+        .getElementById(target.current)
+        ?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    };
+
+    scroll();
+
+    // The panes that have just opened are still fetching their boundaries, and
+    // the page grows under the scroll as each arrives. So the scroll is
+    // followed until the height settles — or until the reader takes over,
+    // which ends it at once.
+    window.addEventListener("wheel", stop, { passive: true, once: true });
+    window.addEventListener("touchstart", stop, { passive: true, once: true });
+    window.addEventListener("keydown", stop, { once: true });
+
+    let first = true;
+    const observer =
+      typeof ResizeObserver === "function"
+        ? new ResizeObserver(() => {
+            if (first) {
+              first = false;
+              return;
+            }
+            if (live) scroll();
+          })
+        : null;
+    observer?.observe(document.body);
+    const done = window.setTimeout(stop, 1500);
+
+    return () => {
+      stop();
+      observer?.disconnect();
+      window.clearTimeout(done);
+      window.removeEventListener("wheel", stop);
+      window.removeEventListener("touchstart", stop);
+      window.removeEventListener("keydown", stop);
+    };
+  }, [chapter]);
+
+  return (
+    <div className="shell-container section-page">
+      <div className={styles.cycleBar}>
+        <CycleSlider
+          cycle={cycle}
+          // A ward never crosses a delimitation. The rest of the drill does.
+          onChange={(next) => go({ cycle: next, district, block, lbCode, ward: null })}
+        />
+      </div>
+
+      {fronts.status === "error" ? (
+        <p className="notice" role="alert">
+          {fronts.message}
+        </p>
+      ) : null}
+
+      <Pane
+        id={PANE.state}
+        top
+        crumb={{ label: "Kerala", to: level === "state" ? undefined : electionsPath({ cycle }) }}
+        heading={`Kerala's 14 districts by the front that runs the district panchayat, ${cycle}`}
+        foot={
+          district === null && climb ? (
+            <p id={CLIMB} className={styles.climb} role="status">
+              {climb}
+            </p>
+          ) : null
         }
-        units={
-          showBlocks
-            ? tierUnits(
+      >
+        {fronts.status === "ready" ? (
+          <DrillMap
+            title={`Districts of Kerala by ruling front, ${cycle}`}
+            units={districtUnits(fronts.payload)}
+            variant="area"
+            unitNoun="district"
+            cycle={cycle}
+            geometry={districtsGeo}
+            onSelect={(name) => drill("district", { cycle, district: name })}
+          />
+        ) : (
+          <p className="selector-status" aria-busy="true">
+            Loading the {cycle} results…
+          </p>
+        )}
+      </Pane>
+
+      {district ? (
+        <>
+          <Pane
+            id={PANE.districtOwn}
+            crumb={{
+              label: district,
+              to: level === "district" ? undefined : electionsPath({ cycle, district }),
+            }}
+            heading={`${district} District Panchayat`}
+            result={
+              districtEntry ? (
+                <OwnResult
+                  front={districtEntry.ruling_front}
+                  controlType={districtEntry.control_type}
+                  wards={districtPanchayat?.total_wards ?? null}
+                  lbCode={districtEntry.lb_code}
+                  cycle={cycle}
+                />
+              ) : (
+                <p className={styles.ownResult}>
+                  <span>The district panchayat has no result for {cycle}.</span>
+                </p>
+              )
+            }
+          >
+            {null}
+          </Pane>
+
+          <Pane
+            id={PANE.blocks}
+            heading={`${formatCount(blockEntries.length)} block panchayats in ${district}, ${cycle}`}
+          >
+            <DrillMap
+              title={`Block panchayats in ${district} by ruling front, ${cycle}`}
+              units={tierUnits(
                 blockEntries,
                 nameOf,
                 null,
                 (name) => `Click to open the grama panchayats in ${name}.`,
-              )
-            : tierUnits(
+              )}
+              variant="area"
+              unitNoun="block panchayat"
+              cycle={cycle}
+              geometry={blocksGeo}
+              onSelect={(code) => drill("block", { cycle, district, block: code })}
+            />
+            <Alongside bodies={urbanEntries} nameOf={nameOf} cycle={cycle} />
+            <Unplaced
+              label={NO_POLYGON_LABEL}
+              explanation={`The ${cycle} block panchayat layer holds no polygon for these. Their results are published all the same.`}
+              bodies={noBlockPolygon}
+              cycle={cycle}
+            />
+          </Pane>
+
+          <Pane
+            id={PANE.bodies}
+            heading={`${formatCount(directEntries.length)} grama panchayats and urban bodies in ${district}, ${cycle}`}
+            foot={
+              climb ? (
+                <p id={CLIMB} className={styles.climb} role="status">
+                  {climb}
+                </p>
+              ) : null
+            }
+          >
+            <DrillMap
+              title={`Grama panchayats and urban bodies in ${district} by ruling front, ${cycle}`}
+              units={tierUnits(
                 directEntries,
                 nameOf,
                 lbCode,
                 (name) => `Click to open the wards of ${name}.`,
-              )
-        }
-        variant="area"
-        unitNoun={showBlocks ? "block panchayat" : "local body"}
-        cycle={cycle}
-        geometry={geometry}
-        onSelect={(code) =>
-          showBlocks
-            ? drill("block", { cycle, district, block: code })
-            : drill("body", { cycle, lbCode: code })
-        }
-        caption={showBlocks ? BLOCK_CAPTION : BODY_CAPTION}
-        note={
-          districtEntry ? (
-            <OwnResult
-              name={`${district} District Panchayat`}
-              below={showBlocks ? "block panchayats" : "local bodies"}
-              front={districtEntry.ruling_front}
-              controlType={districtEntry.control_type}
-              lbCode={districtEntry.lb_code}
+              )}
+              variant="area"
+              unitNoun="local body"
+              cycle={cycle}
+              geometry={bodiesGeo}
+              onSelect={(code) => drill("body", { cycle, lbCode: code })}
+            />
+            <Unplaced
+              label={NO_POLYGON_LABEL}
+              explanation={`The ${cycle} local body layer holds no polygon for these. Their results are published all the same.`}
+              bodies={noBodyPolygon}
               cycle={cycle}
             />
-          ) : null
-        }
-      />
-    );
-  } else if (fronts.status === "ready" && level === "block" && block) {
-    drillMap = (
-      <DrillMap
-        title={`Grama panchayats in ${nameOf(block)} by ruling front, ${cycle}`}
-        units={tierUnits(
-          inBlockEntries,
-          nameOf,
-          lbCode,
-          (name) => `Click to open the wards of ${name}.`,
-        )}
-        variant="area"
-        unitNoun="grama panchayat"
-        cycle={cycle}
-        geometry={geometry}
-        onSelect={(code) => drill("body", { cycle, lbCode: code })}
-        caption={GP_IN_BLOCK_CAPTION}
-        note={
-          blockEntry ? (
-            <OwnResult
-              name={`${nameOf(block)} Block Panchayat`}
-              below="grama panchayats"
-              front={blockEntry.ruling_front}
-              controlType={blockEntry.control_type}
-              lbCode={blockEntry.lb_code}
+            <Unplaced
+              label={NO_SUCCESSOR_LABEL}
+              explanation={NO_SUCCESSOR_NOTE}
+              bodies={noSuccessor}
               cycle={cycle}
             />
-          ) : null
-        }
-      />
-    );
-  }
+          </Pane>
+        </>
+      ) : null}
 
-  return (
-    <div className="shell-container section-page">
-      <h1>Elections</h1>
-      <p className="lede">
-        Who won each ward in the 2010, 2015, 2020 and 2025 local body
-        elections, and by how many votes. Rural Kerala elects three bodies over
-        the same ground — a grama panchayat, a block panchayat and a district
-        panchayat — and every level here shows that tier's own election, never a
-        summary of the tier below it.
-      </p>
-
-      <div className="flex flex-col gap-s7">
-        <div>
-          <CycleSlider
-            cycle={cycle}
-            onChange={(next) => go({ cycle: next, district, block, tier, lbCode, ward })}
-          />
-        </div>
-
-        <Breadcrumb crumbs={crumbs} />
-
-        {fronts.status === "loading" ? (
-          <p className="selector-status" aria-busy="true">
-            Loading the {cycle} results…
-          </p>
-        ) : null}
-
-        {fronts.status === "error" ? (
-          <p className="notice" role="alert">
-            {fronts.message}
-          </p>
-        ) : null}
-
-        {level === "district" && district ? (
-          <TierPicker
-            district={district}
-            cycle={cycle}
-            tier={tier}
-            districtPanchayat={districtEntry?.lb_code ?? null}
-            onTier={(next: Tier) => go({ cycle, district, tier: next })}
-          />
-        ) : null}
-
-        {drillMap}
-
-        {level === "district" && district && tier === "block_panchayat" ? (
-          <Alongside bodies={urbanEntries} nameOf={nameOf} cycle={cycle} />
-        ) : null}
-
-        <Unplaced
-          label={NO_SUCCESSOR_LABEL}
-          explanation={NO_SUCCESSOR_NOTE}
-          bodies={noSuccessor}
-          cycle={cycle}
-        />
-
-        <Unplaced
-          label={NO_POLYGON_LABEL}
-          explanation={
-            `The ${cycle} boundary layer holds no polygon for these bodies, so ` +
-            "they are not drawn. Their results are published all the same."
+      {blockPane && block ? (
+        <Pane
+          id={PANE.inBlock}
+          crumb={{
+            label: nameOf(block),
+            to: level === "block" ? undefined : electionsPath({ cycle, district, block }),
+          }}
+          heading={`${formatCount(inBlockEntries.length)} grama panchayats in ${nameOf(block)} Block Panchayat, ${cycle}`}
+          result={
+            blockEntry ? (
+              <OwnResult
+                front={blockEntry.ruling_front}
+                controlType={blockEntry.control_type}
+                wards={blockEntry.total_wards}
+                lbCode={blockEntry.lb_code}
+                cycle={cycle}
+              />
+            ) : null
           }
-          bodies={noPolygon}
-          cycle={cycle}
-        />
+        >
+          <DrillMap
+            title={`Grama panchayats in ${nameOf(block)} by ruling front, ${cycle}`}
+            units={tierUnits(
+              inBlockEntries,
+              nameOf,
+              lbCode,
+              (name) => `Click to open the wards of ${name}.`,
+            )}
+            variant="area"
+            unitNoun="grama panchayat"
+            cycle={cycle}
+            geometry={inBlockGeo}
+            onSelect={(code) => drill("body", { cycle, lbCode: code, block })}
+          />
+        </Pane>
+      ) : null}
 
-        {result.status === "loading" ? (
-          <p className="selector-status" aria-busy="true">
-            Loading the {cycle} result…
-          </p>
-        ) : null}
+      {bodyPane ? (
+        <Pane
+          id={PANE.body}
+          crumb={{
+            label: selectedBody?.lb_name_en ?? openBody ?? "",
+            to:
+              level === "body"
+                ? undefined
+                : electionsPath({ cycle, lbCode: openBody, block }),
+          }}
+          heading={`Wards of ${bodyName}, ${cycle}`}
+          result={
+            cycleResult ? (
+              <OwnResult
+                front={cycleResult.ruling_front}
+                controlType={cycleResult.control_type}
+                wards={cycleResult.total_wards}
+                lbCode={null}
+                cycle={cycle}
+                note={delimitation}
+              />
+            ) : null
+          }
+        >
+          {result.status === "loading" ? (
+            <p className="selector-status" aria-busy="true">
+              Loading the {cycle} result…
+            </p>
+          ) : null}
 
-        {result.status === "error" ? (
-          <p className="notice" role="alert">
-            {result.message}
-          </p>
-        ) : null}
+          {result.status === "error" ? (
+            <p className="notice" role="alert">
+              {result.message}
+            </p>
+          ) : null}
 
-        {result.status === "ready" && !result.payload.available ? (
-          <p className="notice" role="status">
-            {result.payload.reason}
-          </p>
-        ) : null}
+          {result.status === "ready" && !result.payload.available ? (
+            <p className="notice" role="status">
+              {result.payload.reason}
+            </p>
+          ) : null}
 
-        {cycleResult ? (
-          <>
-            <SelectedCard
-              key={ward ?? "body"}
-              result={cycleResult}
-              ward={selectedWardRow}
-              bodyName={bodyName}
-              cycle={cycle}
-            />
-
-            <SeatsBar result={cycleResult} />
-
+          {cycleResult ? (
             <div className={styles.split}>
               <div className={styles.mapColumn}>
                 <DrillMap
@@ -561,41 +714,60 @@ export default function ElectionsSection() {
                   variant="ward"
                   unitNoun="ward"
                   cycle={cycle}
-                  geometry={geometry}
+                  geometry={wardsGeo}
+                  outline={featureFor(
+                    selectedBody?.lb_type === "Block Panchayat" ? blocksGeo : bodiesGeo,
+                    openBody,
+                  )}
                   onSelect={(wardNo) =>
-                    drill("ward", { cycle, lbCode, ward: Number(wardNo) })
+                    drill("ward", { cycle, lbCode: openBody, block, ward: Number(wardNo) })
                   }
-                  caption={WARD_CAPTION}
                 />
               </div>
 
               <div className="flex flex-col gap-s7">
+                <SeatsBar result={cycleResult} />
                 <WardTable
                   result={cycleResult}
                   selectedWard={ward}
-                  onSelect={(wardNo) => go({ cycle, lbCode, ward: wardNo })}
-                />
-                <CandidatesTable
-                  key={ward ?? "none"}
-                  candidates={candidatesInWard(cycleResult.candidates, ward)}
-                  ward={selectedWardRow}
-                  cycle={cycle}
+                  onSelect={(wardNo) => go({ cycle, lbCode: openBody, block, ward: wardNo })}
                 />
               </div>
             </div>
-          </>
-        ) : null}
+          ) : null}
+        </Pane>
+      ) : null}
 
-        <BodySelector section="elections" />
+      {wardPane && cycleResult && selectedWardRow ? (
+        <Pane
+          id={PANE.ward}
+          crumb={{ label: `Ward ${ward}` }}
+          heading={`${wardLabel(selectedWardRow)}, ${bodyName}, ${cycle}`}
+        >
+          <SelectedCard
+            key={`card-${ward}`}
+            ward={selectedWardRow}
+            bodyName={bodyName}
+            cycle={cycle}
+          />
+          <CandidatesTable
+            key={`candidates-${ward}`}
+            candidates={candidatesInWard(cycleResult.candidates, ward)}
+            ward={selectedWardRow}
+            cycle={cycle}
+          />
+        </Pane>
+      ) : null}
 
-        {maps.status === "ready" ? <Sources maps={maps.payload} /> : null}
+      <BodySelector section="elections" />
 
-        {maps.status === "error" ? (
-          <p className="notice" role="alert">
-            {maps.message}
-          </p>
-        ) : null}
-      </div>
+      {maps.status === "ready" ? <Sources maps={maps.payload} /> : null}
+
+      {maps.status === "error" ? (
+        <p className="notice" role="alert">
+          {maps.message}
+        </p>
+      ) : null}
     </div>
   );
 }

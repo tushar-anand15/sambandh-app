@@ -197,6 +197,17 @@
   margin-block: var(--s3) 0;
 }
 
+/* Read down the side of the map rather than across the top of it: a vertical
+   list is four lines of one word, which is what a legend is. */
+.mapLegend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  list-style: none;
+  padding: 0;
+  margin-block: var(--s4) 0;
+}
+
 .legendItem {
   display: flex;
   align-items: center;
@@ -214,45 +225,59 @@
   display: inline-block;
 }
 
-.breadcrumb {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--s2);
-  list-style: none;
-  padding: 0;
-  margin-block: 0 var(--s3);
-  font-family: var(--font-sans);
-  font-size: var(--t2);
-  line-height: var(--lh-ui);
+/* ---------------------------------------------------------------------------
+   The cycle.
+
+   Sticky under the tab bar, so it is in reach from any pane and a reader deep
+   in a district can re-colour every open pane without scrolling back up.
+   --------------------------------------------------------------------------- */
+.cycleBar {
+  position: sticky;
+  /* Clears the collapsed masthead, which is the page's other sticky element. */
+  top: 3rem;
+  z-index: 5;
+  background: var(--paper);
+  border-block-end: 1px solid var(--rule);
+  padding-block: var(--s2) var(--s3);
+  margin-block: 0 var(--s4);
 }
 
-/* Navigation, so no underline. See the note on `a` in index.css. */
-.breadcrumb a {
-  text-decoration: none;
-}
-
-.breadcrumbHere {
-  color: var(--ink-2);
-}
-
-.crumbSeparator {
-  color: var(--ink-3);
-}
-
-/* The cycle slider. A range input, labelled by the four cycles under it. */
+/* The label sits in the same column as the pane rail, so the bar reads as the
+   head of the stack rather than as a control bolted above it. */
 .slider {
-  margin-block: var(--s5) 0;
-  max-width: var(--measure-lede);
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: var(--s5);
+  align-items: center;
+  margin-block: 0;
+  max-width: none;
+}
+
+@media (max-width: 900px) {
+  .slider {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s1);
+  }
 }
 
 .sliderInput {
   width: 100%;
   accent-color: var(--accent);
-  margin-block: var(--s2) 0;
+  margin-block: 0;
+  grid-column: 2;
 }
 
+@media (max-width: 900px) {
+  .sliderInput {
+    grid-column: 1;
+  }
+}
+
+/* A <p>, so it inherited the 70ch prose measure while the input above it ran
+   the full width. The labels stopped at 560px under a 1,500px slider. */
 .sliderTicks {
+  max-width: none;
+  grid-column: 2;
   display: flex;
   justify-content: space-between;
   font-family: var(--font-sans);
@@ -260,6 +285,12 @@
   line-height: var(--lh-ui);
   color: var(--ink-2);
   margin-block: 0;
+}
+
+@media (max-width: 900px) {
+  .sliderTicks {
+    grid-column: 1;
+  }
 }
 
 .sliderTickOn {
@@ -369,7 +400,7 @@
    --------------------------------------------------------------------------- */
 .split {
   display: grid;
-  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   gap: var(--s6);
   align-items: start;
 }
@@ -486,68 +517,9 @@
    panel bordered in it beside a map of fronts reads as a fifth front.
    --------------------------------------------------------------------------- */
 
-.tierPicker {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--s2) var(--s4);
-  margin-block: var(--s4) var(--s4);
-  padding-block: var(--s3);
-  border-block: 1px solid var(--rule);
-}
-
-.tierLabel {
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.tierLink {
-  font-family: var(--font-sans);
-  font-size: var(--t2);
-  line-height: var(--lh-ui);
-}
-
-.tierButton {
-  font-family: var(--font-sans);
-  font-size: var(--t2);
-  line-height: var(--lh-ui);
-  padding: var(--s1) var(--s3);
-  background: transparent;
-  color: var(--ink-2);
-  border: 1px solid var(--rule-2);
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-
-.tierButton:hover {
-  color: var(--ink);
-  border-color: var(--ink-3);
-}
-
-/* Pressed is ink on surface, not accent on surface: the control sits inches
-   from four front colours and must not read as a fifth. */
-.tierButton[aria-pressed="true"] {
-  background: var(--ink);
-  color: var(--surface);
-  border-color: var(--ink);
-}
-
-/* What the map is, in words. Sits above the map, because a reader who has
-   already formed a reading of the colours will not go looking for a caption. */
-.tierCaption {
-  font-family: var(--font-sans);
-  font-size: var(--t2);
-  line-height: var(--lh-body);
-  color: var(--ink-2);
-  max-width: 78ch;
-  margin-block: var(--s3) 0;
-}
-
-/* Boundaries or squares. The undrawn case gets the heavier rule, because that
-   is the one a reader can misread. */
+/* What the squares and the cells are, said only where a reader could take
+   them for boundaries. A drawn map gets no note: it does not need telling the
+   reader it is a map. */
 .renderNote {
   font-family: var(--font-sans);
   font-size: var(--t2);
@@ -557,10 +529,6 @@
   border-inline-start: 2px solid var(--ink-3);
   padding-inline-start: var(--s3);
   margin-block: var(--s3) 0;
-}
-
-.renderNoteDrawn {
-  border-inline-start-color: var(--rule-2);
 }
 
 /* The clicked body's own result, above the tier it opened. */
@@ -636,4 +604,168 @@
 
 .alongsideMeta {
   color: var(--ink-3);
+}
+
+/* ---------------------------------------------------------------------------
+   Panes.
+
+   The page is chapters. A selection appends one below the last and scrolls to
+   it, and every pane above stays on screen and stays live, so going back up a
+   level is a scroll rather than a click that throws the level away.
+
+   The rail down the left is where the reader is. Read the rail labels down the
+   page and they are the breadcrumb; each is a link to the address that opens
+   at that level. A pane that opens at the same level as the one above it — a
+   district's block panchayats and its grama panchayats — leaves the rail
+   empty, because saying "Thrissur" twice says nothing the second time.
+   --------------------------------------------------------------------------- */
+.pane {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: var(--s5);
+  padding-block: var(--s6) 0;
+  /* Clears both sticky elements, so a pane scrolled to is not under them. */
+  scroll-margin-top: 8.5rem;
+}
+
+.pane + .pane {
+  border-block-start: 1px solid var(--rule);
+}
+
+@media (max-width: 900px) {
+  .pane {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s2);
+  }
+}
+
+.paneRail {
+  position: sticky;
+  top: 8.5rem;
+  align-self: start;
+}
+
+@media (max-width: 900px) {
+  .paneRail {
+    position: static;
+  }
+}
+
+.crumb {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  /* Navigation, so no underline. See the note on `a` in index.css. */
+  text-decoration: none;
+}
+
+a.crumb:hover {
+  color: var(--accent);
+}
+
+.paneHeading {
+  font-size: var(--t5);
+  line-height: var(--lh-snug);
+  margin-block: 0 var(--s3);
+  max-width: var(--measure);
+}
+
+/* Which body the cycle took away, and when it last stood. */
+.climb {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink);
+  border-inline-start: 2px solid var(--ink-3);
+  padding-inline-start: var(--s3);
+  margin-block: var(--s5) 0;
+  max-width: 78ch;
+  scroll-margin-top: 8.5rem;
+}
+
+/* ---------------------------------------------------------------------------
+   The map and its legend.
+   --------------------------------------------------------------------------- */
+.figure {
+  margin-block: 0;
+}
+
+.mapRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s5);
+  align-items: start;
+}
+
+.mapArea {
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .mapRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mapLegend {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Wards before 2025.
+
+   The outline is the body's published boundary. The cells inside it are its
+   wards in number order and assert nothing about where any of them was: no
+   ward boundaries were published before the 2025 delimitation, and cutting the
+   real polygon into N parts would read as a ward map of divisions nobody drew.
+   --------------------------------------------------------------------------- */
+.cellMap {
+  display: block;
+  width: 100%;
+  max-height: 32rem;
+  margin-block: var(--s4) 0;
+}
+
+.outline {
+  fill: var(--surface-2);
+  fill-rule: evenodd;
+  stroke: var(--ink-3);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.cell {
+  cursor: pointer;
+  outline: none;
+}
+
+.cellFace {
+  stroke: var(--surface);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.cell:hover .cellFace,
+.cell:focus-visible .cellFace {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.cellSelected .cellFace {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+
+.cellNumber {
+  font-family: var(--font-sans);
+  fill: var(--ink);
+  stroke: var(--surface);
+  paint-order: stroke;
+  stroke-linejoin: round;
+  text-anchor: middle;
+  pointer-events: none;
 }

@@ -6,7 +6,7 @@
  * A municipality has no block panchayat above it and no grama panchayats
  * inside it; it is an atomic body that happens to sit in the same district. So
  * when the map is showing block panchayats, the urban bodies are named next to
- * it rather than folded into it — folding them in would inflate a block
+ * it rather than folded into it. Folding them in would inflate a block
  * panchayat's territory by ground no block panchayat governs.
  */
 
@@ -29,12 +29,7 @@ export default function Alongside({ bodies, nameOf, cycle }: AlongsideProps) {
   return (
     <div className={styles.alongside}>
       <p className={styles.alongsideLabel}>
-        Urban local bodies, listed alongside and not on this map
-      </p>
-      <p className={styles.alongsideNote}>
-        A municipality or corporation sits in no block panchayat and contains no
-        grama panchayat. It is elected on its own, so it appears beside the
-        rural tiers rather than inside one of them.
+        Municipalities and corporations, which sit in no block panchayat
       </p>
       <ul className={styles.alongsideList}>
         {bodies.map((body) => (

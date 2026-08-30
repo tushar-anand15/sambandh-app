@@ -16,7 +16,6 @@ import { useEffect, useState } from "react";
 
 import type { GeoCollection } from "./geometry";
 import type { CyclePayload, FrontsPayload, MapsPayload } from "./payload";
-import type { Level, Tier } from "./selection";
 
 export type Fetched<T> =
   | { status: "idle" }
@@ -68,9 +67,12 @@ function useJson<T>(url: string | null, whatFailed: string, lbCode = ""): Fetche
 }
 
 /** One body, one cycle: seats, wards and candidates, or a stated cause. */
-export function useCycleResult(lbCode: string, cycle: number): Fetched<CyclePayload> {
+export function useCycleResult(
+  lbCode: string,
+  cycle: number | null,
+): Fetched<CyclePayload> {
   return useJson<CyclePayload>(
-    lbCode ? `/api/elections/${lbCode}/${cycle}` : null,
+    lbCode && cycle !== null ? `/api/elections/${lbCode}/${cycle}` : null,
     "The result",
     lbCode,
   );
@@ -181,33 +183,49 @@ export function useGeometry(url: string | null): GeometryState {
 }
 
 /**
- * The address of the slice one map level needs.
+ * The addresses of the slices the panes draw. One tier per request, always.
  *
- * One tier per request, always. The three rural tiers cover the same ground,
- * and asking for two of them at once would stack polygons and invite the
- * reading that the upper tier summarises the lower one. It does not: each is
- * its own ballot to its own body.
+ * The three rural tiers cover the same ground, and asking for two of them at
+ * once would stack polygons on every point. Each pane asks for its own level
+ * and gets the complete set at that level.
+ *
+ * A body's own outline, which the pre-2025 ward panes draw around their cells,
+ * is not a request of its own: it is the one feature keyed to that body in the
+ * slice its tier was already drawn from.
  */
-export function geometryUrl(
-  level: Level,
-  cycle: number,
+export function districtsUrl(cycle: number): string {
+  return `/geo/districts/${cycle}.geojson`;
+}
+
+export function blocksUrl(district: string | null, cycle: number): string | null {
+  if (!district) return null;
+  return `/geo/blocks/${encodeURIComponent(district)}.geojson?cycle=${cycle}`;
+}
+
+export function localBodiesUrl(
   district: string | null,
-  lbCode: string | null,
-  tier: Tier = "block_panchayat",
+  cycle: number,
   block: string | null = null,
 ): string | null {
-  const name = district ? encodeURIComponent(district) : null;
+  if (!district) return null;
+  const inBlock = block ? `&block=${encodeURIComponent(block)}` : "";
+  return `/geo/local-bodies/${encodeURIComponent(district)}.geojson?cycle=${cycle}${inBlock}`;
+}
 
-  if (level === "state") return `/geo/districts/${cycle}.geojson`;
-  if (level === "district") {
-    if (!name) return null;
-    return tier === "block_panchayat"
-      ? `/geo/blocks/${name}.geojson?cycle=${cycle}`
-      : `/geo/local-bodies/${name}.geojson?cycle=${cycle}`;
-  }
-  if (level === "block") {
-    if (!name || !block) return null;
-    return `/geo/local-bodies/${name}.geojson?cycle=${cycle}&block=${encodeURIComponent(block)}`;
-  }
-  return lbCode ? `/geo/wards/${encodeURIComponent(lbCode)}.geojson?cycle=${cycle}` : null;
+export function wardsUrl(lbCode: string | null, cycle: number): string | null {
+  if (!lbCode) return null;
+  return `/geo/wards/${encodeURIComponent(lbCode)}.geojson?cycle=${cycle}`;
+}
+
+/** The one feature a slice holds for one body, or null where it holds none. */
+export function featureFor(
+  geometry: GeometryState,
+  lbCode: string | null,
+): GeoCollection | null {
+  if (geometry.status !== "ready" || !lbCode) return null;
+  const feature = geometry.collection.features.find(
+    (candidate) => String(candidate.properties.lb_code) === lbCode,
+  );
+  if (!feature) return null;
+  return { ...geometry.collection, features: [feature] };
 }

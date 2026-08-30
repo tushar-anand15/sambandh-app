@@ -1,24 +1,23 @@
 /**
- * What the reader is looking at: published boundaries, or squares.
+ * Said only where its absence would mislead.
  *
- * The map changes shape between cycles without changing its manner, and a
- * square laid out on a grid looks as authoritative as a coastline. So the page
- * says which one it is drawing every time it draws, rather than only when
- * something is missing. A reader who takes a tile for a boundary is reading a
- * shape that is not one, and nothing about the picture would tell them.
+ * A drawn map needs no caption telling the reader it is a map. Squares and
+ * cells do, because a square laid out on a grid reads as authoritatively as a
+ * coastline and a reader who takes one for a boundary is reading a shape that
+ * is not one. So this renders in the fallback cases and in no other.
  *
- * The four cycles are not alike here. 2015, 2020 and 2025 publish boundaries at
- * every tier above wards; 2025 alone publishes wards. 2010 publishes nothing,
- * deliberately: the only polygons that could stand in for it are a November
- * 2020 snapshot, fifteen years and three delimitations away, and drawing them
- * would assert a boundary set that never existed.
+ * 2010 publishes nothing, deliberately: the only polygons that could stand in
+ * for it are a November 2020 snapshot, fifteen years and three delimitations
+ * away, and drawing them would assert a boundary set that never existed.
+ * 2015 and 2020 publish every tier above wards and no wards at all.
  */
 
 import styles from "./elections.module.css";
 
+export type NoteKind = "squares" | "cells" | "cells-in-outline";
+
 interface RenderNoteProps {
-  /** True when real polygons are on screen, false when squares are. */
-  drawn: boolean;
+  kind: NoteKind;
   cycle: number;
   /** What one unit is called: "district", "block panchayat", "ward". */
   unitNoun: string;
@@ -26,24 +25,33 @@ interface RenderNoteProps {
   reason: string | null;
 }
 
-export default function RenderNote({ drawn, cycle, unitNoun, reason }: RenderNoteProps) {
-  if (drawn) {
+export default function RenderNote({ kind, cycle, unitNoun, reason }: RenderNoteProps) {
+  if (kind === "cells-in-outline") {
     return (
-      <p className={`${styles.renderNote} ${styles.renderNoteDrawn}`}>
-        <b>Published boundaries.</b> These are the real shapes for {cycle}, cut to
-        this level from the boundary layer the build publishes. Nothing here is
-        approximated.
+      <p className={styles.renderNote}>
+        The outline is this body's published boundary. The cells inside it are
+        its wards in number order, and no more than that: no ward boundaries
+        were published for {cycle}, so where a cell sits says nothing about
+        where its ward was.
+      </p>
+    );
+  }
+
+  if (kind === "cells") {
+    return (
+      <p className={styles.renderNote}>
+        Cells, not boundaries. {reason ?? `Nothing has been published for ${cycle}.`}{" "}
+        Each cell is one ward in number order and carries the result alone.
       </p>
     );
   }
 
   return (
     <p className={styles.renderNote}>
-      <b>Squares, not boundaries.</b>{" "}
+      Squares, not boundaries.{" "}
       {reason ?? `No ${unitNoun} boundaries have been published for ${cycle}.`} Each
-      square below is one {unitNoun}, coloured by front. A square carries the
-      result and nothing about where the {unitNoun} is, how large it is or what
-      it borders. It is not a map.
+      square is one {unitNoun}, coloured by front, and carries nothing about where
+      the {unitNoun} is or what it borders.
     </p>
   );
 }

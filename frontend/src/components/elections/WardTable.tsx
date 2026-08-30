@@ -86,8 +86,7 @@ export default function WardTable({ result, selectedWard, onSelect }: WardTableP
     <section aria-label={title}>
       <h2>{title}</h2>
       <p className={styles.layerMeta}>
-        {formatCount(result.wards.length)} wards. Votes are what the commission
-        published for the winning candidate. The margin is the winner's votes
+        {formatCount(result.wards.length)} wards. The margin is the winner's votes
         less the runner-up's.
       </p>
       <div className="data-table-scroll">
@@ -121,10 +120,6 @@ export default function WardTable({ result, selectedWard, onSelect }: WardTableP
           </tbody>
         </table>
       </div>
-      <p className={styles.layerMeta}>
-        The margin as a share of the votes counted is in the card above. The
-        commission publishes no turnout figure per ward.
-      </p>
       <SourceLine
         dataset={result.provenance.dataset}
         build_date={result.provenance.build_date}
