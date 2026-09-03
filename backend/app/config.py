@@ -44,7 +44,13 @@ class Settings(BaseSettings):
     pdf_signing_key_file: str = ""
     pdf_url_ttl_seconds: int = 3600
 
-    model_config = {"env_file": ".env"}
+    # `extra: ignore` so the file may also carry variables this class does not
+    # read. litellm takes VERTEXAI_PROJECT and VERTEXAI_LOCATION straight from
+    # the environment, and production supplies them as container env, which
+    # pydantic ignores. Without this, the same two lines in a local .env stop
+    # the app booting -- a setting that works in production and breaks
+    # development is the wrong way round.
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 settings = Settings()
