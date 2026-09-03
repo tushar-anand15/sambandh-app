@@ -77,8 +77,14 @@ test.describe("public routes", () => {
     await page.goto("/finances");
 
     // No redirect, and the selector is live rather than a login form.
+    //
+    // The headline is written about a local body rather than named after the
+    // section, so there is no heading called "Finances" to assert -- and the
+    // word itself appears in the tab bar as well as the page's eyebrow.
     await expect(page).toHaveURL(/\/finances$/);
-    await expect(page.getByRole("heading", { name: "Finances" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /planned, and what it spent/ }),
+    ).toBeVisible();
     await expect(page.getByLabel("District")).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem("auth_token"))).toBeNull();
   });
@@ -87,10 +93,13 @@ test.describe("public routes", () => {
     await stubBodies(page);
 
     await page.goto("/meetings");
-    await expect(page.getByRole("heading", { name: "Meetings" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /council met, and what it wrote down/ }),
+    ).toBeVisible();
 
     await page.goto("/elections");
-    await expect(page.getByRole("heading", { name: "Elections" })).toBeVisible();
+    // Elections leads with the map rather than a headline, so the selector
+    // below is what says the page rendered and stayed public.
     // Cycles, not financial years — the same selector, a different period.
     // Scoped to the selector: the cycle slider under the map carries the same
     // label, deliberately, and both being called "Election cycle" is correct.
