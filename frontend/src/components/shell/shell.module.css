@@ -10,6 +10,18 @@
    transitioned, and a header that snaps shut mid-scroll reads as a bug.
    --------------------------------------------------------------------------- */
 
+:root {
+  /* Every part of the masthead collapse runs on these. Four elements move at
+     once -- the utility strip, the nameplate, the section bar's height, and the
+     wordmark and theme control that fade in to replace what left -- and the eye
+     reads them as one gesture only if they start and stop together. */
+  /* easeOutCubic. Masthead.tsx animates the scroll on the same curve; the
+     two must match or the content accelerates against itself. */
+  --hdr-ease: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --hdr-time: 0.62s;
+  --hdr-fade: 0.5s;
+}
+
 .site {
   position: sticky;
   top: 0;
@@ -34,13 +46,24 @@
   max-height: 34px;
   overflow: hidden;
   border-bottom: 1px solid var(--rule);
-  transition: max-height 0.28s ease, height 0.28s ease;
+  transition:
+    max-height var(--hdr-time) var(--hdr-ease),
+    height var(--hdr-time) var(--hdr-ease);
 }
 
 .site.isStuck .utility {
   height: 0;
   max-height: 0;
   border-bottom-width: 0;
+}
+
+/* Reduced motion means no motion, not less of it. The header still collapses,
+   because the layout depends on it; it just stops animating the way there. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --hdr-time: 0s;
+    --hdr-fade: 0s;
+  }
 }
 
 /* The banner is part of the nameplate, so it collapses with it on scroll and
@@ -88,7 +111,19 @@
      max-height needs a concrete value to transition from. */
   max-height: 640px;
   overflow: hidden;
-  transition: max-height 0.28s ease, padding 0.28s ease, opacity 0.18s ease;
+  /* The nameplate leaving takes about 500px out of the document, and the
+     browser's scroll anchoring moves the page to compensate at the same time.
+     The reader sees the sum of the two, so a duration that feels right for a
+     small element is a lurch here.
+
+     Slower, and eased so it settles rather than stops: the curve is flat at the
+     end, which is where the eye is. Opacity runs the full duration too -- at
+     0.18s the nameplate used to be gone while its space was still closing,
+     which read as two separate movements. */
+  transition:
+    max-height var(--hdr-time) var(--hdr-ease),
+    padding var(--hdr-time) var(--hdr-ease),
+    opacity var(--hdr-fade) ease-out;
 }
 
 .site.isStuck .nameplate {
@@ -174,7 +209,7 @@
   height: 50px;
   border-top: 1px solid var(--rule);
   flex-wrap: wrap;
-  transition: height 0.28s ease;
+  transition: height var(--hdr-time) var(--hdr-ease);
 }
 
 .site.isStuck .sectionbar {
@@ -196,7 +231,9 @@
   max-width: 0;
   overflow: hidden;
   opacity: 0;
-  transition: max-width 0.28s ease, opacity 0.18s ease;
+  transition:
+    max-width var(--hdr-time) var(--hdr-ease),
+    opacity var(--hdr-fade) ease-out;
 }
 
 .site.isStuck .smallmark {
@@ -256,7 +293,9 @@
   border-right-width: 0;
   overflow: hidden;
   opacity: 0;
-  transition: max-width 0.28s ease, opacity 0.18s ease;
+  transition:
+    max-width var(--hdr-time) var(--hdr-ease),
+    opacity var(--hdr-fade) ease-out;
 }
 
 .site.isStuck .tgInBar {

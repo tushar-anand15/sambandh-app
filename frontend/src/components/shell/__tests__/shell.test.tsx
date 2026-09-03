@@ -120,7 +120,14 @@ describe("the masthead", () => {
     expect(screen.queryByTestId("masthead-banner")).not.toBeInTheDocument();
   });
 
-  it("collapses past the nameplate and re-expands only at the top", () => {
+  /** An upward wheel gesture, of the size a reader actually makes. */
+  function pullDown(px: number) {
+    act(() => {
+      window.dispatchEvent(new WheelEvent("wheel", { deltaY: -px }));
+    });
+  }
+
+  it("collapses on the first scroll and comes back only when asked", () => {
     render(
       <MemoryRouter initialEntries={["/"]}>
         <Masthead />
@@ -128,20 +135,44 @@ describe("the masthead", () => {
     );
     giveNameplateHeight(300);
 
-    // Inside the nameplate's own height: still open.
-    scrollTo(200);
+    // A stray tick is not a scroll.
+    scrollTo(4);
     expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "false");
 
-    scrollTo(400);
+    // The point of the change: the reader does not have to clear the
+    // nameplate's own height -- 300px here, and a 400px banner on the real
+    // home route -- before the header gets out of the way.
+    scrollTo(20);
     expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
 
-    // The hysteresis: collapsing shortens the document, so the reader lands
-    // well above the collapse threshold. It must not re-open there.
-    scrollTo(120);
-    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
-
+    // Scroll anchoring glides the position back to 0 as the nameplate leaves
+    // the document. That must not read as "the reader went back to the top".
     scrollTo(0);
+    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
+
+    // Nor may a single stray tick bring it back.
+    pullDown(10);
+    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
+
+    // A deliberate pull at the top does.
+    pullDown(80);
     expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "false");
+  });
+
+  it("ignores an upward gesture made away from the top", () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Masthead />
+      </MemoryRouter>,
+    );
+    giveNameplateHeight(300);
+
+    scrollTo(600);
+    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
+
+    // Reading back up the page is not a request for the nameplate.
+    pullDown(200);
+    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
   });
 
   it("never expands on its own away from home", () => {
