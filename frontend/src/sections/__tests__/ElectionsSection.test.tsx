@@ -396,46 +396,56 @@ describe("the sources", () => {
 
     const sources = await screen.findByRole("region", { name: "Sources" });
 
-    expect(within(sources).getAllByRole("listitem")).toHaveLength(7);
+    // Seven layer rows, then one bullet per source beneath them.
+    const [files, refs] = within(sources).getAllByRole("list");
+    expect(within(files).getAllByRole("listitem")).toHaveLength(7);
+    expect(within(refs).getAllByRole("listitem")).toHaveLength(2);
     expect(within(sources).getByText("56.9 MB")).toBeInTheDocument();
     expect(
       within(sources).getByText(/1,033 of 1,238 local bodies have a boundary/),
     ).toBeInTheDocument();
   });
 
-  it("states a vintage once per source, not once per layer", async () => {
+  it("says which cycles each source covers, counting only files it holds", async () => {
     renderAt("/elections?cycle=2025");
 
     const sources = await screen.findByRole("region", { name: "Sources" });
+    const [, refs] = within(sources).getAllByRole("list");
+    const bullets = within(refs)
+      .getAllByRole("listitem")
+      .map((li) => li.textContent?.replace(/\s+/g, " ").trim());
 
-    // Four KSMART layers and three from opendatakerala. The vintage is a
-    // property of the source, so it is stated twice and not seven times.
-    expect(
-      within(sources).getAllByText(/Boundaries: November 2020 snapshot/),
-    ).toHaveLength(1);
-    expect(
-      within(sources).getAllByText(/Boundaries: current \(KSMART tile server\)/),
-    ).toHaveLength(1);
+    // The four 2025 layers are KSMART's; 2020 and 2015 are OpenStreetMap's.
+    // 2010 is listed as a download but is not on this server, so it is not
+    // claimed as covered.
+    expect(bullets[0]).toBe("KSMART vector tiles — 2025");
+    expect(bullets[1]).toBe(
+      "opendatakerala LSG release (OpenStreetMap) — 2020 and 2015, " +
+        "November 2020 snapshot, © OpenStreetMap contributors",
+    );
   });
 
-  it("states the ODbL attribution once, not once per layer", async () => {
+  it("carries the attribution a licence requires, and no other commentary", async () => {
     renderAt("/elections?cycle=2025");
 
     const sources = await screen.findByRole("region", { name: "Sources" });
 
-    // A licence condition on redistribution, and a rendered map is
-    // redistribution. Three layers carry it; the reader is told once.
+    // ODbL requires it and a rendered map is redistribution, so it stays --
+    // once, not once per layer.
     expect(within(sources).getAllByText(/© OpenStreetMap contributors/)).toHaveLength(1);
-    expect(
-      within(sources).getAllByText(/KSMART publishes no open licence/),
-    ).toHaveLength(1);
+
+    // KSMART publishes no licence, so its bullet is the source and the vintage.
+    // The note explaining that is gone with the rest of the prose.
+    expect(within(sources).queryByText(/Redistribution terms/)).not.toBeInTheDocument();
+    expect(within(sources).queryByText(/including a rendered image/)).not.toBeInTheDocument();
   });
 
-  it("names the fronts that have no colour of their own", async () => {
+  it("leaves the front colours to the legend", async () => {
     renderAt("/elections?cycle=2025");
 
     const sources = await screen.findByRole("region", { name: "Sources" });
-    expect(within(sources).getByText(/BJP\+ among them/)).toBeInTheDocument();
+    expect(within(sources).queryByText(/BJP\+/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/OTH is every other group/)).not.toBeInTheDocument();
   });
 
   it("offers a layer this server holds and states why it cannot offer the other", async () => {

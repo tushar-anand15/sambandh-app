@@ -1,43 +1,59 @@
 /**
- * The boundary layers this page is drawn from, as a list of downloads.
+ * The boundary layers this page is drawn from: the files, then where they came
+ * from.
  *
- * A line is a label, a size and a link. The vintage, the licence and the
- * attribution are properties of the source rather than of the file, so they
- * are stated once per source under the list — `what(layer)` used to append the
- * vintage to every layer, which put "as KSMART publishes them today" on the
- * page four times.
+ * Two lists and nothing else. The first is the downloads — a label, a size and
+ * a link. The second is one short bullet per source.
  *
- * The ODbL attribution is a condition on redistribution and a rendered map is
- * redistribution, so it stays on the page whatever else moves.
+ * A bullet says which cycles the source covers, because that is the question a
+ * reader has in front of a list of files spanning four of them: the 2025 shapes
+ * are KSMART's and the older ones are OpenStreetMap's, and nothing else on the
+ * page says so.
  *
- * The fronts the commission names beyond the four with colours are named here
- * too. That belongs at the foot of the page with the rest of the accounting
- * for what the colours are, not in a legend beside every map.
+ * Then the snapshot date, where there is one. OpenStreetMap's 2015 and 2010
+ * layers are drawn from a November 2020 capture, so those are current
+ * boundaries standing in for older ones — a real caveat, and the reason the
+ * field is worth a clause. KSMART is served live and has no date to give.
+ *
+ * Then the attribution, where a licence asks for one. ODbL does, and a rendered
+ * map is redistribution, so "© OpenStreetMap contributors" stays whatever else
+ * moves. KSMART publishes no licence, so its bullet ends at the cycles.
+ *
+ * Everything else that used to be here is gone: the licence notes spelling out
+ * what the licence line already says, a paragraph about front colours that
+ * belonged beside the map legend, and a provenance footer repeating the dataset
+ * name inside the section about where the data came from.
  */
-
-import SourceLine from "@/components/shell/SourceLine";
 
 import styles from "./elections.module.css";
 import { formatBytes, formatCount, type MapLayer, type MapsPayload } from "./payload";
 import { track } from "@/lib/telemetry";
 
-/** One block per source, in the order the layers first name them. */
-function sources(layers: MapLayer[]): { source: string; lines: string[] }[] {
-  const blocks: { source: string; lines: string[] }[] = [];
-  const seen = new Set<string>();
+/**
+ * One entry per source, in the order the layers first name them.
+ *
+ * Cycles come from the layers this server actually holds. A file listed as
+ * absent is still worth naming in the downloads above, so a reader knows it
+ * exists and why they cannot have it, but claiming its year here would say the
+ * site covers a cycle it cannot draw.
+ */
+function sources(layers: MapLayer[]): { layer: MapLayer; cycles: number[] }[] {
+  const bySource = new Map<string, { layer: MapLayer; cycles: number[] }>();
   for (const layer of layers) {
-    if (seen.has(layer.source)) continue;
-    seen.add(layer.source);
-    blocks.push({
-      source: layer.source,
-      lines: [
-        `Boundaries: ${layer.boundary_vintage}.`,
-        `${layer.licence ?? "No open licence published"}. ${layer.licence_note}`,
-        `Attribution: ${layer.attribution}.`,
-      ],
-    });
+    const entry = bySource.get(layer.source);
+    const cycles = entry ? entry.cycles : [];
+    if (layer.available) cycles.push(layer.cycle);
+    if (!entry) bySource.set(layer.source, { layer, cycles });
   }
-  return blocks;
+  return [...bySource.values()]
+    .map((entry) => ({ ...entry, cycles: [...new Set(entry.cycles)].sort((a, b) => b - a) }))
+    .filter((entry) => entry.cycles.length > 0);
+}
+
+/** "2025", "2020 and 2015", "2020, 2015 and 2010". */
+function listCycles(cycles: number[]): string {
+  if (cycles.length <= 1) return String(cycles[0] ?? "");
+  return `${cycles.slice(0, -1).join(", ")} and ${cycles[cycles.length - 1]}`;
 }
 
 export default function Sources({ maps }: { maps: MapsPayload }) {
@@ -76,23 +92,16 @@ export default function Sources({ maps }: { maps: MapsPayload }) {
         ))}
       </ul>
 
-      {sources(maps.layers).map((block) => (
-        <p key={block.source} className={styles.layerMeta}>
-          {block.source}. {block.lines.join(" ")}
-        </p>
-      ))}
-
-      <p className={styles.layerMeta}>
-        Four fronts have a colour. Any other group the commission names, BJP+
-        among them, takes the OTH colour and keeps its own name in every table
-        it appears in.
-      </p>
-
-      <SourceLine
-        dataset={maps.provenance.dataset}
-        build_date={maps.provenance.build_date}
-        note={maps.provenance.source}
-      />
+      <ul className={styles.sourceRefs}>
+        {sources(maps.layers).map(({ layer, cycles }) => (
+          <li key={layer.source}>
+            <span className={styles.sourceName}>{layer.source}</span> —{" "}
+            {listCycles(cycles)}
+            {layer.snapshot ? `, ${layer.snapshot} snapshot` : ""}
+            {layer.licence ? `, ${layer.attribution}` : ""}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -278,6 +278,8 @@ export function cyclePayload(lb: string, cycle: number) {
 const KSMART = {
   source: "KSMART vector tiles",
   boundary_vintage: "current (KSMART tile server)",
+  // Served live, so there is no capture date to state.
+  snapshot: null as string | null,
   per_cycle_delimitation: true,
   licence: null as string | null,
   licence_note:
@@ -288,6 +290,8 @@ const KSMART = {
 const OSM = {
   source: "opendatakerala LSG release (OpenStreetMap)",
   boundary_vintage: "November 2020 snapshot",
+  // One capture backs every cycle drawn from this source.
+  snapshot: "November 2020" as string | null,
   per_cycle_delimitation: false,
   licence: "ODbL 1.0" as string | null,
   licence_note:

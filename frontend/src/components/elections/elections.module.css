@@ -471,6 +471,24 @@
   min-width: 14rem;
 }
 
+/* One bullet per source: what it is, what the licence is, where it came from.
+   The prose version of this said the same three things in three sentences per
+   source, which read as filler and buried the licence it existed to state. */
+.sourceRefs {
+  list-style: disc;
+  margin-block: var(--s4) 0;
+  padding-inline-start: var(--s5);
+  max-width: 74ch;
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-2);
+}
+
+.sourceRefs li + li {
+  margin-block-start: var(--s2);
+}
+
 .layerMeta {
   font-family: var(--font-sans);
   font-size: var(--t2);

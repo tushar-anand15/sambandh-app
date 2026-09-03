@@ -219,6 +219,8 @@ export interface MapLayer {
   format: string;
   source: string;
   boundary_vintage: string;
+  /** Date the source was captured, or null where it is served live. */
+  snapshot?: string | null;
   per_cycle_delimitation: boolean;
   licence: string | null;
   licence_note: string;

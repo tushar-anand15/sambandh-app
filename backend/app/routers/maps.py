@@ -23,7 +23,11 @@ router = APIRouter(prefix="/api/maps", tags=["public"], dependencies=[Depends(ra
 
 KSMART = {
     "source": "KSMART ward maps",
-    "boundary_vintage": "as KSMART publishes them today",
+    "boundary_vintage": "as published by KSMART",
+    # Live: KSMART serves whatever it currently holds, so there is no snapshot
+    # date to give. `None` says that, where a phrase like "as published today"
+    # only takes up room.
+    "snapshot": None,
     "per_cycle_delimitation": True,
     "licence": None,
     "licence_note": "Redistribution terms are unstated.",
@@ -33,6 +37,10 @@ KSMART = {
 OSM = {
     "source": "opendatakerala, from OpenStreetMap",
     "boundary_vintage": "November 2020",
+    # One snapshot backs every cycle drawn from this source, so the 2015 and
+    # 2010 shapes are 2020 boundaries standing in for older ones. That is worth
+    # a reader's attention and is the reason this field exists.
+    "snapshot": "November 2020",
     "licence": "ODbL 1.0",
     "licence_note": "Attribution required on any redistribution, including a rendered image.",
     "attribution": "© OpenStreetMap contributors",
