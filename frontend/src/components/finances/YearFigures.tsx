@@ -7,7 +7,6 @@
  * The share carries its base, so 49.0% is never left to stand alone.
  */
 
-import SourceLine from "@/components/shell/SourceLine";
 import { formatYearLabel } from "@/components/select/YearControl";
 import { bodyName, count, exactRupees, money, percent, yearName } from "./format";
 import styles from "./finances.module.css";
@@ -100,11 +99,6 @@ export default function YearFigures({ payload }: YearFiguresProps) {
         </p>
       )}
 
-      <SourceLine
-        dataset={payload.provenance.dataset}
-        build_date={payload.provenance.build_date}
-        note={payload.provenance.source}
-      />
     </section>
   );
 }

@@ -537,16 +537,6 @@ hr {
   margin-block: var(--s4) 0;
 }
 
-/* Provenance line. Small, quiet, and always present under data. */
-.source-line {
-  font-family: var(--font-sans);
-  font-size: var(--t2);
-  line-height: var(--lh-ui);
-  color: var(--ink-3);
-  max-width: var(--measure);
-  margin-block: var(--s2) 0;
-}
-
 /* ---------------------------------------------------------------------------
    Shell chrome
    --------------------------------------------------------------------------- */

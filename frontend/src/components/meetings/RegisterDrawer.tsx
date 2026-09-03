@@ -8,7 +8,6 @@
  */
 
 import HtmlDrawer from "@/components/viewer/HtmlDrawer";
-import SourceLine from "@/components/shell/SourceLine";
 
 import styles from "./meetings.module.css";
 import { bodyLabel, formatDate, type DocumentKind } from "./payload";
@@ -70,11 +69,6 @@ export default function RegisterDrawer({
             {ready.meeting_date ? `, ${formatDate(ready.meeting_date)}` : null}.
             The wording is the council&rsquo;s own.
           </p>
-          <SourceLine
-            dataset={ready.provenance.dataset}
-            build_date={ready.provenance.build_date}
-            note="Published by Sakarma"
-          />
         </>
       ) : null}
     </HtmlDrawer>

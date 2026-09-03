@@ -15,7 +15,6 @@
  * that would open an empty panel.
  */
 
-import SourceLine from "@/components/shell/SourceLine";
 import { formatYearLabel } from "@/components/select/YearControl";
 
 import styles from "./meetings.module.css";
@@ -146,11 +145,6 @@ export default function MeetingList({ payload, onOpen }: MeetingListProps) {
         </table>
       </div>
 
-      <SourceLine
-        dataset={payload.provenance.dataset}
-        build_date={payload.provenance.build_date}
-        note={payload.provenance.source}
-      />
     </section>
   );
 }

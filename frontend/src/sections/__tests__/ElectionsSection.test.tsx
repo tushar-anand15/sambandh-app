@@ -375,9 +375,8 @@ describe("wards before 2025", () => {
       const maps = screen.getAllByTestId("drill-map");
       expect(maps[maps.length - 1]).toHaveAttribute("data-outline", "published");
     });
-    expect(
-      screen.getByText(/where a cell sits says nothing about where its ward was/),
-    ).toBeInTheDocument();
+    // The outline is a real shape and reads as one, so it carries no caption.
+    expect(screen.queryByText(/wards in number order/)).not.toBeInTheDocument();
   });
 
   it("draws the cells alone for 2010, which publishes no outline either", async () => {

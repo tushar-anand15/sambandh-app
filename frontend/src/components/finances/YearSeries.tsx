@@ -18,7 +18,6 @@
  * and for anyone who wants the figure rather than the shape.
  */
 
-import SourceLine from "@/components/shell/SourceLine";
 import { formatYearLabel } from "@/components/select/YearControl";
 import { bodyName, exactRupees, unitFor } from "./format";
 import styles from "./finances.module.css";
@@ -251,11 +250,6 @@ export default function YearSeries({ body, lbCode, years, provenance }: YearSeri
         </tbody>
       </table>
 
-      <SourceLine
-        dataset={provenance.dataset}
-        build_date={provenance.build_date}
-        note={provenance.source}
-      />
     </section>
   );
 }

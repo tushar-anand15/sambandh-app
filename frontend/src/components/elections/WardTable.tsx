@@ -11,7 +11,6 @@
  * read as a margin of nothing.
  */
 
-import SourceLine from "@/components/shell/SourceLine";
 
 import styles from "./elections.module.css";
 import {
@@ -120,11 +119,6 @@ export default function WardTable({ result, selectedWard, onSelect }: WardTableP
           </tbody>
         </table>
       </div>
-      <SourceLine
-        dataset={result.provenance.dataset}
-        build_date={result.provenance.build_date}
-        note={result.provenance.source}
-      />
     </section>
   );
 }

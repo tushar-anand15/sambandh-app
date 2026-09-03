@@ -12,7 +12,6 @@
  * the first place.
  */
 
-import SourceLine from "@/components/shell/SourceLine";
 
 import { bodyLabel, withFormattedYears, type MeetingsMissing } from "./payload";
 
@@ -28,11 +27,6 @@ export default function MeetingsUnavailable({ payload }: { payload: MeetingsMiss
           : withFormattedYears(payload.reason)}
       </p>
 
-      <SourceLine
-        dataset={payload.provenance.dataset}
-        build_date={payload.provenance.build_date}
-        note={payload.provenance.source}
-      />
     </section>
   );
 }

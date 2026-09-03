@@ -86,7 +86,7 @@ describe("the panel", () => {
     expect(REGISTER_HTML).toContain("colspan=");
   });
 
-  it("names the document, the meeting and the object it was read from", async () => {
+  it("names the document and the meeting it belongs to", async () => {
     renderAt("/meetings/M08032/2023-2024");
     const first = await row(1);
     await userEvent.click(
@@ -96,8 +96,9 @@ describe("the panel", () => {
     const panel = await screen.findByRole("dialog");
     expect(within(panel).getByRole("heading")).toHaveTextContent("Decision register");
     expect(panel).toHaveTextContent("12 October 2023, meeting 2");
-    expect(panel).toHaveTextContent("Published by Sakarma");
-    expect(panel).toHaveTextContent("Gram Sambandh master database");
+    expect(panel).toHaveTextContent("Chalakudy Municipality");
+    // The provenance line is gone from every panel; the Method page carries it.
+    expect(within(panel).queryByTestId("source-line")).not.toBeInTheDocument();
   });
 
   it("closes on the button and on Escape, leaving the list behind it", async () => {

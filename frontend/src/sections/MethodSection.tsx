@@ -15,7 +15,6 @@
 import { formatCount } from "@/components/elections/payload";
 import { money } from "@/components/finances/format";
 import { formatYearLabel } from "@/components/select/YearControl";
-import SourceLine from "@/components/shell/SourceLine";
 import { levelName, useMethod } from "@/components/method/useMethod";
 
 import styles from "@/components/method/method.module.css";
@@ -256,11 +255,6 @@ export default function MethodSection() {
         </div>
       </dl>
 
-      <SourceLine
-        dataset={provenance.dataset}
-        build_date={provenance.build_date}
-        note={provenance.source}
-      />
     </div>
   );
 }

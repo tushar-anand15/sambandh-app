@@ -97,17 +97,11 @@ describe("a body-year with meetings", () => {
     );
   });
 
-  it("carries a source line under every block of figures", async () => {
+  it("carries no provenance line under the blocks of figures", async () => {
     renderAt("/meetings/M08032/2023-2024");
     await screen.findByRole("table");
 
-    const lines = screen.getAllByTestId("source-line");
-    expect(lines).toHaveLength(2);
-    for (const line of lines) {
-      expect(line).toHaveTextContent("Gram Sambandh master database");
-      expect(line).toHaveTextContent("Sakarma meeting portal");
-      expect(line).toHaveTextContent("13 August 2026");
-    }
+    expect(screen.queryAllByTestId("source-line")).toHaveLength(0);
   });
 });
 
@@ -224,7 +218,6 @@ describe("a body Sakarma does not cover", () => {
       "Sakarma covers 1,200 of Kerala's 1,238 local bodies. Panoor Grama Panchayat is one of the 38 it does not cover.",
     );
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.getAllByTestId("source-line").length).toBeGreaterThan(0);
   });
 });
 

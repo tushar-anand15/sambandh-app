@@ -10,7 +10,6 @@
  * draw, because an empty bar would read as a body that won nothing.
  */
 
-import SourceLine from "@/components/shell/SourceLine";
 
 import styles from "./elections.module.css";
 import { controlSentence, formatCount, frontToken, type CycleResult } from "./payload";
@@ -70,11 +69,6 @@ export default function SeatsBar({ result }: { result: CycleResult }) {
         {controlSentence(result.ruling_front, result.control_type)}. Majority at{" "}
         {formatCount(result.majority_threshold)} of {formatCount(result.total_wards)} wards.
       </p>
-      <SourceLine
-        dataset={result.provenance.dataset}
-        build_date={result.provenance.build_date}
-        note={result.provenance.source}
-      />
     </section>
   );
 }

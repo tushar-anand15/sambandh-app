@@ -17,7 +17,6 @@
  * The caveat is printed under the counts rather than kept in this comment.
  */
 
-import SourceLine from "@/components/shell/SourceLine";
 import { formatYearLabel } from "@/components/select/YearControl";
 import { count } from "./format";
 import styles from "./finances.module.css";
@@ -124,11 +123,6 @@ export default function ContinuityPanel({
         daily expenses, matches years that share no actual project.
       </p>
 
-      <SourceLine
-        dataset={payload.provenance.dataset}
-        build_date={payload.provenance.build_date}
-        note={payload.provenance.source}
-      />
     </section>
   );
 }

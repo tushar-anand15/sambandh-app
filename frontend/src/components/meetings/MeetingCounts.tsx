@@ -6,7 +6,6 @@
  * page shows the total once above them rather than implying four buckets.
  */
 
-import SourceLine from "@/components/shell/SourceLine";
 import { formatYearLabel } from "@/components/select/YearControl";
 
 import styles from "./meetings.module.css";
@@ -118,11 +117,6 @@ export default function MeetingCounts({ payload }: { payload: MeetingsYear }) {
         Sakarma names.
       </p>
 
-      <SourceLine
-        dataset={payload.provenance.dataset}
-        build_date={payload.provenance.build_date}
-        note={payload.provenance.source}
-      />
     </section>
   );
 }

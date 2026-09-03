@@ -16,6 +16,12 @@ import styles from "./elections.module.css";
 
 export type NoteKind = "squares" | "cells" | "cells-in-outline";
 
+/**
+ * `cells-in-outline` renders nothing. Where the body's own boundary is drawn
+ * the picture already reads as a real shape holding placeholder cells, and the
+ * caption spent four lines restating it.
+ */
+
 interface RenderNoteProps {
   kind: NoteKind;
   cycle: number;
@@ -26,16 +32,7 @@ interface RenderNoteProps {
 }
 
 export default function RenderNote({ kind, cycle, unitNoun, reason }: RenderNoteProps) {
-  if (kind === "cells-in-outline") {
-    return (
-      <p className={styles.renderNote}>
-        The outline is this body's published boundary. The cells inside it are
-        its wards in number order, and no more than that: no ward boundaries
-        were published for {cycle}, so where a cell sits says nothing about
-        where its ward was.
-      </p>
-    );
-  }
+  if (kind === "cells-in-outline") return null;
 
   if (kind === "cells") {
     return (

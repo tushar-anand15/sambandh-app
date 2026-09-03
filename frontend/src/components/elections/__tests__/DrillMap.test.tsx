@@ -285,9 +285,8 @@ describe("the fallback, where no boundary was published", () => {
   });
 
   it("draws the body's own outline around the cells where one was published", () => {
-    // 2015 and 2020 publish local body boundaries and no wards at all. The
-    // outline is real; the cells inside it are the wards in number order and
-    // claim nothing about which ward is where.
+    // 2015 and 2020 publish local body boundaries and no wards at all, so the
+    // outline is real and the cells inside it are placeholders.
     const outline: GeoCollection = {
       type: "FeatureCollection",
       level: "local_body",
@@ -328,9 +327,10 @@ describe("the fallback, where no boundary was published", () => {
 
     expect(screen.getByTestId("drill-map")).toHaveAttribute("data-outline", "published");
     expect(screen.getAllByRole("button")).toHaveLength(13);
+    // No caption here: the outline is a real shape and says so by being one.
     expect(
-      screen.getByText(/where a cell sits says nothing about where its ward was/),
-    ).toBeInTheDocument();
+      screen.queryByText(/wards in number order/),
+    ).not.toBeInTheDocument();
     // Not a ward map: the outline is one path, and it was not cut into 13.
     expect(document.querySelectorAll("path")).toHaveLength(1);
   });

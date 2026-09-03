@@ -98,12 +98,13 @@ describe("a body-year", () => {
     expect(within(fresh).getAllByRole("listitem")).toHaveLength(214);
   });
 
-  it("renders a SourceLine under every figure block", async () => {
+  it("repeats no provenance line under the figure blocks", async () => {
     renderAt("/finances/M08032/2023-2024");
     await figures();
 
-    // Series, figures, continuity, project table.
-    await waitFor(() => expect(screen.getAllByTestId("source-line")).toHaveLength(4));
+    // It said the same dataset and build date under all four blocks. The
+    // Method page carries the provenance now, once.
+    expect(screen.queryAllByTestId("source-line")).toHaveLength(0);
   });
 
   it("carries no note about sector classification", async () => {

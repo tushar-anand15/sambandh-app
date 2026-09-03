@@ -25,7 +25,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import SourceLine from "@/components/shell/SourceLine";
 import PdfDrawer from "@/components/viewer/PdfDrawer";
 import { formatYearLabel } from "@/components/select/YearControl";
 import {
@@ -179,11 +178,6 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
           Sulekha records totals for {year} and publishes no project rows behind
           them.
         </p>
-        <SourceLine
-          dataset={payload.provenance.dataset}
-          build_date={payload.provenance.build_date}
-          note={payload.provenance.source}
-        />
       </section>
     );
   }
@@ -371,11 +365,6 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
         </>
       )}
 
-      <SourceLine
-        dataset={payload.provenance.dataset}
-        build_date={payload.provenance.build_date}
-        note={payload.provenance.source}
-      />
 
       <PdfDrawer
         open={open !== null}
