@@ -10,8 +10,11 @@
 
    So the frame is taken out of flow and pinned to the viewport below whatever
    chrome the site is carrying. `--assistant-top` is measured rather than
-   assumed: the masthead collapses, and hard-coding its height here would leave
-   a gap or a cover-up the first time it changed.
+   assumed. The masthead used to collapse on scroll, which made a hard-coded
+   height wrong for most of a reading session; it is one fixed row now, but its
+   height still depends on the type scale, the tab row and the viewport width,
+   and a number typed here would be wrong the first time any of those moved. The
+   measurement costs one read of `getBoundingClientRect` per resize.
    --------------------------------------------------------------------------- */
 
 /* In flow, zero-height, and the only thing that knows where the page begins. */

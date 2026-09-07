@@ -1,275 +1,100 @@
 /* ---------------------------------------------------------------------------
    The masthead.
 
-   A newspaper nameplate at rest; a slim sticky bar once the reader scrolls,
-   after the New Yorker, whose stacked nav is 7rem at rest and 3.5rem fixed.
-   The nameplate collapses, the section bar survives.
+   One row, fixed height, the same on every route: mark and wordmark, the five
+   section tabs, the theme control, the account control.
 
-   Everything that collapses does so through max-height rather than `display`,
-   so the change animates instead of jumping. `display: none` cannot be
-   transitioned, and a header that snaps shut mid-scroll reads as a bug.
+   The nameplate that used to collapse on scroll is gone, and with it the
+   transition tokens the four moving parts shared. Nothing here animates,
+   because nothing here changes size.
    --------------------------------------------------------------------------- */
-
-:root {
-  /* Every part of the masthead collapse runs on these. Four elements move at
-     once -- the utility strip, the nameplate, the section bar's height, and the
-     wordmark and theme control that fade in to replace what left -- and the eye
-     reads them as one gesture only if they start and stop together. */
-  /* easeOutCubic. Masthead.tsx animates the scroll on the same curve; the
-     two must match or the content accelerates against itself. */
-  --hdr-ease: cubic-bezier(0.215, 0.61, 0.355, 1);
-  --hdr-time: 0.62s;
-  --hdr-fade: 0.5s;
-}
 
 .site {
   position: sticky;
   top: 0;
   z-index: 50;
   background: var(--surface);
-  border-bottom: 1px solid var(--ink);
+  border-bottom: 1px solid var(--rule-2);
 }
 
 .hdr {
   max-width: var(--container);
   margin-inline: auto;
-  padding-inline: var(--s5);
-}
-
-/* The utility strip: the only thing above the nameplate, and the first thing
-   to go on scroll. */
-.utility {
+  padding: var(--s2) var(--s5);
+  min-height: 60px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  height: 34px;
-  max-height: 34px;
-  overflow: hidden;
-  border-bottom: 1px solid var(--rule);
-  transition:
-    max-height var(--hdr-time) var(--hdr-ease),
-    height var(--hdr-time) var(--hdr-ease);
+  gap: var(--s4);
 }
 
-.site.isStuck .utility {
-  height: 0;
-  max-height: 0;
-  border-bottom-width: 0;
-}
-
-/* Reduced motion means no motion, not less of it. The header still collapses,
-   because the layout depends on it; it just stops animating the way there. */
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --hdr-time: 0s;
-    --hdr-fade: 0s;
-  }
-}
-
-/* The banner is part of the nameplate, so it collapses with it on scroll and
-   needs no rule of its own. Drawn on the home route only; another unit fills
-   it. */
-.hero {
-  margin: 0 0 var(--s5);
-  border: 1px solid var(--rule);
-  background: var(--surface-2);
-  position: relative;
-  overflow: hidden;
-  aspect-ratio: 6.4 / 1;
-}
-
-.heroImage {
-  display: block;
-  width: 100%;
-  height: 100%;
-  /* The render is 6.4:1 and so is the box, so nothing is cropped at the
-     desktop ratio; cover keeps it honest at the narrower mobile aspect. */
-  object-fit: cover;
-}
-
-/* ODbL requires attribution wherever the derived work appears, so it travels
-   with the image rather than living in a colophon further down the page. */
-.heroStamp {
-  position: absolute;
-  inset: auto 0 0 0;
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--ink-3);
-  background: var(--surface);
-  border-top: 1px solid var(--rule);
-  padding: var(--s1) var(--s3);
-  text-align: left;
-}
-
-/* The nameplate collapses on scroll. Height, not display, so it animates. */
-.nameplate {
-  text-align: center;
-  padding: var(--s5) 0 var(--s4);
-  /* Well clear of the tallest the nameplate gets (banner, name, strapline):
-     max-height needs a concrete value to transition from. */
-  max-height: 640px;
-  overflow: hidden;
-  /* The nameplate leaving takes about 500px out of the document, and the
-     browser's scroll anchoring moves the page to compensate at the same time.
-     The reader sees the sum of the two, so a duration that feels right for a
-     small element is a lurch here.
-
-     Slower, and eased so it settles rather than stops: the curve is flat at the
-     end, which is where the eye is. Opacity runs the full duration too -- at
-     0.18s the nameplate used to be gone while its space was still closing,
-     which read as two separate movements. */
-  transition:
-    max-height var(--hdr-time) var(--hdr-ease),
-    padding var(--hdr-time) var(--hdr-ease),
-    opacity var(--hdr-fade) ease-out;
-}
-
-.site.isStuck .nameplate {
-  max-height: 0;
-  padding: 0;
-  opacity: 0;
-}
-
-@media (max-width: 720px) {
-  .hero {
-    aspect-ratio: 3.4 / 1;
-  }
-}
-
-/* The nameplate is one link carrying two names, so a click anywhere on either
-   goes home. */
-.name {
-  display: block;
+/* The mark and the wordmark, one link home. */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex: none;
   color: var(--ink);
   text-decoration: none;
 }
 
-/* --t9 is the largest step the scale has (50px at its ceiling). The design
-   asks for 64px; a tenth size is a bug, so the nameplate takes the top of the
-   scale rather than inventing one.
-
-   400, matching `h1`: at --t9 the size is the emphasis, and 300 was the weight
-   the palette before last set on everything to keep the site off bold. */
-.nameEn {
-  display: block;
+/* One word, two weights: `Gram` is the common noun and `SAMBANDH` is the name
+   the site is spelled by, which is why the acronym is the half set in bold. */
+.wordmark {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: var(--t9);
+  font-size: var(--t6);
   line-height: var(--lh-tight);
-  letter-spacing: var(--track-display);
-  color: var(--ink);
-}
-
-/* The same name in the language of the state the site covers -- content, and
-   the second-language line an Indian masthead carries as a matter of course.
-   Set between the wordmark and the strapline in size as well as in position.
-
-   Public Sans covers no Malayalam, so the stack names Noto Sans Malayalam
-   before the generic -- the same fallback `.prose-chat` uses in index.css for
-   the assistant's Malayalam answers. Both faces are vendored and served from
-   this origin; see the @font-face blocks at the top of index.css. */
-.nameMal {
-  display: block;
-  font-family: var(--font-sans), "Noto Sans Malayalam", sans-serif;
-  font-size: var(--t5);
-  line-height: var(--lh-snug);
-  letter-spacing: 0;
-  color: var(--ink-2);
-  margin: var(--s2) 0 0;
-}
-
-/* The strapline is the nameplate's motto: about a fifth its size, tracked and
-   centred, the proportion a masthead uses. */
-.expansion {
-  display: block;
-  margin: var(--s4) auto 0;
-  max-width: 62ch;
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  line-height: 1.75;
-  letter-spacing: 1.6px;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-/* SAMBANDH is an acronym, so the eight letters that spell it are the ones set
-   in ink. Italic markup, upright type: <i> is the semantic hook, not a slant. */
-.expansion i {
-  font-style: normal;
-  color: var(--ink);
-}
-
-/* The section bar. Centred at rest; at the left, beside the small wordmark,
-   once the nameplate is gone. */
-.sectionbar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--s6);
-  height: 50px;
-  border-top: 1px solid var(--rule);
-  flex-wrap: wrap;
-  transition: height var(--hdr-time) var(--hdr-ease);
-}
-
-.site.isStuck .sectionbar {
-  justify-content: flex-start;
-  border-top: 0;
-  height: 54px;
-}
-
-.smallmark {
-  font-family: var(--font-sans);
-  font-size: var(--t2);
   letter-spacing: var(--track-head);
-  text-transform: uppercase;
-  color: var(--ink);
-  margin-right: auto;
   white-space: nowrap;
-  /* Sized to nothing rather than removed, so the row does not reflow in a
-     single frame when the header sticks. */
-  max-width: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition:
-    max-width var(--hdr-time) var(--hdr-ease),
-    opacity var(--hdr-fade) ease-out;
 }
 
-.site.isStuck .smallmark {
-  max-width: 24ch;
-  opacity: 1;
+.wordmark b {
+  font-weight: 700;
 }
 
+/* The tabs take the middle and may shrink; `min-width: 0` is what lets them,
+   and is what makes the horizontal scroll below possible instead of an
+   overflowing row. */
 .nav {
   display: flex;
-  gap: var(--s6);
-  flex-wrap: wrap;
   align-items: center;
+  gap: var(--s5);
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .tab {
   font-family: var(--font-sans);
-  font-size: var(--t1);
-  letter-spacing: var(--track-head);
-  text-transform: uppercase;
+  font-size: var(--t3);
+  line-height: var(--lh-snug);
   color: var(--ink-3);
   text-decoration: none;
   white-space: nowrap;
+  padding-bottom: var(--s1);
+  border-bottom: 2px solid transparent;
 }
 
 .tab:hover {
   color: var(--accent);
 }
 
+/* The current section carries a rule as well as the darker ink: colour alone
+   is not a distinction a reader with low vision can rely on. */
 .tabActive {
   color: var(--ink);
+  border-bottom-color: var(--accent);
 }
 
-/* The theme control. Two instances, one in the utility strip and one in the
-   sticky bar; both report what they will switch you to. */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex: none;
+  margin-left: auto;
+}
+
+/* The theme control. One instance now: the sticky-bar copy went with the
+   collapse, and its label still reports what it will switch to. */
 .tg {
   font-family: var(--font-sans);
   font-size: var(--t1);
@@ -287,36 +112,41 @@
   border-color: var(--accent);
 }
 
-.tgInBar {
-  margin-left: var(--s6);
-  max-width: 0;
-  padding-inline: 0;
-  border-left-width: 0;
-  border-right-width: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition:
-    max-width var(--hdr-time) var(--hdr-ease),
-    opacity var(--hdr-fade) ease-out;
+/* Sign in, and sign out, which is the same control after the reader has one. */
+.signin {
+  font-family: var(--font-sans);
+  font-size: var(--t3);
+  line-height: var(--lh-snug);
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--rule-2);
+  padding: var(--s2) var(--s3);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-.site.isStuck .tgInBar {
-  max-width: 16ch;
-  padding-inline: var(--s3);
-  border-left-width: 1px;
-  border-right-width: 1px;
-  opacity: 1;
+.signin:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
-/* Focus must stay visible through every one of the collapses above: a control
-   clipped to zero width cannot be reached by tab, so the sticky-bar toggle and
-   the wordmark open up when focus lands inside them. */
-.tgInBar:focus-visible {
-  max-width: 16ch;
-  padding-inline: var(--s3);
-  border-left-width: 1px;
-  border-right-width: 1px;
-  opacity: 1;
+.account {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.accountLink {
+  font-family: var(--font-sans);
+  font-size: var(--t3);
+  line-height: var(--lh-snug);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.accountLink:hover {
+  color: var(--accent);
 }
 
 .site :focus-visible {
@@ -324,13 +154,37 @@
   outline-offset: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .utility,
-  .nameplate,
-  .sectionbar,
-  .smallmark,
-  .tgInBar {
-    transition: none;
+/* Below the width where five tabs and the wordmark stop fitting, the wordmark
+   drops to the mark alone and the tabs scroll sideways.
+
+   Left to wrap, the row grows a second line under the tabs and the header
+   takes a third of a phone screen; left to overflow, the fifth tab is cut in
+   half and cannot be reached at all. Scrolling keeps every section reachable
+   at one row of height. */
+@media (max-width: 720px) {
+  .hdr {
+    gap: var(--s3);
+  }
+
+  .wordmark {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .nav {
+    overflow-x: auto;
+    gap: var(--s4);
+    /* A scrollbar under a 44px row of tabs eats the row. The tabs still scroll
+       by touch and by trackpad, and by keyboard through the tab order. */
+    scrollbar-width: none;
+  }
+
+  .nav::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -361,7 +215,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: var(--s6);
-  padding-block: var(--s6) var(--s7);
+  padding-block: var(--s6) var(--s5);
 }
 
 .footerCol {
@@ -440,4 +294,55 @@
 
 .authorLinks a:hover {
   color: var(--accent);
+}
+
+/* The base of the footer: what the site is called, in both its names, and the
+   licence the boundary data is served under.
+
+   The backronym and the Malayalam name arrived here from the masthead when the
+   nameplate went. The licence line arrived from the banner's stamp, which was
+   the only place on the site that carried it. */
+.footerBase {
+  border-top: 1px solid var(--rule);
+  padding-block: var(--s4) var(--s6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+/* SAMBANDH is an acronym, so the eight letters that spell it are the ones set
+   in ink. Italic markup, upright type: <i> is the semantic hook, not a slant. */
+.expansion {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-3);
+  margin: 0;
+  max-width: none;
+}
+
+.expansion i {
+  font-style: normal;
+  color: var(--ink);
+}
+
+/* The same name in the language of the state the site covers. Public Sans
+   covers no Malayalam; --font-sans names the vendored Noto Sans Malayalam
+   after it, so this needs no stack of its own. */
+.nameMal {
+  font-family: var(--font-sans);
+  font-size: var(--t3);
+  line-height: var(--lh-snug);
+  color: var(--ink-2);
+}
+
+/* ODbL 1.0 requires the attribution to travel with the data, so it sits where
+   a reader looking for terms will look rather than in the page that happens to
+   draw a map. */
+.licence {
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-3);
+  margin: 0;
+  max-width: none;
 }

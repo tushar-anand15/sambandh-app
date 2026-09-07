@@ -1,5 +1,6 @@
 /**
- * Two names, their roles, and where to find them.
+ * Two names, their roles, where to find them, and what the data is licensed
+ * under.
  *
  * The names, roles and links are exactly those the previous site carried, and
  * are the authors' own words about themselves — recovered from the About
@@ -16,6 +17,15 @@
  *
  * The domain is `gramsambandh.co.in`. `gramsambandh.in` does not resolve and
  * was linked here until 13 August 2026.
+ *
+ * The contact address is the project's own, not a maintainer's personal inbox:
+ * this repository is public, and a personal address in it is a permanent
+ * scraping target. It is the site's only way to report a wrong figure until the
+ * report form lands, which is why it is replaced here rather than removed.
+ *
+ * The ODbL line used to be a stamp under the masthead's Kerala banner. The
+ * banner is gone; the boundary files it was drawn from are still served, and
+ * the licence requires the attribution to travel with them.
  */
 
 import { Github, Globe, Linkedin } from "lucide-react";
@@ -63,7 +73,7 @@ export default function SiteFooter() {
           <p className={styles.footerText}>
             <a href="https://gramsambandh.co.in">gramsambandh.co.in</a>
             {" · "}
-            <a href="mailto:csabishek@gmail.com">Contact</a>
+            <a href="mailto:contact@gramsambandh.co.in">Report an error</a>
           </p>
         </div>
 
@@ -93,6 +103,36 @@ export default function SiteFooter() {
             ))}
           </div>
         </div>
+      </div>
+
+      <div className={`shell-container ${styles.footerBase}`}>
+        {/* SAMBANDH is an acronym. The eight letters that spell it are set in
+            ink and the rest in grey, so the line reads the name out. */}
+        <p className={styles.expansion} data-testid="strapline">
+          <span className={styles.nameMal} lang="ml">
+            &#x0d17;&#x0d4d;&#x0d30;&#x0d3e;&#x0d2e; &#x0d38;&#x0d02;&#x0d2c;&#x0d28;&#x0d4d;&#x0d27;&#x0d4d;
+          </span>
+          {" · "}
+          <i>S</i>ystem for <i>A</i>nalysing <i>M</i>eetings and <i>B</i>udgets
+          for <i>A</i>ccountable <i>N</i>eighbourhood <i>D</i>evelopment and{" "}
+          <i>H</i>yperlocal governance
+        </p>
+
+        <p className={styles.licence}>
+          Local body boundaries from{" "}
+          <a href="https://opendatakerala.org/" target="_blank" rel="noopener noreferrer">
+            opendatakerala
+          </a>
+          , derived from OpenStreetMap and redistributed under{" "}
+          <a
+            href="https://opendatacommons.org/licenses/odbl/1-0/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ODbL 1.0
+          </a>
+          . &copy; OpenStreetMap contributors.
+        </p>
       </div>
     </footer>
   );
