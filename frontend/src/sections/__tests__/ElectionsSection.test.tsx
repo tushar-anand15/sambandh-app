@@ -31,6 +31,7 @@ import ElectionsSection from "../ElectionsSection";
 import { resetBodiesCache } from "@/hooks/useBodies";
 import { track } from "@/lib/telemetry";
 import { provenance } from "@/test/handlers";
+import { statewidePayload } from "@/test/handlers.elections";
 import { server } from "@/test/setup";
 
 // `track` is a no-op unless Umami is configured, so what a test can hold is
@@ -709,5 +710,103 @@ describe("the three elections a district holds", () => {
     // and the page says so rather than letting a grid read as geography.
     expect((await screen.findAllByText(/Squares, not boundaries/)).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Published boundaries/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * The same block the home page carries, on the page whose reader is drilling.
+ *
+ * The panes are one body at a time. These four distributions are every body
+ * at once, so the one thing that can go wrong quietly is a cycle mismatch:
+ * 2020's figures sitting under a 2025 map. The cycle comes from the slider,
+ * and moving the slider asks again.
+ */
+describe("Kerala's whole result, at the foot of the drill", () => {
+  it("renders the four distributions for the cycle the page is on", async () => {
+    renderAt("/elections?cycle=2020");
+
+    const block = await screen.findByTestId("statewide");
+    expect(
+      within(block).getByRole("heading", { name: /Kerala's whole result, 2020/ }),
+    ).toBeInTheDocument();
+
+    // Each share names what it is a share of, because 21,820 seats, 20,962
+    // ward rows and 1,199 councils are three different denominators.
+    expect(
+      within(block).getByText(
+        /21,820 seats the Commission reported across 1,199 local governments/,
+      ),
+    ).toBeInTheDocument();
+    // Margins and reservation are both shares of the ward rows, and both say so.
+    expect(
+      within(block).getAllByText(/Shares of the 20,962 wards with a published ward result/),
+    ).toHaveLength(2);
+
+    const ldf = within(block).getByRole("row", { name: /^LDF/ });
+    expect(within(ldf).getByText("10,046")).toBeInTheDocument();
+    expect(within(ldf).getByText("46.0%")).toBeInTheDocument();
+  });
+
+  it("sits below the drill rather than above the map", async () => {
+    renderAt("/elections?cycle=2020");
+
+    const block = await screen.findByTestId("statewide");
+    const map = screen.getAllByTestId("drill-map")[0];
+    expect(
+      map.compareDocumentPosition(block) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("follows the cycle slider", async () => {
+    renderAt("/elections?cycle=2020");
+    await screen.findByRole("heading", { name: /Kerala's whole result, 2020/ });
+
+    // 2010, 2015, 2020, 2025 — index 1 is 2015.
+    fireEvent.change(screen.getByRole("slider"), { target: { value: "1" } });
+
+    await screen.findByRole("heading", { name: /Kerala's whole result, 2015/ });
+    const block = screen.getByTestId("statewide");
+    expect(
+      within(block).getByText(/1,199 local governments with a result for 2015/),
+    ).toBeInTheDocument();
+  });
+
+  it("states the absence for a cycle with no ward rows, rather than a table of noughts", async () => {
+    renderAt("/elections?cycle=2010");
+
+    const block = await screen.findByTestId("statewide");
+    expect(
+      within(block).getByText(
+        /The State Election Commission has published no result for any local body in this cycle/,
+      ),
+    ).toBeInTheDocument();
+    expect(within(block).queryByRole("table")).not.toBeInTheDocument();
+    expect(within(block).queryByText("0.0%")).not.toBeInTheDocument();
+  });
+
+  it("asks again on a cycle change rather than holding the last cycle's figures", async () => {
+    const asked: number[] = [];
+    server.use(
+      http.get("*/api/elections/statewide/:cycle", ({ params }) => {
+        const cycle = Number((params as { cycle: string }).cycle);
+        asked.push(cycle);
+        return HttpResponse.json(statewidePayload(cycle));
+      }),
+    );
+
+    renderAt("/elections?cycle=2020");
+    await screen.findByRole("heading", { name: /Kerala's whole result, 2020/ });
+
+    // Index 0 is 2010, which the Commission published nothing for. If the
+    // block held its last answer, 2020's 10,046 seats would still be here.
+    fireEvent.change(screen.getByRole("slider"), { target: { value: "0" } });
+
+    await screen.findByRole("heading", { name: /Kerala's whole result, 2010/ });
+    const block = screen.getByTestId("statewide");
+    await waitFor(() =>
+      expect(within(block).getByText(/published no result for any local body/)).toBeInTheDocument(),
+    );
+    expect(within(block).queryByText("10,046")).not.toBeInTheDocument();
+    expect(asked).toEqual([2020, 2010]);
   });
 });

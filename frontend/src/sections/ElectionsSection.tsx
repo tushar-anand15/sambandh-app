@@ -35,6 +35,13 @@
  * for; the body exists in the cycle but the layer being drawn holds no polygon
  * for it; and the body contested in 2010, had no successor, and so has no
  * published position on any map of any cycle.
+ *
+ * **Kerala's whole result closes the page.** Every pane above it is one body
+ * at a time; the four distributions at the foot are every body at once, each
+ * over the denominator it is a share of. They sit below the drill because the
+ * map is the first thing on the page, and they take their cycle from the
+ * slider rather than from a fixed year, so the figures and the map are never
+ * a cycle apart.
  */
 
 import { useEffect, useRef } from "react";
@@ -50,6 +57,7 @@ import Pane from "@/components/elections/Pane";
 import SeatsBar from "@/components/elections/SeatsBar";
 import SelectedCard from "@/components/elections/SelectedCard";
 import Sources from "@/components/elections/Sources";
+import StatewideBlock from "@/components/elections/StatewideBlock";
 import Unplaced, { type UnplacedBody } from "@/components/elections/Unplaced";
 import WardTable from "@/components/elections/WardTable";
 import styles from "@/components/elections/elections.module.css";
@@ -758,6 +766,10 @@ export default function ElectionsSection() {
           />
         </Pane>
       ) : null}
+
+      <div className={styles.statewideBlock}>
+        <StatewideBlock cycle={cycle} onElections />
+      </div>
 
       <BodySelector section="elections" />
 

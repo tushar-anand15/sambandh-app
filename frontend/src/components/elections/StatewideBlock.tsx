@@ -31,6 +31,11 @@ interface StatewideBlockProps {
   /** Anchors the three sample questions on the home page point at. */
   controlId?: string;
   marginsId?: string;
+  /**
+   * Set on the Elections page. Without it the failure notice offers a link to
+   * Elections, which on Elections is a link to the page already open.
+   */
+  onElections?: boolean;
 }
 
 /** Ward seats by front, with the swatch the map and the legend use. */
@@ -202,6 +207,7 @@ export default function StatewideBlock({
   heading = `Kerala's whole result, ${cycle}`,
   controlId,
   marginsId,
+  onElections = false,
 }: StatewideBlockProps) {
   const state = useStatewide(cycle);
 
@@ -219,7 +225,13 @@ export default function StatewideBlock({
 
       {state.status === "error" ? (
         <p className="notice" role="alert">
-          {state.message} The same figures are on <a href="/elections">Elections</a>.
+          {state.message}
+          {onElections ? null : (
+            <>
+              {" "}
+              The same figures are on <a href="/elections">Elections</a>.
+            </>
+          )}
         </p>
       ) : null}
 

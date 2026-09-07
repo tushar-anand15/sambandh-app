@@ -830,3 +830,16 @@ a.crumb:hover {
   color: var(--ink);
   margin-block: 0 var(--s2);
 }
+
+/* ---------------------------------------------------------------------------
+   The statewide block where it closes the drill.
+
+   The panes above it are one body at a time; this is every body at once, so
+   it is ruled off from them rather than reading as one more pane.
+   --------------------------------------------------------------------------- */
+
+.statewideBlock {
+  border-top: 1px solid var(--rule);
+  margin-block: var(--s8) 0;
+  padding-block: var(--s7) 0;
+}
