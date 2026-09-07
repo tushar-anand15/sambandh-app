@@ -604,13 +604,19 @@ describe("the token definitions themselves", () => {
     // Controls are the exception and are allowed it: a focus ring, a range
     // input's accent-color and the active cycle tick are chrome, not data.
     const PAINTS = /(?:^|[^-])(background|background-color|border-color|fill|stroke):\s*var\(--accent\)/m;
+    //
+    // The walk recurses. The block that draws Kerala's whole result serves
+    // both the home page and this one and lives here for exactly this check,
+    // so a nested file would otherwise draw election data with no lint over
+    // it at all.
     const dir = path.resolve(SRC, "components/elections");
-    for (const file of readdirSync(dir)) {
+    for (const file of walk(dir)) {
       if (!file.endsWith(".css") && !file.endsWith(".tsx")) continue;
-      const body = readFileSync(path.resolve(dir, file), "utf8");
+      const body = readFileSync(file, "utf8");
       expect(
         PAINTS.test(body),
-        `${file} paints with the accent; fronts use --ldf/--udf/--nda/--oth`,
+        `${path.relative(dir, file)} paints with the accent; ` +
+          "fronts use --ldf/--udf/--nda/--oth",
       ).toBe(false);
     }
   });
