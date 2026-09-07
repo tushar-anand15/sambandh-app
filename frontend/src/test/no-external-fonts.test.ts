@@ -167,11 +167,13 @@ describe("the built bundle", () => {
   });
 
   it("ships the token palette rather than a stale @theme", () => {
-    // Cheap proof the stylesheet in the bundle is the designed one — the
-    // Atlas ground and coral accent, in both themes.
-    expect(bundle.toLowerCase()).toContain("#f5f5f5");
-    expect(bundle.toLowerCase()).toContain("#ff6653");
-    expect(bundle.toLowerCase()).toContain("#ff7a68");
+    // Cheap proof the stylesheet in the bundle is the designed one: the v4
+    // dark ground and both halves of the accent pair. All three arrive
+    // through light-dark(), so a build that dropped the dark half would take
+    // #7fb2e8 with it.
+    expect(bundle.toLowerCase()).toContain("#12161b");
+    expect(bundle.toLowerCase()).toContain("#0b2f5e");
+    expect(bundle.toLowerCase()).toContain("#7fb2e8");
   });
 
   /**
@@ -244,9 +246,12 @@ describe("the built bundle", () => {
     expect(doc.documentElement.tagName).toBe("svg");
 
     // It carries its own ground and its own ink, because a favicon sits on
-    // browser chrome and inherits no colour from anything.
-    expect(doc.querySelector("rect")?.getAttribute("fill")?.toLowerCase()).toBe("#f1f3e9");
-    expect(doc.querySelector("circle")?.getAttribute("fill")?.toLowerCase()).toBe("#3e5c2a");
+    // browser chrome and inherits no colour from anything. These two hexes
+    // are the reason the assertion is worth having: it held #f1f3e9 and
+    // #3e5c2a for two identities after the palette they came from was
+    // deleted, because a stale favicon is the one asset nobody looks at.
+    expect(doc.querySelector("rect")?.getAttribute("fill")?.toLowerCase()).toBe("#0b2f5e");
+    expect(doc.querySelector("circle")?.getAttribute("fill")?.toLowerCase()).toBe("#7fb2e8");
   });
 
   it("contains no framer-motion", () => {

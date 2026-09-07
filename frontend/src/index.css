@@ -69,70 +69,113 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Palette — three-state theming.
+   Palette — three-state theming, one declaration per colour.
 
-   The bare :root below carries the COMPLETE light palette. The two dark
-   blocks only redefine values that already exist here. Nothing may be
-   declared for the first time inside a media query or an attribute selector:
-   a viewer whose system reports neither preference must still get a full set
-   of colours, and `tokens.test.ts` fails the build if one is missing.
+   Every colour is a single `light-dark(light, dark)` pair. The duplicated dark
+   palette this file used to carry is gone: a token could previously be
+   introduced inside a dark block and then be undefined for a reader whose
+   system reports no preference, which is the failure `tokens.test.ts` was
+   written to catch. A pair cannot half-exist, so the test now checks the
+   stronger property that both arguments are present.
 
-   Values follow the Atlas of Urban Expansion. The laterite band that used to
-   sit above the masthead is gone with the paddy palette it belonged to; the
-   Atlas separates the header from the page with a single black rule.
+   `color-scheme` below is load-bearing, not decorative. `light-dark()` returns
+   its FIRST argument whenever `color-scheme` computes to `normal`, so without
+   the `light dark` declaration on the bare `:root` the whole site would be
+   locked to the light palette no matter what the reader chose. The two
+   attribute rules under it are how the in-page toggle wins over the system
+   preference in both directions; `useTheme.ts` sets and removes `data-theme`.
+
+   Values are the v4 design canvas. One departs from it: see --accent.
    --------------------------------------------------------------------------- */
 
 :root {
-  /* -----------------------------------------------------------------------
-     Ground and surfaces. The page is a white sheet on a grey ground, after
-     the Atlas of Urban Expansion, whose body is
-     `linear-gradient(to bottom, #f5f5f5, #dadada)`.
-     ----------------------------------------------------------------------- */
-  --paper: #f5f5f5;
-  --ground-far: #dadada;
-  --surface: #ffffff;
-  --surface-2: #f5f5f5;
-
-  /* Text. Body copy is grey, not black -- the Atlas sets #5a5a5a and reserves
-     #333 for emphasis. */
-  --ink: #333333;
-  --ink-2: #5a5a5a;
-  --ink-3: #929292;
-
-  --rule: #dadada;
-  --rule-2: #cccccc;
-
-  /* The one accent, and it touches links, hovers and downloads only. It never
-     colours data: it sits close enough to LDF red that a second use on a chart
-     would read as a party colour. */
-  --accent: #ff6653;
-  --accent-ink: #ffffff;
-  --accent-wash: #ffeeeb;
+  color-scheme: light dark;
 
   /* -----------------------------------------------------------------------
-     Front colours. Semantic and identical in both themes -- a reader learns
-     "that red is LDF" once and it must stay true in dark mode. Deepened away
-     from the coral accent so a link is never mistaken for a party.
+     Ground and surfaces. The page is a white sheet ruled in grey, and in dark
+     mode a near-black sheet with one raised step. Light mode has no second
+     surface tint on purpose — the canvas separates blocks with rules, and a
+     grey panel behind a table competes with the rules for the same job.
      ----------------------------------------------------------------------- */
-  --ldf: #a8322a;
-  --udf: #2f6fb5;
-  --nda: #c07d12;
-  --oth: #8b8b8b;
+  --paper: light-dark(#ffffff, #12161b);
+  --ground-far: light-dark(#f6f7f8, #0c0f13);
+  --surface: light-dark(#ffffff, #12161b);
+  --surface-2: light-dark(#ffffff, #1a1f26);
+
+  /* Text, four steps. --ink-3 is the smallest step that is still text: it
+     carries micro-labels and table headers at 6.09:1 on white and 5.99:1 on
+     the dark ground. --ink-4 is 3.15:1 and is therefore NOT for text — it is
+     for hairlines, disabled marks and other non-text ink, where 3:1 is the
+     bar. Putting a caption in --ink-4 is the mistake this note exists for. */
+  --ink: light-dark(#1b1f24, #e6e9ec);
+  --ink-2: light-dark(#2f353d, #c3c9d0);
+  --ink-3: light-dark(#5b636d, #8d959e);
+  --ink-4: light-dark(#8b929a, #767e88);
+
+  --rule: light-dark(#e4e7ea, #23292f);
+  --rule-2: light-dark(#d4d8dd, #2b3239);
 
   /* -----------------------------------------------------------------------
-     Type scale. Nine names, six values: --t1..--t9 are kept because every
-     font-size in src/ is written against them and the token lint checks the
-     names. The six values are the whole scale, and a seventh is a bug.
+     The accent. It touches links, hovers, focus rings and downloads only; it
+     never colours data.
+
+     The canvas draws #14549b and this is #0b2f5e, which is the one value on
+     the page that departs from it. Measured: #14549b against the UDF blue is
+     ΔE 8.5 under deuteranopia, where roughly 15 is the floor for telling two
+     categories apart, so a link and a party read as the same colour on the
+     same screen. #0b2f5e reads as the same navy, raises that separation to
+     28.1, and lifts contrast on white from 7.58:1 to 13.27:1. Put to the
+     project owner and approved, 2026-09-07. `tokens.test.ts` holds the floor,
+     so moving this token back to the canvas value fails the build rather than
+     failing quietly for the readers who cannot see the difference.
+
+     Dark mode keeps the canvas's #7fb2e8, which already separates cleanly.
+
+     --accent-ink is what is drawn ON the accent, not near it. --accent-wash is
+     the accent laid over the ground at low opacity; the canvas has no wash of
+     its own, so these two are derived rather than picked.
      ----------------------------------------------------------------------- */
-  --t1: 12px;  /* uppercase micro-labels, table headers */
-  --t2: 15px;  /* captions, notes, source lines */
-  --t3: 15px;  /* dense UI and table cells */
-  --t4: 19px;  /* running text */
-  --t5: 20px;  /* lede and panel titles */
-  --t6: 20px;  /* section headings, uppercase */
-  --t7: 30px;  /* every figure on the site */
-  --t8: 30px;  /* figures again: there is no second figure size */
-  --t9: clamp(32px, 3.6vw, 52px); /* the page headline, once per page */
+  --accent: light-dark(#0b2f5e, #7fb2e8);
+  --accent-ink: light-dark(#ffffff, #12161b);
+  --accent-wash: light-dark(#ebeef2, #212c38);
+
+  /* -----------------------------------------------------------------------
+     Front colours. One value each, and deliberately no light-dark(): their
+     meaning is external to this site, so a reader learns "that red is LDF"
+     once and it has to stay true in the other theme, on a printout, and in a
+     screenshot pasted into a document. `tokens.test.ts` fails a front given a
+     light-dark() pair.
+     ----------------------------------------------------------------------- */
+  --ldf: #c8402f;
+  --udf: #1f6fb5;
+  --nda: #e0891c;
+  --oth: #98a0a8;
+
+  /* The hairline that separates one front from its neighbour on a map or a
+     chart. Every pairwise contrast among the four fills is between 1.00 and
+     1.96:1, so adjacent wards of different fronts have no edge of their own;
+     WCAG 1.4.11 allows exactly this and asks for a border instead. It is one
+     value, like the fronts it outlines, and it is dark rather than white
+     because a white hairline clears UDF (5.25:1) and LDF (4.96:1) but fails
+     NDA (2.70:1) and OTH (2.65:1). This one clears all four: 3.46 / 3.66 /
+     6.71 / 6.86. */
+  --front-stroke: #12161b;
+
+  /* -----------------------------------------------------------------------
+     Type scale. Nine names, taken from the canvas. Three steps are fluid: a
+     clamp() inside a token definition is still a token, and the lint that
+     rejects a loose `font-size` at a call site is unaffected by what the
+     token expands to.
+     ----------------------------------------------------------------------- */
+  --t1: clamp(11px, 1.25vw, 14px);  /* micro-labels, table headers */
+  --t2: 13px;                       /* captions, notes, source lines */
+  --t3: 14px;                       /* dense UI and table cells */
+  --t4: 16px;                       /* running text */
+  --t5: clamp(16px, 1.4vw, 18px);   /* lede and panel titles */
+  --t6: 20px;                       /* section headings */
+  --t7: clamp(22px, 2.8vw, 30px);   /* every figure on the site */
+  --t8: clamp(22px, 2.8vw, 30px);   /* figures again: there is no second figure size */
+  --t9: clamp(30px, 4.6vw, 50px);   /* the page headline, once per page */
 
   /* Named for what they do, for anything written from here on. */
   --t-label: var(--t1);
@@ -153,15 +196,15 @@
   --s8: 64px;
 
   --lh-tight: 1.1;
-  --lh-snug: 1.375;
+  --lh-snug: 1.35;
   --lh-body: 1.6;
   --lh-ui: 1.5;
 
-  --track-display: -0.008em;
-  --track-head: 1px;
+  --track-display: -0.02em;
+  --track-head: -0.01em;
   --track-label: 1.2px;
 
-  /* One measure, sized so 19px text lands near 70 characters a line. */
+  /* One measure, sized so 16px text lands near 70 characters a line. */
   --measure: 70ch;
   --measure-h1: none;
   --measure-h2: none;
@@ -187,55 +230,17 @@
   --container: 1240px;
   --band: 0px;
   --radius: 0px;
+}
 
+/* The reader's explicit choice. These two rules carry no colours at all —
+   every value above resolves from `color-scheme`, so a theme is switched by
+   changing which half of each pair applies, not by restating the palette. */
+:root[data-theme="light"] {
   color-scheme: light;
 }
 
-/* Dark, by system preference — unless the reader has explicitly chosen light. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #1e1e1e;
-    --ground-far: #0c0c0c;
-    --surface: #161616;
-    --surface-2: #1f1f1f;
-
-    --ink: #e8e8e8;
-    --ink-2: #b0b0b0;
-    --ink-3: #7e7e7e;
-
-    --rule: #2f2f2f;
-    --rule-2: #414141;
-
-    --accent: #ff7a68;
-    --accent-ink: #141414;
-    --accent-wash: #2a1a17;
-
-    color-scheme: dark;
-
-  }
-}
-
-/* Dark, by explicit choice. Repeated rather than shared with the media block so
-   the toggle wins in both directions. */
 :root[data-theme="dark"] {
-  --paper: #1e1e1e;
-  --ground-far: #0c0c0c;
-  --surface: #161616;
-  --surface-2: #1f1f1f;
-
-  --ink: #e8e8e8;
-  --ink-2: #b0b0b0;
-  --ink-3: #7e7e7e;
-
-  --rule: #2f2f2f;
-  --rule-2: #414141;
-
-  --accent: #ff7a68;
-  --accent-ink: #141414;
-  --accent-wash: #2a1a17;
-
   color-scheme: dark;
-
 }
 
 /* ---------------------------------------------------------------------------
@@ -255,6 +260,7 @@
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
   --color-rule: var(--rule);
   --color-rule-2: var(--rule-2);
   --color-accent: var(--accent);
@@ -264,6 +270,7 @@
   --color-udf: var(--udf);
   --color-nda: var(--nda);
   --color-oth: var(--oth);
+  --color-front-stroke: var(--front-stroke);
 
   --font-serif: var(--font-serif);
   --font-sans: var(--font-sans);
@@ -400,10 +407,13 @@ h2,
 h3,
 h4 {
   font-family: var(--font-serif);
-  /* Nothing on this site is bold. The Atlas sets `font-weight: normal` on
-     every heading and lets size, case and colour carry the hierarchy; a
-     600-weight heading here was left over from the serif system. */
-  font-weight: 400;
+  /* Weight carries hierarchy again. The August rule that nothing on the site
+     is bold went with the Atlas palette it belonged to: it left every heading
+     at 400, so a section head was distinguished from the paragraph under it
+     by size alone, which at --t6 against --t4 is four pixels. The canvas sets
+     its heads at 500 and reserves 400 for display type, where the size is
+     doing the work already; h1 restates 400 below. */
+  font-weight: 500;
   line-height: var(--lh-snug);
   letter-spacing: var(--track-head);
   text-wrap: balance;
@@ -412,6 +422,10 @@ h4 {
 
 h1 {
   font-size: var(--t7);
+  /* Display type is set light, not heavy: at this size the scale is the
+     emphasis, and a 500 headline reads as shouting next to a 500 section
+     head. */
+  font-weight: 400;
   line-height: var(--lh-tight);
   letter-spacing: var(--track-display);
   max-width: var(--measure-h1);
@@ -837,7 +851,7 @@ svg[data-chart] {
 .prose-chat p { margin: var(--s2) 0; max-width: none; }
 .prose-chat p:first-child { margin-top: 0; }
 .prose-chat p:last-child { margin-bottom: 0; }
-.prose-chat strong { font-weight: 500; }
+.prose-chat strong { font-weight: 600; }
 .prose-chat ul, .prose-chat ol { margin: var(--s2) 0; padding-left: var(--s5); }
 .prose-chat li { margin: var(--s1) 0; }
 .prose-chat code {
