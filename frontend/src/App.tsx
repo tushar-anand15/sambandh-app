@@ -37,8 +37,8 @@ import { useRouteTelemetry } from "@/lib/telemetry";
  * sixth tab would put a page about the build alongside four pages of data.
  *
  * The shell is chrome, so it sits outside <Routes> and is not re-mounted on
- * navigation. That is what lets the masthead keep its collapsed/expanded state
- * across a navigation instead of re-deciding it from scratch on every paint.
+ * navigation. The masthead is the same on every route, so re-mounting it would
+ * buy nothing and cost a paint.
  * There is no AnimatePresence: a page transition that fades in a table of
  * public spending buys nothing and delays the number.
  */
