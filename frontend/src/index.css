@@ -3,23 +3,70 @@
 /* ---------------------------------------------------------------------------
    Typefaces
    ---------------------------------------------------------------------------
-   No webfont is loaded. The site is served from a single origin and makes zero
-   external requests; a font CDN would reintroduce one, and a stylesheet from a
-   third party is a render-blocking dependency on someone else's uptime.
+   Two vendored families, self-hosted. The site is served from a single origin
+   and makes zero external requests: a font CDN would reintroduce one, and a
+   stylesheet from a third party is a render-blocking dependency on someone
+   else's uptime plus a third party watching every visitor.
 
-   The serif stack resolves to Iowan Old Style on Apple platforms, Charter where
-   it is installed, and Georgia everywhere else — three text faces with the same
-   large x-height and sturdy, low-contrast strokes, so the page keeps its
-   proportions whichever one wins. The sans is confined to micro-labels
-   (eyebrows, table headers, axis ticks) and uses the platform UI face, which is
-   already resident.
+   Public Sans is the text and display face. It ships upstream as a variable
+   TTF and no variable WOFF2 at all (uswds/public-sans#137), so the file below
+   is built here rather than downloaded ready-made; scripts/build_fonts.sh is
+   the recipe and pyftsubset keeps the weight axis with no special flag. There
+   is no `ital` axis, so the italic is a second file and a second @font-face --
+   without it a browser synthesises an oblique by shearing the roman.
 
-   TO VENDOR LATER (needs network access, deliberately not done here):
-   drop woff2 subsets of Charter (regular, italic, bold) into
-   `frontend/public/fonts/`, declare them with `@font-face { font-display:
-   swap; unicode-range: U+0000-024F,U+0300-036F,U+2000-206F; }` and prepend the
-   family to --font-serif. Nothing else in this file changes.
+   Noto Sans Malayalam is a SEPARATE family name, listed after Public Sans in
+   every stack that can receive Malayalam. This is load-bearing. Public Sans
+   carries no Malayalam glyphs at all, and the site renders Malayalam body
+   names, ward names and assistant answers. Per-character fallback walks the
+   family list, so a codepoint Public Sans cannot draw falls through to Noto;
+   merging the two under one family name is what produces tofu, and an
+   over-broad unicode-range only costs a wasted download.
+
+   --font-serif keeps its name because every component is written against it.
+   The site is all sans; the token is an alias, not a promise of a serif.
+
+   To change a face: edit scripts/build_fonts.sh, run it, and move the version
+   in the filenames here and in the preload in index.html. The version is in
+   the filename because nginx serves /fonts/ as immutable for a year, which is
+   only safe while a given name's bytes never change.
    --------------------------------------------------------------------------- */
+
+/* Public Sans 2.001, wght 100-900, Latin subset. font-display: swap -- the
+   fallback metrics are close enough that a swap is cheaper than a page that
+   withholds its text while a font arrives. */
+@font-face {
+  font-family: "Public Sans";
+  src: url("/fonts/PublicSans-Roman-VF-v2001.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2074, U+20AC,
+    U+2122;
+}
+
+@font-face {
+  font-family: "Public Sans";
+  src: url("/fonts/PublicSans-Italic-VF-v2001.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2074, U+20AC,
+    U+2122;
+}
+
+/* Noto Sans Malayalam 2.104, wght 100-900, Malayalam subset. The range keeps
+   U+200C-200D: ZWNJ and ZWJ are how Malayalam conjuncts and chillu forms are
+   written, and dropping them breaks the script silently rather than loudly.
+   U+0964-0965 are danda and double danda, the script's full stops. */
+@font-face {
+  font-family: "Noto Sans Malayalam";
+  src: url("/fonts/NotoSansMalayalam-VF-v2104.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0964-0965, U+0D00-0D7F, U+200C-200D;
+}
 
 /* ---------------------------------------------------------------------------
    Palette — three-state theming.
@@ -121,15 +168,21 @@
   --measure-lede: none;
 
   /* -----------------------------------------------------------------------
-     Families. The Atlas pairs DIN Next LT Pro UltraLight for display with
-     Neue Haas Grotesk for everything else; both are Monotype commercial
-     licences, so Barlow and Archivo stand in. --font-serif keeps its name
-     because every component is written against it -- the site is all sans
-     now, and the display face is opt-in through --font-display.
+     Families. Public Sans for text and display, with Noto Sans Malayalam
+     immediately behind it in every stack -- Public Sans has no Malayalam, and
+     these stacks style body names and assistant answers that are routinely in
+     it. The platform faces after them are the swap-period fallback and the
+     answer if a woff2 fails to load, not the design.
+
+     Archivo and Barlow used to be named here and were never vendored, so the
+     site rendered in Helvetica; the @font-face blocks above are what make
+     these names mean anything.
      ----------------------------------------------------------------------- */
-  --font-sans: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-sans: "Public Sans", "Noto Sans Malayalam", "Helvetica Neue", Helvetica,
+    Arial, sans-serif;
   --font-serif: var(--font-sans);
-  --font-display: "Barlow", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: "Public Sans", "Noto Sans Malayalam", "Helvetica Neue",
+    Helvetica, Arial, sans-serif;
 
   --container: 1240px;
   --band: 0px;

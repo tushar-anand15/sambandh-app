@@ -21,11 +21,33 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
 
     <!--
-      No font host. Type comes from the stacks in src/index.css, which resolve
-      to faces already on the reader's machine. The page makes zero external
-      requests; keep it that way — a <link> to a font CDN is both a render-block
-      on someone else's uptime and a third party watching every visitor.
+      No font host. The two families are vendored into public/fonts/ and
+      declared in src/index.css; the page makes zero external requests, and a
+      <link> to a font CDN is both a render-block on someone else's uptime and
+      a third party watching every visitor.
+
+      Only the roman face is preloaded. It is on every page; the italic is
+      occasional and Malayalam is conditional on the content, and a preload
+      that the page does not use within a few seconds is a warning in the
+      console and bandwidth taken from something that was needed.
+
+      crossorigin is REQUIRED here even though the file is same-origin. Fonts
+      are fetched in CORS mode, so a preload without it lands in a different
+      cache partition from the @font-face request and the file is downloaded
+      twice — the exact opposite of what the preload is for.
+
+      The version in the filename is deliberate: nginx serves /fonts/ with
+      immutable for a year, and this href has to move when the bytes do.
+      src/test/no-external-fonts.test.ts asserts this path resolves to a file
+      that the build actually emitted.
     -->
+    <link
+      rel="preload"
+      href="/fonts/PublicSans-Roman-VF-v2001.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
   </head>
   <body>
     <div id="root"></div>
