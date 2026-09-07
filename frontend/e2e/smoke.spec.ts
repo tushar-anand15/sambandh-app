@@ -48,7 +48,17 @@ async function stubPublicApi(page: Page) {
         lb_code: "G01014",
         year_label: "2023-2024",
         is_complete: true,
-        body: null,
+        // A real block, not null. `MeetingsPayload.body` is typed `BodyBlock`
+        // and `meetings.py` always fills it from `fetch_body`, which 404s when
+        // the body is absent -- so `body: null` with `available: true` is a
+        // shape the API cannot produce. It went unnoticed while nothing read it.
+        body: {
+          lb_code: "G01014",
+          lb_name_en: "Amboori",
+          lb_name_ml: "അമ്പൂരി",
+          district_name: "Thiruvananthapuram",
+          lb_type: "Grama Panchayat",
+        },
         available: true,
         reason_code: null,
         projects: 312,
@@ -68,7 +78,13 @@ async function stubPublicApi(page: Page) {
         lb_code: "G01014",
         year_label: "2023-2024",
         is_complete: true,
-        body: null,
+        body: {
+          lb_code: "G01014",
+          lb_name_en: "Amboori",
+          lb_name_ml: "അമ്പൂരി",
+          district_name: "Thiruvananthapuram",
+          lb_type: "Grama Panchayat",
+        },
         available: true,
         reason_code: null,
         meetings: 24,
