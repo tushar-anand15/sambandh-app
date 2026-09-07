@@ -1,10 +1,15 @@
 /**
  * The method page.
  *
- * Everything here is read from `/api/method`, which computes it from the same
+ * Every figure here is read from `/api/method`, which computes it from the same
  * database the rest of the site queries. A hand-written method page describes
  * the build it was written against, and there is no way to tell from the page
  * which build that was.
+ *
+ * The one exception is the standing preamble at the top, which states what
+ * Kerala law requires before a rupee is spent. That is law rather than a build
+ * fact, so it does not go stale as a coverage note would; it is kept above the
+ * computed sections and ruled off from them so the two are never confused.
  *
  * Tone follows `sulekha/docs/geo_runbook.md`: state the gap, its extent and its
  * cause, and do not soften a limitation of the source. First-person plural is
@@ -19,13 +24,109 @@ import { levelName, useMethod } from "@/components/method/useMethod";
 
 import styles from "@/components/method/method.module.css";
 
+/**
+ * The standing preamble.
+ *
+ * Everything below this block is computed from `/api/method`. This block is
+ * not, and it is the one part of the site where the copy runs as written: it
+ * states what Kerala law requires before a rupee is spent, which is the reason
+ * the plan record and the meeting record are worth reading together at all.
+ * Law does not decay the way a build fact does, so a standing statement of it
+ * is honest here in a way a hand-written coverage note would not be. It sits
+ * above the computed sections, closed with a rule, so a reader can tell which
+ * half of the page is which.
+ *
+ * The copy is carried over from the home page, which was rewritten around a
+ * worked example and no longer had room for it.
+ */
+function StandingPreamble() {
+  return (
+    <section className={styles.preamble} aria-labelledby="statutory-sequence">
+      <h2 id="statutory-sequence">The sequence Kerala law requires</h2>
+      <p className={styles.standing}>
+        This section states the law. Everything after it is computed from the
+        build named at the foot of the page.
+      </p>
+
+      <p className={styles.prose}>
+        India devolves a substantial share of its rural development spending to
+        elected panchayats. The Fifteenth Finance Commission allocated
+        &#8377;2.36 lakh crore to rural local bodies for 2021&ndash;26 (Report
+        of the Fifteenth Finance Commission, 2021). Roughly 260,000 panchayats
+        administer it for more than 800 million people.
+      </p>
+      <p className={styles.prose}>How each body decides its share is set by statute.</p>
+      <p className={styles.prose}>
+        Kerala law requires a local government to formulate its annual plan in
+        open assembly, adopt each project by resolution of the elected council,
+        and spend only against what was adopted (Kerala Panchayat Raj Act, 1994;
+        Kerala Municipality Act, 1994).
+      </p>
+      <p className={styles.prose}>The sequence is a precondition of the expenditure.</p>
+      <p className={styles.prose}>
+        In this website we deconstruct this sequence. We present development
+        project accounts, local council meeting records and election results for
+        each of Kerala&rsquo;s 1,238 local governments and display them in an
+        easy to read and digest format. The project register and the meeting
+        register can be downloaded as CSV, a year at a time.
+      </p>
+
+      <aside className={styles.rail}>
+        <span className={styles.railKey} id="statutory-steps">
+          The three steps, in order
+        </span>
+        <ol className={styles.railSteps} aria-labelledby="statutory-steps">
+          <li>Formulate the annual plan in open assembly.</li>
+          <li>Adopt each project by resolution of the elected council.</li>
+          <li>Spend only against what was adopted.</li>
+        </ol>
+      </aside>
+
+      <h3>Who can use it?</h3>
+      <ul className={styles.points}>
+        <li>
+          The Kerala Institute of Local Administration trains the officials who
+          file these records, and the state local government department sets the
+          terms they file under. The Union Ministry of Panchayati Raj sets the
+          national reporting standards Kerala&rsquo;s portals answer to, through
+          eGramSwaraj and Meri Panchayat. For each of them the joined record
+          answers a question the portals separately cannot: how far a
+          body&rsquo;s spending follows the plan its council adopted.
+        </li>
+        <li>
+          Kerala&rsquo;s grama panchayats have about 25 million residents. The
+          assembly that adopts the plan is open to all of them.
+        </li>
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * The page head, rendered in every state. The preamble depends on nothing the
+ * request returns, so a failed request costs the reader the tables and not the
+ * argument for reading them.
+ */
+function PageHead() {
+  return (
+    <>
+      <h1>How this data was built</h1>
+      <p className="lede">
+        What changed by year, which boundaries each election is drawn on, and
+        the files this site was built from.
+      </p>
+      <StandingPreamble />
+    </>
+  );
+}
+
 export default function MethodSection() {
   const state = useMethod();
 
   if (state.status === "loading") {
     return (
       <div className="shell-container section-page">
-        <h1>How this data was built</h1>
+        <PageHead />
         <p className="selector-status" aria-busy="true">
           Loading.
         </p>
@@ -36,7 +137,7 @@ export default function MethodSection() {
   if (state.status === "error") {
     return (
       <div className="shell-container section-page">
-        <h1>How this data was built</h1>
+        <PageHead />
         <p className="notice" role="alert">
           {state.message} Reload the page to try again.
         </p>
@@ -59,11 +160,7 @@ export default function MethodSection() {
 
   return (
     <div className="shell-container section-page">
-      <h1>How this data was built</h1>
-      <p className="lede">
-        What changed by year, which boundaries each election is drawn on, and
-        the files this site was built from.
-      </p>
+      <PageHead />
 
       <h2>Local bodies listed per year</h2>
       <p>{body_diff_note}</p>
