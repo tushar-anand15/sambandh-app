@@ -189,6 +189,14 @@
   color: var(--ink-3);
 }
 
+/* The third state, between the way in and the absence: Sulekha holds the scan
+   and this site cannot hand over an address for it. It is written a step
+   darker than `.absent` because something exists to be held -- and it is not
+   the accent, because there is nothing here to click. */
+.held {
+  color: var(--ink-2);
+}
+
 .pager {
   display: flex;
   flex-wrap: wrap;
