@@ -4,7 +4,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
+from .config import settings
 from .database import close_pool, get_pool
 from .routers.auth import router as auth_router
 from .routers.bodies import router as bodies_router
@@ -72,13 +74,37 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="GramSAMBANDH API", version="0.2.0", lifespan=lifespan)
 
+# Added first, so it sits inside the proxy-headers middleware below and reads a
+# request whose client is already the real one.
+#
+# `allow_credentials` is gone with the wildcard it was paired with: the spec
+# forbids `Access-Control-Allow-Origin: *` alongside credentials, so browsers
+# rejected every credentialed cross-origin request this configuration appeared
+# to allow. Nothing depended on it — the token travels in an `Authorization`
+# header from localStorage, not in a cookie.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=settings.cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Installed here, in the application, rather than passed to uvicorn as
+# `--proxy-headers`.
+#
+# The CLI flag wraps the ASGI app inside the *server*, so it is absent from
+# anything that speaks to `app.main:app` directly — which is every test in this
+# suite, since `tests/conftest.py` drives an `ASGITransport(app=app)`. A fix
+# made with the flag would be untestable here and would pass by never being
+# exercised. It is also two places to keep right: both compose files override
+# the image `command:`, so the flag would have had to appear in three files and
+# stay in all of them.
+#
+# What it changes: `request.client.host` becomes the address nginx recorded in
+# `X-Forwarded-For`, so `public.rate_limit` counts per caller. Without it every
+# request through nginx carries nginx's own container address and the whole
+# internet shares one 600-per-minute bucket.
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=settings.trusted_proxy_hosts)
 
 
 @app.get("/health", tags=["ops"], include_in_schema=False)

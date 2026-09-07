@@ -28,4 +28,10 @@ RUN uv sync --frozen --no-install-project --no-dev
 COPY . .
 RUN uv sync --frozen --no-dev
 
+# No `--proxy-headers`. It is not an oversight and adding it back is not a fix.
+# The flag installs uvicorn's ProxyHeadersMiddleware in the server, outside the
+# ASGI app, where no test can reach it and where both compose files' `command:`
+# overrides would have to repeat it. `app/main.py` installs the same middleware
+# in the application instead, with its trust boundary in `TRUSTED_PROXIES`, so
+# the behaviour travels with the app rather than with the way it was launched.
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -66,6 +66,19 @@ services:
       # directory is a working state: every layer is then reported as absent
       # with its reason rather than offered as a download that 404s.
       GEO_DIR: /srv/geo
+      # Who is allowed to say, via X-Forwarded-For, which client a request came
+      # from. In development that is the Vite dev server, which proxies /api and
+      # would otherwise make every request look like it came from one container.
+      # `*` is safe here for the same reason it is in production: nothing off
+      # this compose network can reach port 8000 except through the proxy.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-*}
+      # Vite serves the app and proxies /api, so the browser is same-origin and
+      # this list is unused by the site itself. It is set anyway so a developer
+      # sees the same allowlist shape production runs.
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    # No `--proxy-headers` here either — see the comment on CMD in
+    # backend/Dockerfile. The middleware lives in app/main.py so that this
+    # command, the production command and the image CMD cannot drift apart.
     command: >
       sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
