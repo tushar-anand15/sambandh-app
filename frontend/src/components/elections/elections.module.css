@@ -801,3 +801,32 @@ a.crumb:hover {
   text-anchor: middle;
   pointer-events: none;
 }
+
+/* ---------------------------------------------------------------------------
+   The statewide block.
+
+   Four distributions of the same cycle, side by side where there is room and
+   stacked where there is not. Each is a table because each is data with a
+   denominator; the heading above each one is what the table is of, and the
+   line under it is what the shares are shares of.
+   --------------------------------------------------------------------------- */
+
+.statewide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--s7);
+  margin-block: var(--s5) 0;
+}
+
+.statewideGroup {
+  min-width: 0;
+}
+
+.statewideHead {
+  font-family: var(--font-sans);
+  font-size: var(--t4);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  color: var(--ink);
+  margin-block: 0 var(--s2);
+}

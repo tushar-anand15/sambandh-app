@@ -1,80 +1,381 @@
 /* ---------------------------------------------------------------------------
    Home.
 
-   The one stark figure, the rails, and the spend bar. Everything else on the
-   page is prose in the base styles, and the table this header used to name
-   went with CoverageTable in c0e0a10.
+   The hero and its ask card, the stat strip, the three panels of the worked
+   example, and the closing card. Everything typographic that more than one
+   section uses lives in index.css and is reached through
+   `composes: … from global`; nothing shared is re-inlined here.
    --------------------------------------------------------------------------- */
 
-/* The single --t9 on the site. The scale's own note says a second use means the
-   device has stopped working; this is the first, and it is spent on the sum
-   the whole argument turns on. */
-.figure {
-  font-size: var(--t9);
-  line-height: var(--lh-tight);
-  letter-spacing: var(--track-display);
+/* ---------------------------------------------------------------------------
+   Hero.
+
+   Two columns where there is room: the headline and its lede on the left, the
+   one gate on the site on the right. On a narrow screen the card follows the
+   headline rather than sitting beside it, which is also the order they are
+   read in.
+   --------------------------------------------------------------------------- */
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: var(--s8);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s7);
+  }
+}
+
+.heroText {
+  min-width: 0;
+}
+
+.heroActions {
+  margin-block: var(--s5) 0;
+}
+
+/* The two button shapes. The accent is spent on actions and links, which is
+   what these are; it never paints data anywhere on the site. */
+.primary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--s7);
+  padding: 0 var(--s4);
+  font-family: var(--font-sans);
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  color: var(--surface);
+  background: var(--accent);
+  text-decoration: none;
+}
+
+.primary:hover,
+.primary:focus-visible {
+  text-decoration: underline;
+}
+
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--s7);
+  padding: 0 var(--s4);
+  font-family: var(--font-sans);
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
   color: var(--ink);
-  margin-block: var(--s7) 0;
-  max-width: var(--measure-h1);
+  border: 1px solid var(--rule-2);
+  text-decoration: none;
 }
 
-.figureCaption {
-  font-size: var(--t4);
-  line-height: var(--lh-body);
-  color: var(--ink-2);
-  max-width: var(--measure-lede);
-  margin-block: var(--s3) 0;
-}
-
-/* The source list. Each line names the portal and what it supplies, because a
-   bare list of five government portals tells a reader nothing about which one
-   answers their question. */
-.sources {
-  list-style: none;
-  margin-block: var(--s4) 0;
-  padding: 0;
-  max-width: var(--measure);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s2);
-  color: var(--ink-2);
-}
-
-.sources li {
-  border-left: 2px solid var(--rule);
-  padding-left: var(--s3);
+.secondary:hover,
+.secondary:focus-visible {
+  text-decoration: underline;
 }
 
 /* ---------------------------------------------------------------------------
-   The rail.
-
-   In the prototype this was a margin note. The page is a single column, so it
-   sits in the flow instead, set apart by a rule down its left edge rather than
-   by position. It carries the record the running text is not carrying: on the
-   join section, the Sakarma half of a paragraph whose text column is Sulekha's.
+   The ask card. The site's only gate, and it says so.
    --------------------------------------------------------------------------- */
 
-.block {
+.ask {
+  border: 1px solid var(--rule);
+  padding: var(--s5);
+  background: var(--surface-2);
+}
+
+.askHead {
+  font-family: var(--font-sans);
+  font-size: var(--t5);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  color: var(--ink);
+  margin-block: 0 var(--s3);
+}
+
+.askLede {
+  font-size: var(--t3);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  margin-block: 0 var(--s4);
+  max-width: var(--measure);
+}
+
+/* Drawn as a field, and it is a link. A disabled input would be the largest
+   target on the card and would do nothing when clicked. */
+.lock {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--s7);
+  padding: 0 var(--s3);
+  border: 1px solid var(--rule-2);
+  background: var(--surface);
+  color: var(--ink-3);
+  text-decoration: none;
+}
+
+.padlock {
+  width: var(--s4);
+  height: var(--s4);
+  flex: none;
+}
+
+.lockText {
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.askActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin-block: var(--s3) 0;
+}
+
+.askNote {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-3);
+  margin-block: var(--s5) var(--s2);
+}
+
+.samples {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.sample {
+  font-size: var(--t3);
+  line-height: var(--lh-body);
+}
+
+/* ---------------------------------------------------------------------------
+   The stat strip.
+
+   Five counts, each with the population it counts underneath it. The
+   population line is not optional decoration: 1,033, 1,199 and 1,238 are all
+   correct counts of Kerala's local governments, and a figure here without one
+   would have three readings.
+   --------------------------------------------------------------------------- */
+
+.strip {
+  border-top: 1px solid var(--rule);
+  margin-block: var(--s8) 0;
+  padding-block: var(--s5) 0;
+}
+
+.stripList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--s5);
+}
+
+.stripItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  min-width: 0;
+}
+
+.stripValue {
+  composes: figure-value from global;
+}
+
+.stripLabel {
+  font-family: var(--font-sans);
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  color: var(--ink);
+}
+
+.stripOf {
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-3);
+}
+
+.stripSource {
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-3);
+  margin-block: var(--s4) 0;
+  max-width: var(--measure);
+}
+
+/* ---------------------------------------------------------------------------
+   The worked example and its three panels.
+   --------------------------------------------------------------------------- */
+
+.example {
+  border-top: 1px solid var(--rule);
+  margin-block: var(--s8) 0;
   padding-block: var(--s7) 0;
 }
 
-.block:first-of-type {
-  padding-block: 0;
+.identifiers {
+  font-family: var(--font-sans);
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  margin-block: 0 var(--s4);
 }
 
-.block + .block {
+.exampleLede {
+  composes: lede from global;
+  margin-block: 0 var(--s5);
+}
+
+.panel {
   border-top: 1px solid var(--rule);
   margin-block: var(--s7) 0;
+  padding-block: var(--s5) 0;
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s3);
+  margin-block: 0 var(--s4);
+}
+
+.panelNumber {
+  font-family: var(--font-display);
+  font-size: var(--t6);
+  line-height: var(--lh-tight);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.panelTitle {
+  font-family: var(--font-sans);
+  font-size: var(--t6);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  color: var(--ink);
+  margin: 0;
+}
+
+.panelSource {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-inline-start: auto;
+}
+
+/* The map beside the record where there is room, above it where there is not.
+   The record column is the one that must not be squeezed: it holds a table. */
+.panelBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  gap: var(--s7);
+  align-items: start;
+}
+
+.panelBody:only-child,
+.panelRecord:only-child {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .panelBody {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s5);
+  }
+}
+
+.panelMap {
+  min-width: 0;
+}
+
+.panelRecord {
+  min-width: 0;
+  grid-column: span 2;
+}
+
+.panelMap ~ .panelRecord {
+  grid-column: auto;
+}
+
+.mapCaption {
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-3);
+  margin-block: var(--s3) 0;
+  max-width: var(--measure);
+}
+
+.panelLede {
+  font-size: var(--t4);
+  line-height: var(--lh-body);
+  color: var(--ink);
+  margin-block: 0 var(--s3);
+  max-width: var(--measure);
+}
+
+.panelNote {
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-3);
+  margin-block: 0 var(--s4);
+  max-width: var(--measure);
+}
+
+/* ---------------------------------------------------------------------------
+   The statewide block and the closing card.
+   --------------------------------------------------------------------------- */
+
+.statewide {
+  border-top: 1px solid var(--rule);
+  margin-block: var(--s8) 0;
+  padding-block: var(--s7) 0;
+}
+
+.closing {
+  border-top: 1px solid var(--rule);
+  margin-block: var(--s8) 0;
+  padding-block: var(--s7) 0;
+}
+
+.closingLede {
+  composes: lede from global;
+  margin-block: 0 var(--s5);
+  max-width: var(--measure);
+}
+
+/* ---------------------------------------------------------------------------
+   The Amboori paragraph: the one sentence that holds both portals at once.
+   --------------------------------------------------------------------------- */
+
+.prose {
+  max-width: var(--measure);
 }
 
 .rail {
   composes: rail from global;
 }
 
-/* The join rail is the one carrying the other portal's record, so it is the
-   one the accent marks. Written as two classes so it beats the shared rail's
-   `border-left` shorthand on specificity rather than on source order, which is
-   the bundler's business and not something to depend on. */
+/* The join rail carries the other portal's record, so it is the one the accent
+   marks. Written as two classes so it beats the shared rail's `border-left`
+   shorthand on specificity rather than on source order. */
 .rail.railJoin {
   border-left-color: var(--accent);
 }
@@ -99,41 +400,8 @@
   margin-block: 0 var(--s2);
 }
 
-/* A stack, not a row. Three figures side by side would be a second column. */
-
-.railStats .railFigure {
-  margin-block: 0 var(--s1);
-}
-
-.railSteps {
-  margin-block: 0;
-  padding-inline-start: var(--s5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s2);
-}
-
-/* Running lists in the body. The base list styles are for source lines; these
-   are paragraphs that happen to be numbered. */
-.points {
-  margin-block: 0;
-  padding-inline-start: var(--s5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s4);
-  max-width: var(--measure);
-  color: var(--ink-2);
-}
-
-.prose {
-  max-width: var(--measure);
-}
-
-/* ---------------------------------------------------------------------------
-   The spend bar. The shared ratio bar, held to the text measure so it reads as
-   part of the paragraph it belongs to rather than as a full-width rule.
-   --------------------------------------------------------------------------- */
-
+/* The spend bar. The shared ratio bar, held to the text measure so it reads as
+   part of the paragraph it belongs to rather than as a full-width rule. */
 .bar {
   composes: ratio-bar from global;
   width: 100%;
@@ -145,19 +413,16 @@
   composes: ratio-bar-fill from global;
 }
 
-/* This copy of the scale used to set neither wrapping nor tabular figures, so
-   the same two numbers stacked under the finances bar and wobbled under this
-   one. Both now come from the one idiom. */
 .barScale {
   composes: ratio-bar-scale from global;
   max-width: var(--measure);
 }
 
-/* The colophon. Not GS's copy: the licence line the ODbL requires, kept on the
-   page it was removed from. */
+/* The colophon. The licence line the ODbL requires, on the page that has
+   carried the site's only copy of it since the sources list was dropped. */
 .colophon {
   border-top: 1px solid var(--rule);
-  margin-block: var(--s7) 0;
+  margin-block: var(--s8) 0;
   padding-block: var(--s4) 0;
   font-size: var(--t2);
   line-height: var(--lh-body);

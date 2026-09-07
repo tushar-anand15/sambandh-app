@@ -478,7 +478,245 @@ const NO_POLYGON = new Set(["G13064"]);
 // Handlers
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Amboori, and the statewide aggregate
+// ---------------------------------------------------------------------------
+
+/**
+ * Amboori grama panchayat, the home page's worked example.
+ *
+ * G01014 is deliberately NOT in `bodies`: the fixture slice is seven bodies
+ * and adding an eighth would move every count asserted against it. So the
+ * home page's body is served by its own handler, registered ahead of the
+ * generic `:lb/:cycle` one, and the 2020 result it returns is the one the
+ * design canvas published — the UDF holding the council 8 wards to 6, on ward
+ * 8 won by four votes.
+ */
+export const AMBOORI_CODE = "G01014";
+
+const AMBOORI_WARDS: [number, string, string, string, string, number][] = [
+  [1, "Mayam", "Woman", "CPI(M)", "LDF", 21],
+  [2, "Panchayat Office Ward", "General", "INC", "UDF", 186],
+  [3, "Thodumala", "SC", "CPI(M)", "LDF", 21],
+  [4, "Panthaplamoodu", "Woman", "CPI(M)", "LDF", 46],
+  [5, "Amboori", "General", "INC", "UDF", 171],
+  [6, "Koottappu", "ST", "INC", "UDF", 33],
+  [7, "Thekkupara", "Woman", "CPI", "LDF", 76],
+  [8, "Kannannoor", "General", "INC", "UDF", 4],
+  [9, "Kudappanamoodu", "General", "INC", "UDF", 73],
+  [10, "Thudiyamkonam", "General", "INC", "UDF", 39],
+  [11, "Puruthippara", "Woman", "INC", "UDF", 94],
+  [12, "Chirayakkodu", "Woman", "CPI", "LDF", 59],
+  [13, "Kuttamala", "Woman", "CPI(M)", "LDF", 65],
+  [14, "Kandamthitta", "Woman", "INC", "UDF", 98],
+];
+
+const ambooriBody = {
+  lb_code: AMBOORI_CODE,
+  lb_name_en: "Amboori",
+  lb_name_ml: null,
+  district_name: "THIRUVANANTHAPURAM",
+  lb_type: "Grama Panchayat",
+};
+
+export function ambooriCycle(cycle: number) {
+  const base = {
+    lb_code: AMBOORI_CODE,
+    cycle,
+    body: ambooriBody,
+    in_elections: true,
+    first_cycle: 2010,
+    last_cycle: 2025,
+  };
+
+  if (cycle !== 2020) {
+    return {
+      ...base,
+      available: false as const,
+      reason_code: "no_result_for_cycle" as const,
+      reason: `The State Election Commission published no result for this body in the ${cycle} cycle.`,
+      provenance: electionsProvenance,
+    };
+  }
+
+  const wards = AMBOORI_WARDS.map(([no, name, reservation, party, front, margin]) => {
+    const winnerVotes = 500 + margin;
+    const valid = winnerVotes + 500 + 60;
+    return {
+      ward_no: no,
+      ward_code: `${AMBOORI_CODE}${String(no).padStart(3, "0")}`,
+      ward_name: name,
+      ward_name_ml: null,
+      reservation,
+      winner_name: `Winner ${no}`,
+      winner_party: party,
+      winner_front: front,
+      winner_votes: winnerVotes,
+      winner_role: null,
+      winner_gender: null,
+      runnerup_name: `Runner-up ${no}`,
+      runnerup_votes: 500,
+      margin,
+      margin_pct: Math.round((10000 * margin) / valid) / 100,
+      valid_votes: valid,
+      invalid_votes: 8,
+      candidates: 3,
+      uncontested: false,
+      tie: false,
+    };
+  });
+
+  const seats = { LDF: 6, UDF: 8, NDA: 0, OTH: 0 };
+
+  return {
+    ...base,
+    available: true as const,
+    reason_code: null,
+    seats,
+    total_wards: wards.length,
+    majority_threshold: 8,
+    largest_front: "UDF",
+    largest_front_seats: 8,
+    ruling_front: "UDF",
+    control_type: "majority",
+    head: null,
+    wards,
+    candidates: [],
+    provenance: electionsProvenance,
+  };
+}
+
+/**
+ * `/api/elections/statewide/{cycle}`, field for field with
+ * `StatewideElections` in `backend/app/routers/elections.py`.
+ *
+ * The figures are the 2020 cycle's, and the three denominators are stated
+ * separately because the payload states them separately: seats over
+ * `seats_total`, margins and reservation over `wards_counted`, control over
+ * `bodies_with_result`.
+ */
+const MARGIN_BANDS: [string, string, number | null, number | null, number][] = [
+  ["under_50", "Under 50 votes", null, 49, 4567],
+  ["50_99", "50 to 99", 50, 99, 3128],
+  ["100_249", "100 to 249", 100, 249, 6103],
+  ["250_499", "250 to 499", 250, 499, 4029],
+  ["500_999", "500 to 999", 500, 999, 2082],
+  ["1000_plus", "1,000 or more", 1000, null, 1041],
+  ["unknown", "Margin not published", null, null, 12],
+];
+
+const RESERVATION_COUNTS: [string, number][] = [
+  ["General", 8983],
+  ["Woman", 9639],
+  ["SC", 1098],
+  ["SC Woman", 921],
+  ["ST", 168],
+  ["ST Woman", 137],
+  ["Unstated", 16],
+];
+
+const SEAT_COUNTS: [string, number][] = [
+  ["LDF", 10046],
+  ["UDF", 8014],
+  ["NDA", 1596],
+  ["OTH", 2164],
+];
+
+const CONTROL_COUNTS: [string, number][] = [
+  ["majority", 785],
+  ["hung", 406],
+  ["tie", 8],
+  ["unstated", 0],
+];
+
+const NO_STATEWIDE_RESULT =
+  "The State Election Commission has published no result for any local body " +
+  "in this cycle.";
+
+export function statewidePayload(cycle: number) {
+  if (cycle !== 2015 && cycle !== 2020) {
+    return {
+      cycle,
+      available: false as const,
+      reason_code: "no_result_for_cycle" as const,
+      reason: NO_STATEWIDE_RESULT,
+      bodies_with_result: 0,
+      wards_counted: 0,
+      seats: SEAT_COUNTS.map(([front]) => ({ front, seats: null, share: null })),
+      seats_total: null,
+      margins: MARGIN_BANDS.map(([key, label, min, max]) => ({
+        key,
+        label,
+        min_votes: min,
+        max_votes: max,
+        wards: null,
+        share: null,
+      })),
+      control: CONTROL_COUNTS.map(([control_type]) => ({
+        control_type,
+        bodies: null,
+        share: null,
+      })),
+      reservation: RESERVATION_COUNTS.map(([reservation]) => ({
+        reservation,
+        wards: null,
+        share: null,
+      })),
+      provenance: electionsProvenance,
+    };
+  }
+
+  const bodiesWithResult = 1199;
+  const wardsCounted = RESERVATION_COUNTS.reduce((sum, [, n]) => sum + n, 0);
+  const seatsTotal = SEAT_COUNTS.reduce((sum, [, n]) => sum + n, 0);
+
+  return {
+    cycle,
+    available: true as const,
+    reason_code: null,
+    reason: null,
+    bodies_with_result: bodiesWithResult,
+    wards_counted: wardsCounted,
+    seats: SEAT_COUNTS.map(([front, n]) => ({
+      front,
+      seats: n,
+      share: n / seatsTotal,
+    })),
+    seats_total: seatsTotal,
+    margins: MARGIN_BANDS.map(([key, label, min, max, n]) => ({
+      key,
+      label,
+      min_votes: min,
+      max_votes: max,
+      wards: n,
+      share: n / wardsCounted,
+    })),
+    control: CONTROL_COUNTS.map(([control_type, n]) => ({
+      control_type,
+      bodies: n,
+      share: n / bodiesWithResult,
+    })),
+    reservation: RESERVATION_COUNTS.map(([reservation, n]) => ({
+      reservation,
+      wards: n,
+      share: n / wardsCounted,
+    })),
+    provenance: electionsProvenance,
+  };
+}
+
 export const handlers = [
+  // Declared ahead of `:lb/:cycle`, exactly as the router declares it ahead of
+  // `/{lb_code}/{cycle}`: without this, "statewide" is read as a body code and
+  // the aggregate answers 404.
+  http.get("*/api/elections/statewide/:cycle", ({ params }) =>
+    HttpResponse.json(statewidePayload(Number((params as { cycle: string }).cycle))),
+  ),
+
+  http.get(`*/api/elections/${AMBOORI_CODE}/:cycle`, ({ params }) =>
+    HttpResponse.json(ambooriCycle(Number((params as { cycle: string }).cycle))),
+  ),
+
   http.get("*/api/elections/fronts/:cycle", ({ params }) => {
     const cycle = Number((params as { cycle: string }).cycle);
     const entries = bodies
