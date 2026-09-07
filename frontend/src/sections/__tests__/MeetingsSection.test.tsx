@@ -17,6 +17,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import MeetingsSection from "../MeetingsSection";
 import { resetBodiesCache } from "@/hooks/useBodies";
 import { chalakudyMeetings } from "@/test/handlers";
+import type { DocumentKind } from "@/components/meetings/payload";
 import { chalakudyMeetingRows, meetingsYear } from "@/test/handlers.meetings";
 import { server } from "@/test/setup";
 
@@ -64,7 +65,39 @@ describe("a body-year with meetings", () => {
     expect(within(block).getAllByText(/സാധാരണ യോഗം/).length).toBeGreaterThan(0);
   });
 
-  it("renders date, category, nature and venue for every meeting", async () => {
+  it("marks both terms in the classification note as Malayalam", async () => {
+    renderAt("/meetings/M08032/2023-2024");
+    const block = await counts();
+
+    const note = within(block).getByText(/How Sakarma classifies a meeting/)
+      .nextElementSibling!;
+    const marked = Array.from(note.querySelectorAll('[lang="ml"]')).map(
+      (span) => span.textContent,
+    );
+
+    // Both, so the classification can be checked against Sakarma's own wording.
+    expect(marked).toEqual(["ഭരണസമിതി യോഗം", "സാധാരണ യോഗം"]);
+  });
+
+  it("counts the same total two ways", async () => {
+    renderAt("/meetings/M08032/2023-2024");
+    const block = await counts();
+
+    // "18 of 64 (28.1%)" -> [18, 64].
+    const parts = within(block)
+      .getAllByText(/^\d+ of \d+ \(/)
+      .map((el) => el.textContent!.match(/^(\d+) of (\d+) /)!.slice(1).map(Number));
+
+    expect(parts).toHaveLength(4);
+    const [total] = parts.map(([, base]) => base);
+    expect(parts.every(([, base]) => base === total)).toBe(true);
+
+    const [governing, standing, ordinary, special] = parts.map(([value]) => value);
+    expect(governing + standing).toBe(total);
+    expect(ordinary + special).toBe(total);
+  });
+
+  it("renders the five columns in order for every meeting", async () => {
     renderAt("/meetings/M08032/2023-2024");
 
     const table = await screen.findByRole("table");
@@ -72,13 +105,21 @@ describe("a body-year with meetings", () => {
     // One header row, then one row per meeting.
     expect(rows).toHaveLength(chalakudyMeetings.meetings + 1);
 
+    expect(
+      within(rows[0])
+        .getAllByRole("columnheader")
+        .map((cell) => cell.textContent),
+    ).toEqual(["Date", "Sitting", "Committee", "Called as", "On record"]);
+
     const first = within(rows[1]).getAllByRole("cell");
     expect(first[0]).toHaveTextContent("12 October 2023");
-    expect(first[1]).toHaveTextContent("ഭരണസമിതി യോഗം");
-    expect(first[1]).toHaveTextContent("Governing body");
-    expect(first[2]).toHaveTextContent("അടിയന്തിര യോഗം/പ്രത്യേക യോഗം");
-    expect(first[2]).toHaveTextContent("Special");
-    expect(first[3]).toHaveTextContent("മുനിസിപ്പൽ കൌൺസിൽ ഹാള്‍");
+    expect(first[1]).toHaveTextContent("2");
+    expect(first[2]).toHaveTextContent("ഭരണസമിതി യോഗം");
+    expect(first[2]).toHaveTextContent("Governing body");
+    expect(first[3]).toHaveTextContent("അടിയന്തിര യോഗം/പ്രത്യേക യോഗം");
+    expect(first[3]).toHaveTextContent("Special");
+    expect(within(first[4]).getByText("Decision register")).toBeInTheDocument();
+    expect(within(first[4]).getByText("Minutes")).toBeInTheDocument();
   });
 
   it("bounds the list with the first and last meeting of the year", async () => {
@@ -188,7 +229,7 @@ describe("a thin early year", () => {
 describe("a meeting the register left fields out of", () => {
   it("names the absence instead of leaving the cell empty", async () => {
     const rows = chalakudyMeetingRows.map((row, index) =>
-      index === 0 ? { ...row, venue: null, meeting_no: null } : row,
+      index === 0 ? { ...row, meeting_date: null, meeting_no: null } : row,
     );
     server.use(
       http.get("*/api/meetings/:lb/:year", () =>
@@ -200,10 +241,44 @@ describe("a meeting the register left fields out of", () => {
     const table = await screen.findByRole("table");
     const cells = within(within(table).getAllByRole("row")[1]).getAllByRole("cell");
 
-    expect(cells[3]).toHaveTextContent("Not recorded");
-    expect(cells[4]).toHaveTextContent("Not recorded");
+    expect(cells[0]).toHaveTextContent("Not recorded");
+    expect(cells[1]).toHaveTextContent("Not recorded");
     // Every cell in the row says something.
     for (const cell of cells) expect(cell.textContent?.trim()).not.toBe("");
+  });
+});
+
+describe("what Sakarma holds for one meeting", () => {
+  it("shows one badge for a meeting with a decision register and no minutes", async () => {
+    const rows = chalakudyMeetingRows.map((row, index) =>
+      index === 0 ? { ...row, documents: ["dr"] as DocumentKind[] } : row,
+    );
+    server.use(
+      http.get("*/api/meetings/:lb/:year", () =>
+        HttpResponse.json(meetingsYear("M08032", "2023-2024", rows)),
+      ),
+    );
+    renderAt("/meetings/M08032/2023-2024");
+
+    const table = await screen.findByRole("table");
+    const cell = within(within(table).getAllByRole("row")[1]).getAllByRole("cell")[4];
+
+    expect(within(cell).getAllByRole("button")).toHaveLength(1);
+    expect(within(cell).getByText("Decision register")).toBeInTheDocument();
+    expect(within(cell).queryByText("Minutes")).not.toBeInTheDocument();
+    expect(within(cell).queryByText("Not published by Sakarma")).not.toBeInTheDocument();
+  });
+
+  it("states the absence for a meeting with neither document", async () => {
+    renderAt("/meetings/M08032/2023-2024");
+
+    const table = await screen.findByRole("table");
+    const rows = within(table).getAllByRole("row");
+    // The fixture gives the last meeting of the year neither document.
+    const cell = within(rows[rows.length - 1]).getAllByRole("cell")[4];
+
+    expect(cell).toHaveTextContent("Not published by Sakarma");
+    expect(within(cell).queryAllByRole("button")).toHaveLength(0);
   });
 });
 

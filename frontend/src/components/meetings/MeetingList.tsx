@@ -2,17 +2,23 @@
  * Every meeting the register holds for one body-year, in the order it holds
  * them.
  *
- * The category and nature cells carry the register's own Malayalam, with the
- * English reading under it. The Malayalam is what the source says; the English
- * is this site's gloss, and putting the gloss second keeps that order clear.
+ * The committee and called-as cells carry the register's own Malayalam, with
+ * the English reading under it. The Malayalam is what the source says; the
+ * English is this site's gloss, and putting the gloss second keeps that order
+ * clear.
  *
- * A venue the register left blank is named as such. An empty cell would read as
- * a rendering fault, and a dash would read as a value.
+ * A sitting number the register left blank is named as such. An empty cell
+ * would read as a rendering fault, and a dash would read as a value.
  *
- * The last column opens what the council published. Sakarma holds a decision
- * register and minutes for 420,561 of the 443,235 meetings in the manifest; a
- * meeting it holds neither for says so in the cell rather than showing a button
- * that would open an empty panel.
+ * The last column carries one badge per document Sakarma holds for the sitting,
+ * decision register and minutes counted separately: Sakarma holds both for
+ * 420,561 of the 443,235 meetings in its record, and a sitting with one of the
+ * two has to read as one of the two rather than as "documented". A sitting with
+ * neither says that in the cell instead of showing a badge that would open an
+ * empty panel.
+ *
+ * The venue the register names is not a column here. It is in the CSV the
+ * download serves, where a reader who wants it can still find it.
  */
 
 import { formatYearLabel } from "@/components/select/YearControl";
@@ -32,12 +38,12 @@ import {
 const NOT_RECORDED = "Not recorded";
 
 /** Sakarma published neither document for this meeting. */
-const NO_DOCUMENT = "No document available";
+const NOTHING_PUBLISHED = "Not published by Sakarma";
 
 function Term({ source, gloss }: { source: string; gloss: string }) {
   return (
     <>
-      {source}
+      <span lang="ml">{source}</span>
       <span className={styles.gloss}>{gloss}</span>
     </>
   );
@@ -61,15 +67,6 @@ function Row({ row, onOpen }: RowProps) {
         )}
       </td>
       <td>
-        <Term source={row.meeting_type} gloss={categoryOf(row.meeting_type)} />
-      </td>
-      <td>
-        <Term source={row.meeting_nature} gloss={natureOf(row.meeting_nature)} />
-      </td>
-      <td>
-        {row.venue ? row.venue : <span className={styles.absent}>{NOT_RECORDED}</span>}
-      </td>
-      <td>
         {row.meeting_no ? (
           row.meeting_no
         ) : (
@@ -77,18 +74,29 @@ function Row({ row, onOpen }: RowProps) {
         )}
       </td>
       <td>
+        <Term source={row.meeting_type} gloss={categoryOf(row.meeting_type)} />
+      </td>
+      <td>
+        <Term source={row.meeting_nature} gloss={natureOf(row.meeting_nature)} />
+      </td>
+      <td>
         {row.documents.length === 0 ? (
-          <span className={styles.absent}>{NO_DOCUMENT}</span>
+          <span className={styles.absent}>{NOTHING_PUBLISHED}</span>
         ) : (
           <span className={styles.documents}>
             {row.documents.map((kind) => (
               <button
                 key={kind}
                 type="button"
-                className={styles.documentButton}
+                className={styles.documentBadge}
+                aria-label={
+                  date
+                    ? `Read the ${DOCUMENT_LABEL[kind].toLowerCase()}, ${date}`
+                    : `Read the ${DOCUMENT_LABEL[kind].toLowerCase()}`
+                }
                 onClick={() => onOpen(row, kind)}
               >
-                Read the {DOCUMENT_LABEL[kind].toLowerCase()}
+                {DOCUMENT_LABEL[kind]}
               </button>
             ))}
           </span>
@@ -121,16 +129,20 @@ export default function MeetingList({ payload, onOpen }: MeetingListProps) {
         {first && last ? `, ${first} to ${last}` : null}.
       </p>
 
+      <p className={styles.note}>
+        The badges name which of the two documents Sakarma holds for a meeting.
+        Each one opens in a panel on this page.
+      </p>
+
       <div className="data-table-scroll">
         <table className={`data-table ${styles.dateColumn}`} aria-labelledby="meeting-list-heading">
           <thead>
             <tr>
               <th scope="col">Date</th>
-              <th scope="col">Category</th>
-              <th scope="col">Nature</th>
-              <th scope="col">Venue</th>
-              <th scope="col">Meeting number</th>
-              <th scope="col">Document</th>
+              <th scope="col">Sitting</th>
+              <th scope="col">Committee</th>
+              <th scope="col">Called as</th>
+              <th scope="col">On record</th>
             </tr>
           </thead>
           <tbody>

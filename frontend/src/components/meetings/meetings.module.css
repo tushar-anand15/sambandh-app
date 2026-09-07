@@ -39,6 +39,13 @@
   margin-block: 0 var(--s3);
 }
 
+/* The explainer under the two splits. Same shape as a split's own head, set
+   further down because it opens a block rather than labelling one above it. */
+.explainHead {
+  composes: splitHead;
+  margin-block: var(--s6) var(--s3);
+}
+
 /* A standing limit on the whole page, not a remark about the figure beside
    it. The same rail as everywhere else; only what it carries is different. */
 .scopeNote {
@@ -122,33 +129,35 @@
   color: var(--ink-3);
 }
 
-/* The last column of the meeting list: what the council published, as a way in
-   rather than a link out. Sakarma's own URLs are postbacks and cannot be
-   linked to, so these open the document in a panel on this page. */
+/* The last column of the meeting list: one badge per document Sakarma holds
+   for the meeting, as a way in rather than a link out. Sakarma's own URLs are
+   postbacks and cannot be linked to, so these open the document in a panel on
+   this page. Two badges sit side by side, so a meeting with one of the two
+   reads as one of the two. */
 .documents {
   display: flex;
-  flex-direction: column;
-  gap: var(--s1);
-  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  align-items: center;
 }
 
-.documentButton {
+.documentBadge {
   font-family: var(--font-sans);
   font-size: var(--t2);
   line-height: var(--lh-ui);
-  color: var(--accent);
+  color: var(--ink-2);
   background: none;
-  border: 0;
-  border-bottom: 1px solid var(--rule-2);
+  border: 1px solid var(--rule-2);
   border-radius: 0;
-  padding: 0;
+  padding: var(--s1) var(--s2);
   cursor: pointer;
   text-align: left;
   white-space: nowrap;
 }
 
-.documentButton:hover {
-  border-bottom-color: var(--accent);
+.documentBadge:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* Above the document in the panel: whose meeting it was, and what was done to
