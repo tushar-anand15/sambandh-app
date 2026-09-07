@@ -27,6 +27,7 @@ PUBLIC_ENDPOINTS = [
     "/api/finances/M08032/2023-2024",
     "/api/meetings/M08032/2023-2024",
     "/api/elections/M08032/2020",
+    "/api/elections/statewide/2020",
     "/api/download/finances/M08032/2023-2024.csv",
     "/api/download/meetings/M08032/2023-2024.csv",
     "/api/download/elections/M08032/2020.csv",
