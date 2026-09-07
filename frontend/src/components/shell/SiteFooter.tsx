@@ -18,18 +18,20 @@
  * The domain is `gramsambandh.co.in`. `gramsambandh.in` does not resolve and
  * was linked here until 13 August 2026.
  *
- * The contact address is the project's own, not a maintainer's personal inbox:
- * this repository is public, and a personal address in it is a permanent
- * scraping target. It is the site's only way to report a wrong figure until the
- * report form lands, which is why it is replaced here rather than removed.
+ * Reporting an error is a form on this page, not a `mailto:`. The address it
+ * reaches is configuration on the server, so no inbox is written into a public
+ * repository for a scraper to collect, and a reader with no mail client
+ * configured can still send a report.
  *
  * The ODbL line used to be a stamp under the masthead's Kerala banner. The
  * banner is gone; the boundary files it was drawn from are still served, and
  * the licence requires the attribution to travel with them.
  */
 
+import { useState } from "react";
 import { Github, Globe, Linkedin } from "lucide-react";
 
+import ReportDialog from "./ReportDialog";
 import styles from "./shell.module.css";
 
 interface Author {
@@ -62,6 +64,8 @@ const AUTHORS: Author[] = [
 ];
 
 export default function SiteFooter() {
+  const [reporting, setReporting] = useState(false);
+
   return (
     <footer className={styles.footer}>
       <div className={`shell-container ${styles.footerInner}`}>
@@ -73,7 +77,13 @@ export default function SiteFooter() {
           <p className={styles.footerText}>
             <a href="https://gramsambandh.co.in">gramsambandh.co.in</a>
             {" · "}
-            <a href="mailto:contact@gramsambandh.co.in">Report an error</a>
+            <button
+              type="button"
+              className={styles.reportTrigger}
+              onClick={() => setReporting(true)}
+            >
+              Report an error
+            </button>
           </p>
         </div>
 
@@ -134,6 +144,8 @@ export default function SiteFooter() {
           . &copy; OpenStreetMap contributors.
         </p>
       </div>
+
+      <ReportDialog open={reporting} onClose={() => setReporting(false)} />
     </footer>
   );
 }

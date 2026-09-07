@@ -22,6 +22,7 @@ from .routers.maps import router as maps_router
 from .routers.method import router as method_router
 from .routers.metrics import router as metrics_router
 from .routers.meetings import router as meetings_router
+from .routers.report import router as report_router, verify_mail_config
 from .routers.search import router as search_router
 
 logger = logging.getLogger(__name__)
@@ -65,6 +66,12 @@ def _warmup_models():
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # Before the pool, so a production container with MAIL_ENABLED on and a
+    # secret missing fails at boot rather than at the first report. The check
+    # lives here rather than on `Settings` because every field there carries a
+    # default and the test suite imports this module with no mail environment
+    # set; see `report.verify_mail_config`.
+    verify_mail_config(settings)
     await get_pool()
     loop = asyncio.get_running_loop()
     loop.run_in_executor(None, _warmup_models)
@@ -141,6 +148,9 @@ app.include_router(download_router)
 # The boundary layer files /api/maps points at.
 app.include_router(geo_router)
 app.include_router(method_router)
+# Public and unauthenticated, and the one public route that writes nothing and
+# costs money: it sends mail. Its own rate limit, declared in the router.
+app.include_router(report_router)
 
 app.include_router(auth_router)
 app.include_router(documents_router)

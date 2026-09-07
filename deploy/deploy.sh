@@ -106,6 +106,14 @@ secret POSTGRES_PASSWORD gramsambandh-postgres-password
 secret UMAMI_APP_SECRET  gramsambandh-umami-app-secret
 secret LLM_API_KEY       gramsambandh-llm-api-key
 
+# The report form. MAIL_TO is a secret because it is a live inbox and this
+# repository is public; MAIL_ENABLED, MAIL_API_URL and MAIL_FROM are in
+# prod.env. REPORT_TOKEN_SECRET signs the form's timestamp and is deliberately
+# not JWT_SECRET: rotating either would otherwise force the other.
+secret MAIL_API_KEY         gramsambandh-mail-api-key
+secret MAIL_TO              gramsambandh-mail-to
+secret REPORT_TOKEN_SECRET  gramsambandh-report-token-secret
+
 # The non-secret half, from the repository.
 cat "${DEPLOY_DIR}/prod.env" >> "$ENV_FILE"
 

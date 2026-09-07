@@ -346,3 +346,151 @@
   margin: 0;
   max-width: none;
 }
+
+/* ---------------------------------------------------------------------------
+   Report an error.
+
+   The trigger sits in the footer's contact line and is a button, not a link:
+   it opens a form on this page rather than handing the reader to a mail
+   client. It is styled as the links beside it so the line reads as one
+   sentence.
+   --------------------------------------------------------------------------- */
+.reportTrigger {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.reportScrim {
+  position: fixed;
+  inset: 0;
+  /* Above the sticky masthead at 50, as the document panel is. */
+  z-index: 60;
+  background: rgb(0 0 0 / 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s4);
+}
+
+.reportPanel {
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  width: min(60ch, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: var(--s5);
+}
+
+.reportPanel:focus {
+  outline: none;
+}
+
+.reportTitle {
+  font-family: var(--font-sans);
+  font-size: var(--t6);
+  font-weight: 400;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--track-head);
+  color: var(--ink);
+  margin-block: 0 var(--s3);
+}
+
+.reportForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.reportNote {
+  font-family: var(--font-sans);
+  font-size: var(--t2);
+  line-height: var(--lh-ui);
+  color: var(--ink-3);
+  margin: 0 0 var(--s2);
+  max-width: none;
+}
+
+/* An error is read, not decorated: the party red is the site's only alarm
+   colour and it is already spoken for, so this is ink on a rule. */
+.reportError {
+  font-family: var(--font-sans);
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  color: var(--ink);
+  border-left: 2px solid var(--ldf);
+  padding-left: var(--s3);
+  margin: 0 0 var(--s2);
+  max-width: none;
+}
+
+.reportLabel {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.reportInput,
+.reportTextarea {
+  font-family: var(--font-sans);
+  font-size: var(--t3);
+  line-height: var(--lh-ui);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule-2);
+  padding: var(--s2);
+  width: 100%;
+}
+
+.reportTextarea {
+  resize: vertical;
+}
+
+.reportActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s3);
+  margin-top: var(--s3);
+}
+
+.reportSubmit {
+  font-family: var(--font-sans);
+  font-size: var(--t3);
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  padding: var(--s2) var(--s4);
+  cursor: pointer;
+}
+
+.reportSubmit[disabled] {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.reportCancel {
+  font-family: var(--font-sans);
+  font-size: var(--t3);
+  color: var(--ink-2);
+  background: none;
+  border: 1px solid var(--rule-2);
+  padding: var(--s2) var(--s4);
+  cursor: pointer;
+}
+
+/* The honeypot. Off-screen rather than display:none, because some form-filling
+   scripts skip a field a browser does not lay out. It carries aria-hidden and
+   tabindex="-1" in the markup, so nothing but a script ever reaches it. */
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
