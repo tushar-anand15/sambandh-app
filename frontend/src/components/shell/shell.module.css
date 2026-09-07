@@ -146,13 +146,16 @@
   text-decoration: none;
 }
 
-/* --t9 is the largest step the scale has (52px at its ceiling). The design
-   asks for 64px; a seventh size is a bug, so the nameplate takes the top of
-   the scale rather than inventing one. */
+/* --t9 is the largest step the scale has (50px at its ceiling). The design
+   asks for 64px; a tenth size is a bug, so the nameplate takes the top of the
+   scale rather than inventing one.
+
+   400, matching `h1`: at --t9 the size is the emphasis, and 300 was the weight
+   the palette before last set on everything to keep the site off bold. */
 .nameEn {
   display: block;
   font-family: var(--font-display);
-  font-weight: 300;
+  font-weight: 400;
   font-size: var(--t9);
   line-height: var(--lh-tight);
   letter-spacing: var(--track-display);
@@ -163,11 +166,10 @@
    the second-language line an Indian masthead carries as a matter of course.
    Set between the wordmark and the strapline in size as well as in position.
 
-   Neither Archivo nor Barlow covers Malayalam, so the stack names Noto Sans
-   Malayalam before the generic -- the same fallback `.prose-chat` uses in
-   index.css for the assistant's Malayalam answers. Nothing is fetched: it
-   resolves to a locally installed face or to the platform's own, and which
-   Malayalam face should pair with the text font is still open in the plan. */
+   Public Sans covers no Malayalam, so the stack names Noto Sans Malayalam
+   before the generic -- the same fallback `.prose-chat` uses in index.css for
+   the assistant's Malayalam answers. Both faces are vendored and served from
+   this origin; see the @font-face blocks at the top of index.css. */
 .nameMal {
   display: block;
   font-family: var(--font-sans), "Noto Sans Malayalam", sans-serif;
@@ -368,10 +370,14 @@
   gap: var(--s2);
 }
 
+/* `var(--sans)` here for months, which is not a token this site declares, so
+   the heading silently inherited whatever `h1..h4` set. 500 rather than 600:
+   this is a micro-label like every other --t1 uppercase run on the site, and
+   the one that was heavier than the rest was heavier by accident. */
 .footerHeading {
-  font-family: var(--sans);
+  font-family: var(--font-sans);
   font-size: var(--t1);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--ink-3);

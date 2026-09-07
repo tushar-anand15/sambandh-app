@@ -1,10 +1,10 @@
 /* ---------------------------------------------------------------------------
    Method.
 
-   Four tables and a build block. Same table shape as the home page's coverage
-   table; kept here rather than shared because the two pages are the only two
-   that hold plain data tables and a shared abstraction over two callers would
-   be one caller's table with an escape hatch.
+   Four tables and a build block. The tables are `.data-table` from index.css;
+   what is left here is the two things this page's tables do differently -- a
+   reference cell reads as a single term and must not wrap, and a value the
+   source does not hold is named rather than left blank.
    --------------------------------------------------------------------------- */
 
 .wrap {

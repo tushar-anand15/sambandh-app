@@ -113,7 +113,7 @@
    Malayalam is named explicitly: neither stand-in family covers the script. */
 .question {
   font-family: var(--font-display), "Noto Sans Malayalam", sans-serif;
-  font-weight: 300;
+  font-weight: 400;
   font-size: var(--t5);
   line-height: var(--lh-snug);
   color: var(--ink);
@@ -196,9 +196,11 @@
   color: var(--ink-2);
 }
 
+/* A dump, not a panel: --inset like `.prose-chat pre`, which is the same
+   thing in the answer body. --surface-2 is flat white in light. */
 .toolOutput {
   border: 1px solid var(--rule);
-  background: var(--surface-2);
+  background: var(--inset);
   padding: var(--s3);
   margin-block: var(--s2) 0;
   max-height: 300px;

@@ -1,63 +1,37 @@
 /* ---------------------------------------------------------------------------
    Meetings.
 
-   Co-located because these are the shapes a token utility cannot express: the
-   section heading with its hairline rule, the page's own headline, the ratio
-   bar, the meeting table, and the note about what the register holds.
+   What is left after the sweep: this page's own shapes -- the split, the
+   counts, the register table and the way into a published document. The
+   kicker, the headline, the section head, the figure type, the ratio bar and
+   the rail were written out here and again in
+   `../finances/finances.module.css`, and the header this file used to carry
+   argued that was deliberate. It is not any more -- see the Page idioms block
+   in index.css for why the argument stopped holding at the third repaint.
 
-   The heading, the bar and the table are the same idioms as
-   `../finances/finances.module.css`. They are written out twice rather than
-   lifted into index.css, which is the settled design system and no place for a
-   page-level idiom; each page keeps its own file.
+   What stays local is placement: a meetings figure is a stack with its term
+   underneath, where a finances figure is a ruled row.
    --------------------------------------------------------------------------- */
 
-/* The page's kicker: which section, which body, which year. */
 .eyebrow {
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  line-height: var(--lh-ui);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-block: 0 var(--s3);
+  composes: eyebrow from global;
 }
 
-/* The headline, once per page, and never broken into a narrow stack. */
 .headline {
-  font-family: var(--font-display);
-  font-size: var(--t9);
-  font-weight: 300;
-  line-height: var(--lh-tight);
-  letter-spacing: var(--track-display);
-  color: var(--ink);
-  margin-block: 0 var(--s5);
-  max-width: none;
+  composes: page-headline from global;
 }
 
-/* A section heading. 20px, uppercase, tracked, normal weight, on a hairline —
-   not a large serif. `h2` in index.css sets 600, so the weight is restated. */
 .head {
-  font-family: var(--font-sans);
-  font-size: var(--t6);
-  font-weight: 400;
-  line-height: var(--lh-snug);
-  letter-spacing: var(--track-head);
-  text-transform: uppercase;
-  color: var(--ink);
-  border-bottom: 1px solid var(--rule);
-  padding: 0 0 var(--s3);
-  /* The space above a heading comes from the gap between sections, not from
-     the heading: `h2:first-child` in index.css zeroes a margin here anyway,
-     and a heading that sets both would space unevenly down the page. */
-  margin-block: 0 var(--s5);
-  max-width: none;
+  composes: section-head from global;
 }
 
-/* A heading inside a section: smaller, still uppercase, no rule. */
+/* A heading inside a section: smaller, still uppercase, no rule. 500 for the
+   same reason the section head takes it -- at --t2 there is no size left to
+   carry the hierarchy. */
 .splitHead {
   font-family: var(--font-sans);
   font-size: var(--t2);
-  font-weight: 400;
+  font-weight: 500;
   line-height: var(--lh-ui);
   letter-spacing: var(--track-label);
   text-transform: uppercase;
@@ -65,38 +39,19 @@
   margin-block: 0 var(--s3);
 }
 
-/* A standing limit on the whole page, not a remark about the figure beside it.
-   Ruled on one side rather than boxed: nothing on the page is a card. */
+/* A standing limit on the whole page, not a remark about the figure beside
+   it. The same rail as everywhere else; only what it carries is different. */
 .scopeNote {
-  font-size: var(--t2);
-  line-height: var(--lh-body);
-  color: var(--ink-2);
-  border-left: 2px solid var(--rule-2);
-  padding: var(--s2) 0 var(--s2) var(--s5);
-  margin-block: var(--s5) 0;
-  max-width: var(--measure);
+  composes: rail from global;
 }
 
-/* The one size above body. There is no second figure size. */
 .total {
-  font-family: var(--font-display);
-  font-size: var(--t7);
-  font-weight: 300;
-  line-height: var(--lh-tight);
-  letter-spacing: var(--track-display);
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-  margin-block: 0;
+  composes: figure-value from global;
 }
 
-/* The label under the figure, and the note beside it. */
+/* The term sits under the number here, not beside it. */
 .totalLabel {
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  line-height: var(--lh-ui);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--ink-3);
+  composes: figure-term from global;
   margin-block: var(--s2) 0;
 }
 
@@ -113,24 +68,17 @@
   max-width: var(--measure);
 }
 
-/* Proportional by construction: the viewBox is 100 units wide and each segment
-   is its own percentage of it, so the bar carries no pixel dimension and
-   nothing in it stretches when the container changes width. */
 .bar {
-  display: block;
-  background: var(--surface-2);
-  border: 1px solid var(--rule);
+  composes: ratio-bar from global;
   margin-block: var(--s3) 0;
 }
 
-/* Ink, not the accent: the accent touches links, hovers and downloads, and
-   never data. */
 .barMajor {
-  fill: var(--ink-2);
+  composes: ratio-bar-fill from global;
 }
 
 .barMinor {
-  fill: var(--rule-2);
+  composes: ratio-bar-minor from global;
 }
 
 .counts {
@@ -158,13 +106,6 @@
 
 .countValue {
   color: var(--ink-2);
-  white-space: nowrap;
-}
-
-/* Hairlines, and no zebra: the rule between two rows is enough to follow one
-   across, and a shaded row is a second thing to read. */
-
-.table td:first-child {
   white-space: nowrap;
 }
 
@@ -212,15 +153,8 @@
 
 /* Above the document in the panel: whose meeting it was, and what was done to
    the file before it was shown. */
-/* An aside set apart by a rule rather than boxed: it is a sentence to read. */
 .rail {
-  font-size: var(--t2);
-  line-height: var(--lh-body);
-  color: var(--ink-2);
-  border-left: 2px solid var(--rule-2);
-  padding: var(--s2) 0 var(--s2) var(--s5);
-  margin-block: var(--s5) 0;
-  max-width: var(--measure);
+  composes: rail from global;
 }
 
 .registerHead {

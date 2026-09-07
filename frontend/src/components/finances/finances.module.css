@@ -1,58 +1,28 @@
 /* ---------------------------------------------------------------------------
    Finances.
 
-   The shapes a token utility cannot express: the section heading with its
-   hairline rule, the stack of figures, the ratio bar, and the project table.
-   Everything here is written against the tokens in index.css; nothing carries
-   a raw pixel, a radius or a bold weight.
+   What is left after the sweep: the layout of this page's figures and its
+   project table. The kicker, the headline, the section head, the figure type,
+   the ratio bar and the rail were written out here and again in
+   `../meetings/meetings.module.css`, and the header this file used to carry
+   argued that was deliberate. It is not any more -- see the Page idioms block
+   in index.css for why the argument stopped holding at the third repaint.
 
-   These same four shapes appear in `../meetings/meetings.module.css`. They are
-   written out twice rather than lifted into index.css because index.css is the
-   settled design system and a page-level idiom does not belong in it; the two
-   copies are small, and each page keeps its own file.
+   What stays local is placement, which is the page's business: a finances
+   figure is a ruled row with its term at the left and its number at the right,
+   where a meetings figure is a stack.
    --------------------------------------------------------------------------- */
 
-/* The page's kicker: which section, which body, which district. */
 .eyebrow {
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  line-height: var(--lh-ui);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-block: 0 var(--s3);
+  composes: eyebrow from global;
 }
 
-/* The headline, once per page, and never broken into a narrow stack. */
 .headline {
-  font-family: var(--font-display);
-  font-size: var(--t9);
-  font-weight: 300;
-  line-height: var(--lh-tight);
-  letter-spacing: var(--track-display);
-  text-transform: none;
-  color: var(--ink);
-  margin-block: 0 var(--s5);
-  max-width: none;
+  composes: page-headline from global;
 }
 
-/* A section heading. 20px, uppercase, tracked, normal weight, on a hairline —
-   not a large serif. `h2` in index.css sets 600, so the weight is restated. */
 .head {
-  font-family: var(--font-sans);
-  font-size: var(--t6);
-  font-weight: 400;
-  line-height: var(--lh-snug);
-  letter-spacing: var(--track-head);
-  text-transform: uppercase;
-  color: var(--ink);
-  border-bottom: 1px solid var(--rule);
-  padding: 0 0 var(--s3);
-  /* The space above a heading comes from the gap between sections, not from
-     the heading: `h2:first-child` in index.css zeroes a margin here anyway,
-     and a heading that sets both would space unevenly down the page. */
-  margin-block: 0 var(--s5);
-  max-width: none;
+  composes: section-head from global;
 }
 
 /* The chart's title is a sentence, and a sentence does not go in capitals.
@@ -88,25 +58,14 @@
 }
 
 .figureTerm {
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  line-height: var(--lh-ui);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--ink-3);
+  composes: figure-term from global;
   margin: 0;
 }
 
-/* The one size above body. There is no second figure size. */
+/* The number sits at the right of its ruled row, against the term at the
+   left. That alignment is this page's, not the figure idiom's. */
 .figureValue {
-  font-family: var(--font-display);
-  font-size: var(--t7);
-  font-weight: 300;
-  line-height: var(--lh-tight);
-  letter-spacing: var(--track-display);
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-  margin: 0;
+  composes: figure-value from global;
   text-align: right;
 }
 
@@ -121,34 +80,23 @@
 
 /* --- ratio bar ---------------------------------------------------------- */
 
+/* The bar and its scale share a box, so the scale's two ends line up with the
+   two ends of the drawing rather than with the text column. */
 .bar {
   margin-block: var(--s5) 0;
   max-width: var(--measure);
 }
 
 .barTrack {
-  display: block;
-  background: var(--surface-2);
-  border: 1px solid var(--rule);
+  composes: ratio-bar from global;
 }
 
 .barFill {
-  fill: var(--ink-2);
+  composes: ratio-bar-fill from global;
 }
 
 .barScale {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: var(--s3);
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  line-height: var(--lh-ui);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-  margin-block: var(--s2) 0;
+  composes: ratio-bar-scale from global;
 }
 
 /* --- the table ---------------------------------------------------------- */
@@ -167,8 +115,8 @@
   margin: 0;
 }
 
-/* Hairlines, and no zebra: the rule between two rows is enough to follow one
-   across, and a shaded row is a second thing to read. */
+/* The table itself is `.data-table` in index.css. What is left here is what
+   this page's table does that no other table does: sort, page and open. */
 
 .num {
   text-align: right;
@@ -310,15 +258,8 @@
   margin-block: var(--s3) 0;
 }
 
-/* An aside set apart by a rule rather than boxed: it is a sentence to read. */
 .rail {
-  font-size: var(--t2);
-  line-height: var(--lh-body);
-  color: var(--ink-2);
-  border-left: 2px solid var(--rule-2);
-  padding: var(--s2) 0 var(--s2) var(--s5);
-  margin-block: var(--s5) 0;
-  max-width: var(--measure);
+  composes: rail from global;
 }
 
 .legend {

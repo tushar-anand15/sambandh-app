@@ -102,6 +102,16 @@
   --surface: light-dark(#ffffff, #12161b);
   --surface-2: light-dark(#ffffff, #1a1f26);
 
+  /* The recessed step, and NOT a second panel colour. --surface-2 is flat
+     white in light on purpose (see above), which is right for a block that
+     already has a rule around it and wrong for the small things that have no
+     rule of their own: an inline code span, the unfilled remainder of a ratio
+     bar, a control that cannot be used. Those disappear into the sheet at
+     #ffffff. This is the canvas's own second surface, and it is separate from
+     --surface-2 so that giving a code span its tint back does not also put a
+     grey panel behind every table. */
+  --inset: light-dark(#f6f7f8, #1a1f26);
+
   /* Text, four steps. --ink-3 is the smallest step that is still text: it
      carries micro-labels and table headers at 6.09:1 on white and 5.99:1 on
      the dark ground. --ink-4 is 3.15:1 and is therefore NOT for text — it is
@@ -257,6 +267,7 @@
   --color-ground-far: var(--ground-far);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-inset: var(--inset);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
@@ -605,104 +616,169 @@ hr {
 }
 
 /* ---------------------------------------------------------------------------
-   Shell chrome
+   Page idioms.
+
+   A kicker, a headline, a section head, a figure, a ratio bar and a rail. Each
+   was written out in two or three module stylesheets, and the copies had
+   already drifted: the ratio bar's scale set tabular figures on the finances
+   page and proportional ones on the home page, so one row of numbers stacked
+   and the other wobbled; the bar itself was a wrapper plus a track in one file
+   and a bare track in two; the eyebrow and the head were byte-identical in two
+   files and the head's comment claimed index.css set `h2` to 600, which it
+   never did.
+
+   Both module headers used to argue the duplication was deliberate -- that
+   index.css is the settled system and a page-level idiom does not belong in
+   it. That reading held while there were two copies and one palette. It did
+   not survive a third identity in ten weeks: the same argument was made about
+   the table, and c0e0a10 then found five copies carrying three different
+   header rules.
+
+   Placement is NOT here. A finances figure is a ruled row with its term at the
+   left and its number at the right; a meetings figure is a stack with the term
+   underneath. That is the page's business and stays in the module, exactly as
+   `.data-table` above leaves cell padding to the base rules and lets a
+   meetings date column keep its own no-wrap. Modules reach these through
+   `composes: … from global`, so no markup has to know they moved.
    --------------------------------------------------------------------------- */
 
-.masthead {
-  background: var(--surface);
-  border-bottom: 1px solid var(--ink);
-}
-
-.masthead-inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s3) var(--s5);
-  padding-block: var(--s4);
-}
-
-.masthead-title {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s3);
-  color: var(--ink);
-  text-decoration: none;
-}
-
-/* The mark keeps its own baseline; the name sits beside it, not on it. */
-.masthead-title svg {
-  flex: none;
-  align-self: center;
-}
-
-.masthead-name {
-  display: flex;
-  flex-direction: column;
-  font-family: var(--font-serif);
-  font-size: var(--t6);
-  line-height: 1.1;
-  letter-spacing: var(--track-head);
-}
-
-.masthead-name-mal {
-  font-size: var(--t2);
-  letter-spacing: 0;
-  color: var(--ink-2);
-}
-
-.masthead-sub {
-  font-family: var(--font-sans);
-  font-size: var(--t2);
-  line-height: var(--lh-ui);
-  color: var(--ink-2);
-  margin: 0;
-  text-align: right;
-  max-width: 34ch;
-}
-
-@media (max-width: 640px) {
-  .masthead-sub {
-    text-align: left;
-  }
-}
-
-/* The only sticky element. */
-.tabbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--paper);
-  border-bottom: 1px solid var(--rule);
-}
-
-.tabbar-inner {
-  display: flex;
-  gap: var(--s5);
-  overflow-x: auto;
-}
-
-.tab {
-  flex: none;
+/* The page's kicker: which section, which body, which year. The one place on
+   a section page the accent appears without being a link. */
+.eyebrow {
   font-family: var(--font-sans);
   font-size: var(--t1);
   line-height: var(--lh-ui);
   letter-spacing: var(--track-label);
   text-transform: uppercase;
-  color: var(--ink-2);
-  text-decoration: none;
-  padding-block: var(--s3);
-  /* Reserves the active rule's space so the row does not shift on selection. */
-  border-bottom: 2px solid transparent;
-}
-
-.tab:hover {
-  color: var(--ink);
-}
-
-.tab-active {
   color: var(--accent);
-  border-bottom-color: var(--accent);
+  margin-block: 0 var(--s3);
+}
+
+/* The headline, once per page, and never broken into a narrow stack. Set at
+   400 like `h1` above: at --t9 the size is the emphasis, and the 300 these
+   carried was a rule from the palette before last. */
+.page-headline {
+  font-family: var(--font-display);
+  font-size: var(--t9);
+  font-weight: 400;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+  margin-block: 0 var(--s5);
+  max-width: none;
+}
+
+/* A section heading: 20px, uppercase, tracked, on a hairline. 500 because the
+   base `h1..h4` rule sets 500 and this class outranks it -- restating 400 here
+   was what left a section head and the paragraph under it four pixels apart
+   and nothing else. */
+.section-head {
+  font-family: var(--font-sans);
+  font-size: var(--t6);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--track-head);
+  text-transform: uppercase;
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule);
+  padding: 0 0 var(--s3);
+  /* The space above a heading comes from the gap between sections, not from
+     the heading: `h2:first-child` above zeroes a margin here anyway, and a
+     heading that set both would space unevenly down the page. */
+  margin-block: 0 var(--s5);
+  max-width: none;
+}
+
+/* The one size above body. There is no second figure size.
+
+   These carry the type and nothing about placement, which is the caller's:
+   a finances figure is a ruled row, a meetings figure is a stack. The term
+   sets NO margin here on purpose. index.css is bundled after the module
+   stylesheets, so a global and a module class of equal specificity resolve in
+   the global's favour; a `margin: 0` here would silently eat the caller's own
+   spacing, which is the E16 failure in miniature. The value keeps its reset
+   because it is a `dd`, and a `dd` carries a 40px inline margin nobody wants
+   and nobody overrides. */
+.figure-value {
+  font-family: var(--font-display);
+  font-size: var(--t7);
+  font-weight: 400;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.figure-term {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ---------------------------------------------------------------------------
+   The ratio bar.
+
+   Proportional by construction: the SVG's viewBox is 100 units wide and each
+   segment is its own share of it, so the bar carries no pixel dimension and
+   nothing in it stretches when the container changes width. Width, max-width
+   and margins are the caller's; everything a reader can see is here.
+
+   The track is --inset rather than --surface-2 because the unfilled remainder
+   is the whole point of the drawing: on a white sheet a white remainder inside
+   a hairline reads as an empty box, not as the part that was not spent.
+   --------------------------------------------------------------------------- */
+
+.ratio-bar {
+  display: block;
+  background: var(--inset);
+  border: 1px solid var(--rule);
+}
+
+/* Ink, not the accent: the accent touches links, hovers and downloads, and
+   never data. */
+.ratio-bar-fill {
+  fill: var(--ink-2);
+}
+
+/* The second segment, where a bar has two. Lighter than the first so the
+   reading order is not in doubt. */
+.ratio-bar-minor {
+  fill: var(--rule-2);
+}
+
+/* The two ends of the scale, read as one line under the bar. Tabular, because
+   these are numbers and one of the three copies of this was setting them in
+   proportional widths. */
+.ratio-bar-scale {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--s3);
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  margin-block: var(--s2) 0;
+}
+
+/* An aside set apart by a rule rather than boxed: it is a sentence to read,
+   and nothing on this site is a card. Distinct from `.notice` below, which
+   states a cause -- a rail carries a record the running text is not carrying. */
+.rail {
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  border-left: 2px solid var(--rule-2);
+  padding: var(--s2) 0 var(--s2) var(--s5);
+  margin-block: var(--s5) 0;
+  max-width: var(--measure);
 }
 
 /* ---------------------------------------------------------------------------
@@ -762,9 +838,15 @@ hr {
   max-width: 100%;
 }
 
+/* Disabled reads the same way here as on .pageButton in finances: the text
+   drops to --ink-3 and the border goes slack. The tint is the second signal,
+   because colour alone leaves a greyed-out select and an enabled one the same
+   shape for a reader who cannot see the difference. */
 .field-select:disabled {
-  background: var(--surface-2);
+  background: var(--inset);
   color: var(--ink-3);
+  border-color: var(--rule);
+  cursor: not-allowed;
 }
 
 /* A stated cause — a bad code, or a section this body has no record in. Ruled
@@ -857,12 +939,12 @@ svg[data-chart] {
 .prose-chat code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--t3);
-  background: var(--surface-2);
+  background: var(--inset);
   padding: var(--s1) var(--s2);
   border-radius: var(--radius);
 }
 .prose-chat pre {
-  background: var(--surface-2);
+  background: var(--inset);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: var(--s3) var(--s4);
@@ -886,8 +968,11 @@ svg[data-chart] {
   padding: var(--s2) var(--s3);
   text-align: left;
 }
+/* A header row in an answer's table. The tint marks it; the weight is reset
+   because the browser's own bold on `th` is not this site's emphasis -- the
+   assistant's own emphasis is `.prose-chat strong` above, at 600. */
 .prose-chat th {
-  background: var(--surface-2);
+  background: var(--inset);
   font-weight: 400;
 }
 .prose-chat h1, .prose-chat h2, .prose-chat h3 {
