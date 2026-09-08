@@ -146,8 +146,6 @@ export default function MethodSection() {
   }
 
   const {
-    bodies_by_year,
-    body_diff_note,
     dataset_coverage,
     meetings_coverage_note,
     boundary_vintage,
@@ -159,56 +157,6 @@ export default function MethodSection() {
   return (
     <div className="shell-container section-page">
       <PageHead />
-
-      <h2>Local bodies listed per year</h2>
-      <p>{body_diff_note}</p>
-
-      <div className="data-table-scroll">
-        <table className={`data-table ${styles.termsTable}`}>
-          <caption>
-            Local bodies listed by Sulekha per financial year, with those that
-            entered and left against the previous year.
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Financial year</th>
-              <th scope="col" className={styles.numeric}>
-                Local bodies
-              </th>
-              <th scope="col" className={styles.numeric}>
-                Entered
-              </th>
-              <th scope="col" className={styles.numeric}>
-                Left
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {bodies_by_year.map((row) => (
-              <tr key={row.year_label}>
-                <th scope="row">{formatYearLabel(row.year_label)}</th>
-                <td className={styles.numeric} data-numeric>
-                  {formatCount(row.bodies)}
-                </td>
-                <td className={styles.numeric} data-numeric>
-                  {row.entered === null ? (
-                    <span className={styles.absent}>no earlier year</span>
-                  ) : (
-                    formatCount(row.entered)
-                  )}
-                </td>
-                <td className={styles.numeric} data-numeric>
-                  {row.left === null ? (
-                    <span className={styles.absent}>no earlier year</span>
-                  ) : (
-                    formatCount(row.left)
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
 
       <h2>What each section covers per year</h2>
       <p>{meetings_coverage_note}</p>

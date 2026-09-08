@@ -37,7 +37,6 @@ async function rowIn(caption: RegExp, name: string | RegExp) {
   return within(table).getByRole("rowheader", { name }).closest("tr")!;
 }
 
-const BODIES = /Local bodies listed by Sulekha/;
 const COVERAGE = /Projects and meetings per financial year/;
 const BOUNDARIES = /The boundaries behind each election map/;
 
@@ -105,7 +104,6 @@ describe("the statutory sequence", () => {
       .map((h) => h.textContent);
     expect(headings).toEqual([
       "The sequence Kerala law requires",
-      "Local bodies listed per year",
       "What each section covers per year",
       "Which boundaries each election is drawn on",
     ]);
@@ -154,47 +152,6 @@ describe("the statutory sequence", () => {
     ]) {
       expect(text).not.toContain(moved);
     }
-  });
-});
-
-describe("local bodies per year", () => {
-  it("renders every year the build holds", async () => {
-    renderMethod();
-
-    const table = await tableFor(BODIES);
-    // Fourteen years, plus the header row.
-    expect(within(table).getAllByRole("row")).toHaveLength(15);
-  });
-
-  it("shows the count falling from 1,208 to 1,200", async () => {
-    renderMethod();
-
-    expect(within(await rowIn(BODIES, "2012–13")).getByText("1,208")).toBeInTheDocument();
-    expect(within(await rowIn(BODIES, "2016–17")).getByText("1,200")).toBeInTheDocument();
-  });
-
-  it("shows the year the list actually moved", async () => {
-    renderMethod();
-
-    const row = await rowIn(BODIES, "2015–16");
-    expect(within(row).getByText("29")).toBeInTheDocument();
-    expect(within(row).getByText("36")).toBeInTheDocument();
-  });
-
-  it("says there is no earlier year rather than writing zero", async () => {
-    renderMethod();
-
-    const first = await rowIn(BODIES, "2012–13");
-    // A zero in the first row would read as a year in which nothing changed.
-    expect(within(first).getAllByText("no earlier year")).toHaveLength(2);
-  });
-
-  it("states what the source does not record about a departure", async () => {
-    renderMethod();
-
-    expect(
-      await screen.findByText(/may have been merged, split, renamed or reclassified/),
-    ).toBeInTheDocument();
   });
 });
 
