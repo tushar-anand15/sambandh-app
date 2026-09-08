@@ -97,7 +97,9 @@ describe("the statutory sequence", () => {
   it("sits above the computed sections, which keep their order", async () => {
     renderMethod();
 
-    await screen.findByRole("heading", { name: "The build" });
+    await screen.findByRole("heading", {
+      name: "Which boundaries each election is drawn on",
+    });
     const headings = screen
       .getAllByRole("heading", { level: 2 })
       .map((h) => h.textContent);
@@ -106,7 +108,6 @@ describe("the statutory sequence", () => {
       "Local bodies listed per year",
       "What each section covers per year",
       "Which boundaries each election is drawn on",
-      "The build",
     ]);
   });
 
@@ -114,7 +115,7 @@ describe("the statutory sequence", () => {
     renderMethod();
 
     expect(
-      await screen.findByText(/Everything after it is computed from the build/),
+      await screen.findByText(/Everything after it is computed from the published record/),
     ).toBeInTheDocument();
   });
 
@@ -254,19 +255,6 @@ describe("boundary vintage", () => {
   });
 });
 
-describe("the build", () => {
-  it("names the dumps it was built from and the date it was built", async () => {
-    renderMethod();
-
-    expect(await screen.findByText("2026-08-13")).toBeInTheDocument();
-    for (const dump of methodPayload.build.source_dumps) {
-      expect(screen.getByText(new RegExp(dump))).toBeInTheDocument();
-    }
-    // Indian numbering, as everywhere else on the site: 36,05,452, not 3,605,452.
-    expect(screen.getByText("36,05,452")).toBeInTheDocument();
-    expect(screen.getByText("4,43,235")).toBeInTheDocument();
-  });
-});
 
 describe("when the endpoint is unreachable", () => {
   it("says the page did not load rather than rendering empty tables", async () => {

@@ -45,7 +45,7 @@ function StandingPreamble() {
       <h2 id="statutory-sequence">The sequence Kerala law requires</h2>
       <p className={styles.standing}>
         This section states the law. Everything after it is computed from the
-        build named at the foot of the page.
+        published record.
       </p>
 
       <p className={styles.prose}>
@@ -113,7 +113,7 @@ function PageHead() {
       <h1>How this data was built</h1>
       <p className="lede">
         What changed by year, which boundaries each election is drawn on, and
-        the files this site was built from.
+        what each section covers.
       </p>
       <StandingPreamble />
     </>
@@ -146,7 +146,6 @@ export default function MethodSection() {
   }
 
   const {
-    build,
     bodies_by_year,
     body_diff_note,
     dataset_coverage,
@@ -156,7 +155,6 @@ export default function MethodSection() {
     provenance,
   } = state.payload;
 
-  const builtOn = build.built_at.slice(0, 10);
 
   return (
     <div className="shell-container section-page">
@@ -310,47 +308,6 @@ export default function MethodSection() {
         </table>
       </div>
 
-      <h2>The build</h2>
-      <p>
-        Everything on this site comes from one build, made on the date below.
-      </p>
-
-      <dl className={styles.build}>
-        <div>
-          <dt>Data</dt>
-          <dd>{build.dataset}</dd>
-        </div>
-        <div>
-          <dt>Built</dt>
-          <dd>
-            <time dateTime={builtOn}>{builtOn}</time>
-          </dd>
-        </div>
-        <div>
-          <dt>Build version</dt>
-          <dd>{build.master_version}</dd>
-        </div>
-        <div>
-          <dt>Source files</dt>
-          <dd>{build.source_dumps.join(", ")}</dd>
-        </div>
-        <div>
-          <dt>Local bodies</dt>
-          <dd data-numeric>{formatCount(build.bodies)}</dd>
-        </div>
-        <div>
-          <dt>Projects</dt>
-          <dd data-numeric>{formatCount(build.projects)}</dd>
-        </div>
-        <div>
-          <dt>Meetings</dt>
-          <dd data-numeric>{formatCount(build.meetings)}</dd>
-        </div>
-        <div>
-          <dt>Candidates</dt>
-          <dd data-numeric>{formatCount(build.candidates)}</dd>
-        </div>
-      </dl>
 
     </div>
   );

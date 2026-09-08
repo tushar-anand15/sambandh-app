@@ -22,36 +22,6 @@
   color: var(--ink-3);
 }
 
-.build {
-  margin-block: var(--s5) 0;
-  max-width: var(--measure);
-  font-size: var(--t3);
-  line-height: var(--lh-ui);
-}
-
-.build div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s3);
-  border-bottom: 1px solid var(--rule);
-  padding: var(--s2) 0;
-}
-
-.build dt {
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  line-height: var(--lh-ui);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--ink-3);
-  min-width: 18ch;
-}
-
-.build dd {
-  margin: 0;
-  color: var(--ink);
-  overflow-wrap: anywhere;
-}
 
 /* The method tables are reference lists whose cells read as single terms. */
 .termsTable th,
