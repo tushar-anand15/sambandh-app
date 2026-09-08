@@ -265,13 +265,11 @@ describe("the footer", () => {
   });
 
   it("offers a way to report a wrong figure that is not a personal inbox", () => {
-    // A button, not a `mailto:`. The address the report reaches is server
-    // configuration, so no inbox sits in a public repository, and the form
-    // works for a reader with no mail client set up. It opens ReportDialog;
-    // that behaviour is covered in ReportDialog.test.tsx.
     renderFooter();
 
-    expect(screen.getByRole("button", { name: "Report an error" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Report an error" })).not.toBeInTheDocument();
+    const report = screen.getByRole("link", { name: "Report an error" });
+    // Any address will do; that there is one, and that it is a mailto, is the
+    // contract. The site's only route for a correction must not go missing.
+    expect(report.getAttribute("href")).toMatch(/^mailto:.+@.+$/);
   });
 });

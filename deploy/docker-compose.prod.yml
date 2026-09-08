@@ -77,17 +77,6 @@ services:
       # here makes a cross-origin call. The list bounds who may call this API
       # from somebody else's page.
       CORS_ALLOW_ORIGINS: "https://gramsambandh.co.in,https://www.gramsambandh.co.in"
-      # The report form. No `:-default` on any of these: a working default in
-      # this file is how a development JWT secret reached production. With
-      # MAIL_ENABLED on, the backend checks all four at startup and refuses to
-      # boot if one is empty, so a missing value fails the deploy's health
-      # check instead of failing silently at the first report.
-      MAIL_ENABLED: ${MAIL_ENABLED:?}
-      MAIL_API_URL: ${MAIL_API_URL:?}
-      MAIL_API_KEY: ${MAIL_API_KEY:?not fetched from Secret Manager}
-      MAIL_FROM: ${MAIL_FROM:?}
-      MAIL_TO: ${MAIL_TO:?not fetched from Secret Manager}
-      REPORT_TOKEN_SECRET: ${REPORT_TOKEN_SECRET:?not fetched from Secret Manager}
     volumes:
       # 104 MB of boundary layers, synced from GCS by sync-geo.sh. Deliberately
       # a bind mount of a host directory and not baked into the image: the

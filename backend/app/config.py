@@ -79,28 +79,6 @@ class Settings(BaseSettings):
     pdf_signing_key_file: str = ""
     pdf_url_ttl_seconds: int = 3600
 
-    # The report form (app/routers/report.py). Mail goes out over an HTTPS API,
-    # not SMTP: GCP blocks outbound port 25 from Compute Engine and a fresh VM
-    # address has no sending reputation. `mail_api_url` is the provider, so
-    # changing provider is a configuration change; production points at Resend.
-    #
-    # Every field here is optional and empty, and none of them may be given a
-    # working default. `Settings` is imported by tests and by local development
-    # with no mail environment at all, so a required field would raise at
-    # import. What makes production refuse to boot without them is
-    # `report.verify_mail_config`, called from the lifespan when `mail_enabled`
-    # is on.
-    mail_enabled: bool = False
-    mail_api_url: str = "https://api.resend.com/emails"
-    mail_api_key: str = ""
-    mail_from: str = ""
-    mail_to: str = ""
-    mail_timeout_seconds: float = 10.0
-
-    # Its own secret, never `jwt_secret`. Two purposes sharing one key means
-    # rotating either forces the other, and a leak of one is a leak of both.
-    report_token_secret: str = ""
-
     # `extra: ignore` so the file may also carry variables this class does not
     # read. litellm takes VERTEXAI_PROJECT and VERTEXAI_LOCATION straight from
     # the environment, and production supplies them as container env, which
