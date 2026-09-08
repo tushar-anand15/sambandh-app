@@ -62,6 +62,21 @@ export function isOpenable(row: ProjectRow): boolean {
   return row.has_pdf && row.pdf_url !== null;
 }
 
+/**
+ * The document column has three states, not two, and the middle one is the
+ * reason.
+ *
+ * `has_pdf` is Sulekha's own flag: it says the scan exists. `pdf_url` is this
+ * site's ability to hand over an address for it, which some deployments do not
+ * have. A row where Sulekha holds the scan and this site cannot address it is
+ * not a row awaiting a scan, and labelling it as one would tell the reader a
+ * document is still being prepared when it was signed and filed long ago. The
+ * sentence above the table says why the address is missing; the cell says
+ * which of the three a row is.
+ */
+export const DOCUMENT_HELD_UNREACHABLE = "Scan held, cannot be opened here";
+export const DOCUMENT_ABSENT = "No document available";
+
 function DocumentCell({ row, onOpen }: { row: ProjectRow; onOpen: () => void }) {
   // A word that opens something has to look like it does. As plain text it read
   // as a column value, and the cursor never changed over it.
@@ -79,7 +94,10 @@ function DocumentCell({ row, onOpen }: { row: ProjectRow; onOpen: () => void }) 
       </button>
     );
   }
-  return <span className={styles.absent}>No document available</span>;
+  if (row.has_pdf) {
+    return <span className={styles.held}>{DOCUMENT_HELD_UNREACHABLE}</span>;
+  }
+  return <span className={styles.absent}>{DOCUMENT_ABSENT}</span>;
 }
 
 interface SortableHeaderProps {
@@ -300,6 +318,9 @@ export default function ProjectTable({ payload }: ProjectTableProps) {
                     className={isOpenable(row) ? styles.rowOpenable : styles.row}
                     data-project-no={row.project_no ?? ""}
                     data-openable={String(isOpenable(row))}
+                    data-document={
+                      isOpenable(row) ? "open" : row.has_pdf ? "held" : "none"
+                    }
                     onClick={() => openRow(row)}
                   >
                     <td data-numeric>{row.project_no}</td>

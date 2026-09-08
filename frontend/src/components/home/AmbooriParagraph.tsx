@@ -1,5 +1,9 @@
 /**
- * The worked example on the home page, read from the site's own endpoints.
+ * The one sentence on the home page that holds both portals at once.
+ *
+ * It heads the worked example: the three numbered panels below it read one
+ * portal each, and this paragraph is the only place the two are stated
+ * together. Read from the site's own endpoints, never typed.
  *
  * The paragraph links two tables — the finances year for Amboori 2023-24 and
  * the meeting register for the same year — and says what each of them holds.
@@ -11,10 +15,15 @@
  * `/api/meetings/{code}/{year}`, through the same two hooks the finances and
  * meetings sections use. Nothing here computes a figure the sections do not.
  *
- * The whole example is one unit: prose, bar and rail all render together or
+ * The whole paragraph is one unit: prose, bar and rail all render together or
  * none of them do. A sentence with a gap where a number should be is worse
  * than no sentence, and the rail restates the meeting counts the prose gives,
  * so a rail drawn from a payload the prose did not get would contradict it.
+ *
+ * This is why the paragraph states an absence where the panels below it fall
+ * back to a dated snapshot. A panel shows one portal's figures and can label a
+ * stale one honestly; this sentence is a claim about the two portals agreeing,
+ * and half of it is not a weaker claim but a different one.
  *
  * Figures are rounded for prose as `docs/instructions.md` section 8 requires:
  * crore to two decimals, shares to one, and the exact rupee in the tables.
@@ -128,9 +137,8 @@ export default function AmbooriParagraph() {
       </p>
 
       <p className={styles.prose}>
-        Amboori is the first grama panchayat in this site&rsquo;s alphabetical
-        index, chosen for that reason and for no other. Both halves of the
-        paragraph above are downloadable from the sections they came from.
+        Both halves of the paragraph above are downloadable from the sections
+        they came from.
       </p>
       <p className={styles.prose}>
         Sulekha alone gives the ratio and no account of the deliberation behind

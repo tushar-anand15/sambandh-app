@@ -146,7 +146,11 @@ describe("the words a reader is never shown", () => {
       </MemoryRouter>,
     );
     await waitFor(() =>
-      expect(screen.getByRole("heading", { name: "The build" })).toBeInTheDocument(),
+      expect(
+        screen.getByRole("heading", {
+          name: "Which boundaries each election is drawn on",
+        }),
+      ).toBeInTheDocument(),
     );
 
     expect(offences(readable())).toEqual([]);

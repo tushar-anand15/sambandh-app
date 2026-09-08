@@ -66,6 +66,17 @@ services:
       # and meeting buckets; it cannot sign a URL, so app/presign.py falls back
       # to proxying the object, which is the documented second path.
       GEO_DIR: /srv/geo
+      # Not a secret, so it is a literal here rather than a Secret Manager
+      # entry. nginx is the only thing that can open a socket to port 8000 --
+      # it is published on 127.0.0.1 above -- and it overwrites X-Real-IP and
+      # X-Forwarded-For on every proxied request, so trusting the forwarded
+      # address is trusting nginx. Without this the rate limiter counts every
+      # visitor in one bucket keyed on nginx's container address.
+      TRUSTED_PROXIES: "*"
+      # nginx serves the site and proxies /api from the same origin, so no page
+      # here makes a cross-origin call. The list bounds who may call this API
+      # from somebody else's page.
+      CORS_ALLOW_ORIGINS: "https://gramsambandh.co.in,https://www.gramsambandh.co.in"
     volumes:
       # 104 MB of boundary layers, synced from GCS by sync-geo.sh. Deliberately
       # a bind mount of a host directory and not baked into the image: the
@@ -78,6 +89,10 @@ services:
       # the full-text arm only. Restore this volume in the same change that
       # puts `--extra embedding` back in backend/Dockerfile, and not before —
       # an empty cache mount reads like the models are expected.
+    # No `--proxy-headers`. The middleware is installed inside the application
+    # (app/main.py), where the test suite can reach it and where it cannot be
+    # lost by an override of this line. See the comment on CMD in
+    # backend/Dockerfile.
     command: >
       sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:

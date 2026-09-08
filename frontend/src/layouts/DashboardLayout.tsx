@@ -6,8 +6,8 @@
  * because there are now two scrollable things on the screen and only one of
  * them should move when the reader spins the wheel over a transcript.
  *
- * `--assistant-top` is measured, not assumed. The masthead collapses on scroll
- * and opens collapsed everywhere but the home page, so its height is a moving
+ * `--assistant-top` is measured, not assumed. The masthead is one fixed row now,
+ * but its height still follows the type scale and the viewport, so it is a moving
  * number owned by another part of the app; a constant here would leave a strip
  * of dead page above the header strip or hide it under one. The measurement
  * takes the lower of two edges: where the in-flow content of the page begins,

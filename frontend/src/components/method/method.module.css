@@ -1,10 +1,10 @@
 /* ---------------------------------------------------------------------------
    Method.
 
-   Four tables and a build block. Same table shape as the home page's coverage
-   table; kept here rather than shared because the two pages are the only two
-   that hold plain data tables and a shared abstraction over two callers would
-   be one caller's table with an escape hatch.
+   Four tables and a build block. The tables are `.data-table` from index.css;
+   what is left here is the two things this page's tables do differently -- a
+   reference cell reads as a single term and must not wrap, and a value the
+   source does not hold is named rather than left blank.
    --------------------------------------------------------------------------- */
 
 .wrap {
@@ -22,39 +22,59 @@
   color: var(--ink-3);
 }
 
-.build {
-  margin-block: var(--s5) 0;
-  max-width: var(--measure);
-  font-size: var(--t3);
-  line-height: var(--lh-ui);
-}
-
-.build div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s3);
-  border-bottom: 1px solid var(--rule);
-  padding: var(--s2) 0;
-}
-
-.build dt {
-  font-family: var(--font-sans);
-  font-size: var(--t1);
-  line-height: var(--lh-ui);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: var(--ink-3);
-  min-width: 18ch;
-}
-
-.build dd {
-  margin: 0;
-  color: var(--ink);
-  overflow-wrap: anywhere;
-}
 
 /* The method tables are reference lists whose cells read as single terms. */
 .termsTable th,
 .termsTable td {
   white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+   The standing preamble.
+
+   Everything else on this page is computed from `/api/method`. This block is
+   not: it states what Kerala law requires before a rupee is spent, which is the
+   reason the two portals are read together at all. Law does not decay the way a
+   build fact does, but a reader still has to be able to tell the two apart, so
+   the block sits above the computed sections and closes with a rule.
+   --------------------------------------------------------------------------- */
+
+.preamble {
+  border-bottom: 1px solid var(--rule);
+  margin-block: var(--s5) var(--s7);
+  padding-block: 0 var(--s7);
+}
+
+
+.prose {
+  max-width: var(--measure);
+}
+
+.rail {
+  composes: rail from global;
+}
+
+.railKey {
+  composes: figure-term from global;
+  display: block;
+  margin-block: 0 var(--s2);
+}
+
+.railSteps {
+  margin: 0;
+  padding-inline-start: var(--s5);
+}
+
+.railSteps li {
+  margin-block: var(--s1) 0;
+}
+
+.points {
+  max-width: var(--measure);
+  margin-block: var(--s4) 0;
+  padding-inline-start: var(--s5);
+}
+
+.points li {
+  margin-block: var(--s3) 0;
 }

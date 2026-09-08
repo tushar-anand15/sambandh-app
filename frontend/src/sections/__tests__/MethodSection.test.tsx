@@ -9,11 +9,12 @@
  * false claim when it does not.
  */
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitForElementToBeRemoved, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
 
+import HomeSection from "@/sections/HomeSection";
 import MethodSection from "../MethodSection";
 import { handlers as methodHandlers, methodPayload } from "@/test/handlers.method";
 import { server } from "@/test/setup";
@@ -36,7 +37,6 @@ async function rowIn(caption: RegExp, name: string | RegExp) {
   return within(table).getByRole("rowheader", { name }).closest("tr")!;
 }
 
-const BODIES = /Local bodies listed by Sulekha/;
 const COVERAGE = /Projects and meetings per financial year/;
 const BOUNDARIES = /The boundaries behind each election map/;
 
@@ -44,44 +44,107 @@ beforeEach(() => {
   server.use(...methodHandlers);
 });
 
-describe("local bodies per year", () => {
-  it("renders every year the build holds", async () => {
+/**
+ * The standing preamble.
+ *
+ * The statutory sequence is the argument for reading Sulekha and Sakarma
+ * together: without it the site shows two records side by side and never says
+ * why that is worth doing. It moved here when the home page was rewritten
+ * around a worked example, so these tests check three things -- that it is
+ * here, that it is above the computed sections rather than mixed into them,
+ * and that it is not still on the home page as well.
+ */
+describe("the statutory sequence", () => {
+  it("states the three steps the law requires", async () => {
     renderMethod();
 
-    const table = await tableFor(BODIES);
-    // Fourteen years, plus the header row.
-    expect(within(table).getAllByRole("row")).toHaveLength(15);
+    const steps = within(
+      await screen.findByRole("list", { name: /three steps/i }),
+    ).getAllByRole("listitem");
+    expect(steps.map((li) => li.textContent)).toEqual([
+      "Formulate the annual plan in open assembly.",
+      "Adopt each project by resolution of the elected council.",
+      "Spend only against what was adopted.",
+    ]);
   });
 
-  it("shows the count falling from 1,208 to 1,200", async () => {
-    renderMethod();
-
-    expect(within(await rowIn(BODIES, "2012–13")).getByText("1,208")).toBeInTheDocument();
-    expect(within(await rowIn(BODIES, "2016–17")).getByText("1,200")).toBeInTheDocument();
-  });
-
-  it("shows the year the list actually moved", async () => {
-    renderMethod();
-
-    const row = await rowIn(BODIES, "2015–16");
-    expect(within(row).getByText("29")).toBeInTheDocument();
-    expect(within(row).getByText("36")).toBeInTheDocument();
-  });
-
-  it("says there is no earlier year rather than writing zero", async () => {
-    renderMethod();
-
-    const first = await rowIn(BODIES, "2012–13");
-    // A zero in the first row would read as a year in which nothing changed.
-    expect(within(first).getAllByText("no earlier year")).toHaveLength(2);
-  });
-
-  it("states what the source does not record about a departure", async () => {
+  it("names the statute and the report the figures come from", async () => {
     renderMethod();
 
     expect(
-      await screen.findByText(/may have been merged, split, renamed or reclassified/),
+      await screen.findByText(/Kerala Panchayat Raj Act, 1994/),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Report of the Fifteenth Finance Commission, 2021/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/2.36 lakh crore/)).toBeInTheDocument();
+  });
+
+  it("keeps the people the joined record answers to", async () => {
+    renderMethod();
+
+    expect(
+      await screen.findByRole("heading", { name: "Who can use it?" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Kerala Institute of Local Administration/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/eGramSwaraj and Meri Panchayat/)).toBeInTheDocument();
+    expect(screen.getByText(/about 25 million residents/)).toBeInTheDocument();
+  });
+
+  it("sits above the computed sections, which keep their order", async () => {
+    renderMethod();
+
+    await screen.findByRole("heading", {
+      name: "Which boundaries each election is drawn on",
+    });
+    const headings = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((h) => h.textContent);
+    expect(headings).toEqual([
+      "The sequence Kerala law requires",
+      "What each section covers per year",
+      "Which boundaries each election is drawn on",
+    ]);
+  });
+
+
+  it("still renders when the request fails", async () => {
+    server.use(http.get("*/api/method", () => HttpResponse.error()));
+
+    renderMethod();
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "The sequence Kerala law requires" }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("list", { name: /three steps/i })).getAllByRole(
+        "listitem",
+      ),
+    ).toHaveLength(3);
+    // The computed half is absent, not half-drawn.
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("is not left behind on the home page as well", async () => {
+    render(
+      <MemoryRouter>
+        <HomeSection />
+      </MemoryRouter>,
+    );
+    await waitForElementToBeRemoved(() => screen.queryByText(/^Reading Amboori/i));
+
+    const text = document.body.textContent ?? "";
+    for (const moved of [
+      "Fifteenth Finance Commission",
+      "formulate its annual plan in open assembly",
+      "Kerala Institute of Local Administration",
+      "Who can use it?",
+    ]) {
+      expect(text).not.toContain(moved);
+    }
   });
 });
 
@@ -142,19 +205,6 @@ describe("boundary vintage", () => {
   });
 });
 
-describe("the build", () => {
-  it("names the dumps it was built from and the date it was built", async () => {
-    renderMethod();
-
-    expect(await screen.findByText("2026-08-13")).toBeInTheDocument();
-    for (const dump of methodPayload.build.source_dumps) {
-      expect(screen.getByText(new RegExp(dump))).toBeInTheDocument();
-    }
-    // Indian numbering, as everywhere else on the site: 36,05,452, not 3,605,452.
-    expect(screen.getByText("36,05,452")).toBeInTheDocument();
-    expect(screen.getByText("4,43,235")).toBeInTheDocument();
-  });
-});
 
 describe("when the endpoint is unreachable", () => {
   it("says the page did not load rather than rendering empty tables", async () => {

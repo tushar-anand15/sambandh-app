@@ -16,10 +16,20 @@
  *
  * The table under the chart is the same numbers, exact, for a screen reader
  * and for anyone who wants the figure rather than the shape.
+ *
+ * The hover readout is drawn inside the SVG, in the same user units as the
+ * lines. A floating HTML box would have to be placed in pixels, and this chart
+ * has no pixel dimensions to place it against -- it is a viewBox that the page
+ * scales. Drawing it as SVG means it lands on the point it names at every
+ * width, and it carries no `style` attribute at all. It repeats what the table
+ * below already says, so it is hidden from assistive technology rather than
+ * announced twice.
  */
 
+import { useState } from "react";
+
 import { formatYearLabel } from "@/components/select/YearControl";
-import { bodyName, exactRupees, unitFor } from "./format";
+import { bodyName, count, exactRupees, money, percent, unitFor, yearName } from "./format";
 import styles from "./finances.module.css";
 import type { BodyBlock, Provenance, SeriesYear } from "./types";
 
@@ -39,6 +49,16 @@ const PAD_TOP = 20;
 const PAD_BOTTOM = 56;
 const PLOT_W = WIDTH - PAD_LEFT - PAD_RIGHT;
 const PLOT_H = HEIGHT - PAD_TOP - PAD_BOTTOM;
+
+// The readout box, in the same user units. Its width is estimated from the
+// longest line rather than measured, because measuring would mean reading
+// layout back out of the DOM on every pointer move. --t1 tops out at 14px and
+// a digit at that size is under 8 units wide, so the estimate errs wide and
+// the box never clips its own text.
+const TIP_CHAR = 7.4;
+const TIP_PAD = 10;
+const TIP_LINE = 20;
+const TIP_GAP = 12;
 
 /** A round top for the axis: 23.9 crore becomes 25 crore, 4.1 becomes 4.5. */
 function axisMax(max: number): number {
@@ -65,6 +85,7 @@ function segments(years: SeriesYear[], pick: (y: SeriesYear) => number | null): 
 }
 
 export default function YearSeries({ body, lbCode, years, provenance }: YearSeriesProps) {
+  const [hovered, setHovered] = useState<number | null>(null);
   const name = bodyName(body, lbCode);
   const withData = years.filter((year) => year.has_data);
   const highest = Math.max(
@@ -101,6 +122,49 @@ export default function YearSeries({ body, lbCode, years, provenance }: YearSeri
     return marked;
   })();
   const labelled = (index: number) => labelledYears.has(index);
+
+  // The band a pointer has to be inside for a year to be the one it means.
+  const band = years.length < 2 ? PLOT_W : PLOT_W / (years.length - 1);
+  const hitLeft = (index: number) => Math.max(0, x(index) - band / 2);
+  const hitWidth = (index: number) => Math.min(WIDTH, x(index) + band / 2) - hitLeft(index);
+
+  // A year with no record has nothing to say, so hovering it draws nothing
+  // rather than a box of blanks. Every figure that is missing drops its phrase
+  // instead of printing an empty one.
+  const hoveredYear = hovered === null ? null : years[hovered];
+  const readout = (() => {
+    if (hovered === null || !hoveredYear || !hoveredYear.has_data) return null;
+    const phrases = (parts: (string | null)[]) => parts.filter(Boolean).join(" · ");
+    const lines = [
+      yearName(hoveredYear.year_label, hoveredYear.is_complete),
+      phrases([
+        hoveredYear.formulation === null ? null : `Formulated ${money(hoveredYear.formulation)}`,
+        hoveredYear.expense === null ? null : `paid ${money(hoveredYear.expense)}`,
+      ]),
+      phrases([
+        hoveredYear.expense_pct === null
+          ? null
+          : `${percent(hoveredYear.expense_pct)} of the plan`,
+        hoveredYear.projects === null ? null : `${count(hoveredYear.projects)} projects`,
+      ]),
+    ].filter((line) => line !== "");
+
+    const width = TIP_PAD * 2 + TIP_CHAR * Math.max(...lines.map((line) => line.length));
+    const height = TIP_PAD * 2 + TIP_LINE * lines.length;
+    const above = Math.min(
+      y(hoveredYear.formulation ?? 0),
+      y(hoveredYear.expense ?? 0),
+    );
+    return {
+      lines,
+      width,
+      height,
+      // Clamped to the drawing, so the first and last years keep their box
+      // inside the frame instead of hanging off the side of it.
+      left: Math.max(0, Math.min(WIDTH - width, x(hovered) - width / 2)),
+      top: Math.max(0, above - TIP_GAP - height),
+    };
+  })();
 
   return (
     <section aria-labelledby="year-series-heading">
@@ -208,6 +272,48 @@ export default function YearSeries({ body, lbCode, years, provenance }: YearSeri
           className="stroke-rule-2"
           strokeWidth={1}
         />
+
+        {/* Last, so they sit over the lines and take the pointer. */}
+        {years.map((year, index) => (
+          <rect
+            key={`hit-${year.year_label}`}
+            data-hit-year={year.year_label}
+            x={hitLeft(index)}
+            y={PAD_TOP}
+            width={hitWidth(index)}
+            height={PLOT_H}
+            fill="transparent"
+            onMouseEnter={() => setHovered(index)}
+            onMouseLeave={() => setHovered((current) => (current === index ? null : current))}
+          />
+        ))}
+
+        {readout ? (
+          <g data-testid="year-readout" aria-hidden="true" pointerEvents="none">
+            <rect
+              x={readout.left}
+              y={readout.top}
+              width={readout.width}
+              height={readout.height}
+              className="fill-paper stroke-ink"
+              strokeWidth={1}
+            />
+            {readout.lines.map((line, index) => (
+              <text
+                key={line}
+                x={readout.left + TIP_PAD}
+                y={readout.top + TIP_PAD + TIP_LINE * index + TIP_LINE - 6}
+                className={
+                  index === 0
+                    ? "text-t3 fill-ink font-sans"
+                    : "text-t2 fill-ink-2 font-sans"
+                }
+              >
+                {line}
+              </text>
+            ))}
+          </g>
+        ) : null}
       </svg>
 
       <p className={styles.legend}>
@@ -218,13 +324,14 @@ export default function YearSeries({ body, lbCode, years, provenance }: YearSeri
       <table className="sr-only">
         <caption>
           Formulation and expense by financial year, {name}, {first} to {last}, in
-          rupees
+          rupees, with expense as a share of formulation
         </caption>
         <thead>
           <tr>
             <th scope="col">Financial year</th>
             <th scope="col">Formulation</th>
             <th scope="col">Expense</th>
+            <th scope="col">Expense as a share of formulation</th>
           </tr>
         </thead>
         <tbody>
@@ -238,9 +345,16 @@ export default function YearSeries({ body, lbCode, years, provenance }: YearSeri
                 <>
                   <td>{exactRupees(year.formulation)}</td>
                   <td>{exactRupees(year.expense)}</td>
+                  {/* The header names the base, so the figure is never a bare
+                      percentage: it is expense against this year's own
+                      formulation, to one decimal. */}
+                  <td>
+                    {year.expense_pct === null ? "No record" : percent(year.expense_pct)}
+                  </td>
                 </>
               ) : (
                 <>
+                  <td>No record</td>
                   <td>No record</td>
                   <td>No record</td>
                 </>

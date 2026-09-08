@@ -25,7 +25,11 @@ import {
   unsignedHandlers,
 } from "@/test/handlers.finances";
 import { CSV_COLUMNS } from "@/components/finances/format";
-import { PAGE_SIZE } from "@/components/finances/ProjectTable";
+import {
+  DOCUMENT_ABSENT,
+  DOCUMENT_HELD_UNREACHABLE,
+  PAGE_SIZE,
+} from "@/components/finances/ProjectTable";
 
 // pdf.js reaches for DOMMatrix, which jsdom does not implement. The rendered
 // page is not assertable here; the address handed to the renderer is.
@@ -179,7 +183,7 @@ describe("the project table", () => {
     ).toBeInTheDocument();
 
     await lastPage();
-    expect(within(table).getAllByText("No document available")).toHaveLength(6);
+    expect(within(table).getAllByText(DOCUMENT_ABSENT)).toHaveLength(6);
   });
 
   it("pages through the year fifty rows at a time", async () => {
@@ -337,7 +341,7 @@ describe("finding the projects that have a document", () => {
     expect(screen.getByTestId("page-position")).toHaveTextContent(
       "Rows 351 to 351 of 351",
     );
-    expect(screen.queryAllByText("No document available")).toHaveLength(0);
+    expect(screen.queryAllByText(DOCUMENT_ABSENT)).toHaveLength(0);
   });
 
   it("returns to the first page when the filter changes", async () => {
@@ -537,14 +541,202 @@ describe("the document drawer", () => {
     renderAt("/finances/M08032/2023-2024");
     const table = await screen.findByTestId("project-table");
 
-    // Every row keeps its stated absence, and the cause is given once above.
-    expect(within(table).getAllByText("No document available")).toHaveLength(PAGE_SIZE);
+    // Every row keeps the scan Sulekha holds, said as held rather than as
+    // missing, and the cause is given once above the table.
+    expect(within(table).getAllByText(DOCUMENT_HELD_UNREACHABLE)).toHaveLength(
+      PAGE_SIZE,
+    );
+    expect(within(table).queryAllByText(DOCUMENT_ABSENT)).toHaveLength(0);
     expect(within(table).queryAllByText("View")).toHaveLength(0);
     expect(screen.getByText(new RegExp(NO_SIGNING_KEY_REASON.slice(0, 60)))).toBeInTheDocument();
 
     // A row with no address cannot be opened.
     await user.click(within(table).getAllByRole("row")[1]);
     expect(screen.queryByTestId("pdf-drawer")).not.toBeInTheDocument();
+  });
+});
+
+describe("the three states of the document column", () => {
+  it("opens the ones Sulekha holds and this site can address", async () => {
+    renderAt("/finances/M08032/2023-2024");
+    const table = await screen.findByTestId("project-table");
+
+    const rows = within(table).getAllByRole("row").slice(1);
+    expect(rows[0]).toHaveAttribute("data-document", "open");
+    expect(within(rows[0]).getByRole("button", { name: "View" })).toBeInTheDocument();
+  });
+
+  it("says a scan is held where the deployment cannot produce an address", async () => {
+    server.use(...unsignedHandlers);
+    renderAt("/finances/M08032/2023-2024");
+    const table = await screen.findByTestId("project-table");
+
+    const rows = within(table).getAllByRole("row").slice(1);
+    expect(rows[0]).toHaveAttribute("data-document", "held");
+    expect(within(rows[0]).getByText(DOCUMENT_HELD_UNREACHABLE)).toBeInTheDocument();
+
+    // Neither of the other two states. Sulekha holds this scan, so calling it
+    // missing would be false, and it cannot be opened, so offering View would
+    // be a dead control.
+    expect(within(rows[0]).queryByText(DOCUMENT_ABSENT)).not.toBeInTheDocument();
+    expect(within(rows[0]).queryByText("View")).not.toBeInTheDocument();
+    expect(DOCUMENT_HELD_UNREACHABLE).not.toBe(DOCUMENT_ABSENT);
+  });
+
+  it("states the absence where Sulekha holds nothing at all", async () => {
+    server.use(...noDocumentHandlers);
+    renderAt("/finances/M08032/2023-2024");
+    const table = await screen.findByTestId("project-table");
+
+    const rows = within(table).getAllByRole("row").slice(1);
+    expect(rows[0]).toHaveAttribute("data-document", "none");
+    expect(within(rows[0]).getByText(DOCUMENT_ABSENT)).toBeInTheDocument();
+    expect(
+      within(rows[0]).queryByText(DOCUMENT_HELD_UNREACHABLE),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the five columns in order, with Document last and sortable", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032/2023-2024");
+    const table = await screen.findByTestId("project-table");
+
+    expect(
+      within(table)
+        .getAllByRole("columnheader")
+        .map((cell) => cell.textContent?.trim()),
+    ).toEqual(["Project no. ↑", "Project", "Formulation", "Expense", "Document"]);
+
+    await user.click(screen.getByTestId("sort-document"));
+    expect(screen.getByTestId("sort-document").closest("th")).toHaveAttribute(
+      "aria-sort",
+      "descending",
+    );
+    // Sorting is on what Sulekha holds, which is the same question in all
+    // three states of the cell.
+    expect(
+      within(table).getAllByRole("row").slice(1)[0],
+    ).toHaveAttribute("data-document", "open");
+  });
+});
+
+describe("the share of the plan that was paid", () => {
+  it("carries a Share column on the year-by-year table, with its base named", async () => {
+    renderAt("/finances/M08032");
+
+    const table = await screen.findByRole("table", { name: /by financial year/ });
+    expect(
+      within(table)
+        .getAllByRole("columnheader")
+        .map((cell) => cell.textContent?.trim()),
+    ).toEqual([
+      "Financial year",
+      "Formulation",
+      "Expense",
+      "Expense as a share of formulation",
+    ]);
+  });
+
+  it("gives paid over formulated to one decimal", async () => {
+    renderAt("/finances/M08032");
+
+    const table = await screen.findByRole("table", { name: /by financial year/ });
+    const row = within(table)
+      .getAllByRole("row")
+      .find((cell) => cell.getAttribute("data-year-row") === "2023-2024");
+
+    // 11,69,13,203 of 23,88,06,688 is 49.0%, which is the figure the year's
+    // own page states and the figure the master database publishes.
+    const cells = within(row as HTMLElement).getAllByRole("cell");
+    expect(cells[0]).toHaveTextContent("₹23,88,06,688");
+    expect(cells[1]).toHaveTextContent("₹11,69,13,203");
+    expect(cells[2]).toHaveTextContent("49.0%");
+  });
+
+  it("says No record for a year the portal published nothing for", async () => {
+    renderAt("/finances/G13064");
+
+    const table = await screen.findByRole("table", { name: /by financial year/ });
+    const row = within(table)
+      .getAllByRole("row")
+      .find((cell) => cell.getAttribute("data-year-row") === "2023-2024");
+
+    const cells = within(row as HTMLElement).getAllByRole("cell");
+    expect(cells.map((cell) => cell.textContent)).toEqual([
+      "No record",
+      "No record",
+      "No record",
+    ]);
+  });
+});
+
+describe("hovering the year chart", () => {
+  /** The transparent band over one year of the chart. */
+  function band(yearLabel: string): HTMLElement {
+    return document.querySelector(
+      `[data-hit-year="${yearLabel}"]`,
+    ) as unknown as HTMLElement;
+  }
+
+  it("reads out the year, both figures, the share and the project count", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032");
+    await screen.findByRole("table", { name: /by financial year/ });
+
+    expect(screen.queryByTestId("year-readout")).not.toBeInTheDocument();
+
+    await user.hover(band("2023-2024"));
+
+    const readout = await screen.findByTestId("year-readout");
+    expect(within(readout).getByText("2023–24")).toBeInTheDocument();
+    expect(
+      within(readout).getByText("Formulated ₹23.88 crore · paid ₹11.69 crore"),
+    ).toBeInTheDocument();
+    expect(
+      within(readout).getByText("49.0% of the plan · 357 projects"),
+    ).toBeInTheDocument();
+
+    await user.unhover(band("2023-2024"));
+    expect(screen.queryByTestId("year-readout")).not.toBeInTheDocument();
+  });
+
+  it("writes the financial year with an en dash, never as 2023-2024", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032");
+    await screen.findByRole("table", { name: /by financial year/ });
+
+    await user.hover(band("2023-2024"));
+    const readout = await screen.findByTestId("year-readout");
+
+    expect(readout.textContent).toContain("2023–24");
+    expect(readout.textContent).not.toContain("2023-2024");
+    expect(readout.textContent).not.toContain("FY24");
+  });
+
+  it("marks the open year in the readout", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/M08032");
+    await screen.findByRole("table", { name: /by financial year/ });
+
+    await user.hover(band("2025-2026"));
+    expect(await screen.findByTestId("year-readout")).toHaveTextContent(
+      "2025–26 (year in progress)",
+    );
+  });
+
+  it("draws nothing for a year the portal holds no record for", async () => {
+    const user = userEvent.setup();
+    renderAt("/finances/G13064");
+    await screen.findByRole("table", { name: /by financial year/ });
+
+    // Panoor's plan record stops in 2014-15. A readout here would be a box of
+    // blanks asserting the body planned nothing.
+    await user.hover(band("2018-2019"));
+    expect(screen.queryByTestId("year-readout")).not.toBeInTheDocument();
+
+    // The years it does hold still read out.
+    await user.hover(band("2013-2014"));
+    expect(await screen.findByTestId("year-readout")).toHaveTextContent("2013–14");
   });
 });
 

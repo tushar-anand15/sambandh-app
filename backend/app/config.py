@@ -28,6 +28,41 @@ class Settings(BaseSettings):
 
     max_message_length: int = 2000
 
+    # Which source addresses may set X-Forwarded-For, and so decide what the
+    # rate limiter counts against.
+    #
+    # `*` -- trust whatever connects -- is the right value for this deployment
+    # rather than an unconsidered default. deploy/docker-compose.prod.yml
+    # publishes the backend as "127.0.0.1:8000:8000", so the only thing that
+    # can open a socket to uvicorn is nginx on the same host, and nginx sets
+    # X-Real-IP and rewrites X-Forwarded-For on every proxied request, so a
+    # header a caller invents is overwritten before it arrives.
+    #
+    # Narrowing it is fine, but the value must then be IP addresses or CIDR
+    # ranges. ProxyHeadersMiddleware does not resolve service names, and a
+    # compose bridge address changes when the network is recreated -- so
+    # "frontend" or a remembered 172.18.0.x would stop matching, silently, and
+    # put every request back into one bucket keyed on nginx. That is the exact
+    # defect this setting exists to remove.
+    trusted_proxies: str = "*"
+
+    # Origins allowed to call this API from a browser, comma separated.
+    #
+    # It was `*` with `allow_credentials=True`, which the CORS spec forbids and
+    # every browser rejects: the pair produced no working cross-origin request
+    # and only looked permissive. Auth is a Bearer token read from
+    # localStorage (frontend/src/lib/api.ts), never a cookie, so credentialed
+    # CORS is not needed and `allow_credentials` is gone.
+    #
+    # Both deployed origins proxy /api through nginx from the same origin, so
+    # this list is not on the path any page uses today. It bounds who can call
+    # the API from someone else's page, which matters once a POST that sends
+    # mail exists.
+    cors_allow_origins: str = (
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        "https://gramsambandh.co.in,https://www.gramsambandh.co.in"
+    )
+
     # Where the boundary GeoJSON layers are on disk. The layers are built by
     # sulekha's `geo build` and are 7.5 MB to 57 MB each, so they are not in
     # this repository: a deployment mounts the directory and points GEO_DIR at
@@ -51,6 +86,25 @@ class Settings(BaseSettings):
     # the app booting -- a setting that works in production and breaks
     # development is the wrong way round.
     model_config = {"env_file": ".env", "extra": "ignore"}
+
+    @property
+    def trusted_proxy_hosts(self) -> list[str] | str:
+        """`trusted_proxies` in the shape ProxyHeadersMiddleware wants.
+
+        The literal string "*" has to survive as a string: the middleware tests
+        for it by identity against `"*"` and `["*"]`, and a one-element list
+        built by splitting happens to match, but only by luck. Passing it
+        through unsplit keeps that from being load-bearing.
+        """
+        value = self.trusted_proxies.strip()
+        if value == "*":
+            return "*"
+        return [host.strip() for host in value.split(",") if host.strip()]
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """`cors_allow_origins` as a list. Empty means no cross-origin caller."""
+        return [origin.strip() for origin in self.cors_allow_origins.split(",") if origin.strip()]
 
 
 settings = Settings()

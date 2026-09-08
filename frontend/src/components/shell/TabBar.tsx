@@ -3,9 +3,8 @@ import { NavLink } from "react-router-dom";
 import styles from "./shell.module.css";
 
 /**
- * Section navigation. It lives inside the masthead's section bar and is the
- * one part of the header that survives the collapse — the nameplate is worth
- * seeing on arrival, the nav is worth having at every scroll position.
+ * Section navigation. It sits in the masthead and is the only part of it that
+ * changes with the route.
  *
  * `end` on Home keeps it from matching every path, which is the failure mode
  * where two tabs read as current at once.

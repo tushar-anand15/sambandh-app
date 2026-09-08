@@ -3,89 +3,189 @@
 /* ---------------------------------------------------------------------------
    Typefaces
    ---------------------------------------------------------------------------
-   No webfont is loaded. The site is served from a single origin and makes zero
-   external requests; a font CDN would reintroduce one, and a stylesheet from a
-   third party is a render-blocking dependency on someone else's uptime.
+   Two vendored families, self-hosted. The site is served from a single origin
+   and makes zero external requests: a font CDN would reintroduce one, and a
+   stylesheet from a third party is a render-blocking dependency on someone
+   else's uptime plus a third party watching every visitor.
 
-   The serif stack resolves to Iowan Old Style on Apple platforms, Charter where
-   it is installed, and Georgia everywhere else — three text faces with the same
-   large x-height and sturdy, low-contrast strokes, so the page keeps its
-   proportions whichever one wins. The sans is confined to micro-labels
-   (eyebrows, table headers, axis ticks) and uses the platform UI face, which is
-   already resident.
+   Public Sans is the text and display face. It ships upstream as a variable
+   TTF and no variable WOFF2 at all (uswds/public-sans#137), so the file below
+   is built here rather than downloaded ready-made; scripts/build_fonts.sh is
+   the recipe and pyftsubset keeps the weight axis with no special flag. There
+   is no `ital` axis, so the italic is a second file and a second @font-face --
+   without it a browser synthesises an oblique by shearing the roman.
 
-   TO VENDOR LATER (needs network access, deliberately not done here):
-   drop woff2 subsets of Charter (regular, italic, bold) into
-   `frontend/public/fonts/`, declare them with `@font-face { font-display:
-   swap; unicode-range: U+0000-024F,U+0300-036F,U+2000-206F; }` and prepend the
-   family to --font-serif. Nothing else in this file changes.
+   Noto Sans Malayalam is a SEPARATE family name, listed after Public Sans in
+   every stack that can receive Malayalam. This is load-bearing. Public Sans
+   carries no Malayalam glyphs at all, and the site renders Malayalam body
+   names, ward names and assistant answers. Per-character fallback walks the
+   family list, so a codepoint Public Sans cannot draw falls through to Noto;
+   merging the two under one family name is what produces tofu, and an
+   over-broad unicode-range only costs a wasted download.
+
+   --font-serif keeps its name because every component is written against it.
+   The site is all sans; the token is an alias, not a promise of a serif.
+
+   To change a face: edit scripts/build_fonts.sh, run it, and move the version
+   in the filenames here and in the preload in index.html. The version is in
+   the filename because nginx serves /fonts/ as immutable for a year, which is
+   only safe while a given name's bytes never change.
    --------------------------------------------------------------------------- */
 
+/* Public Sans 2.001, wght 100-900, Latin subset. font-display: swap -- the
+   fallback metrics are close enough that a swap is cheaper than a page that
+   withholds its text while a font arrives. */
+@font-face {
+  font-family: "Public Sans";
+  src: url("/fonts/PublicSans-Roman-VF-v2001.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2074, U+20AC,
+    U+2122;
+}
+
+@font-face {
+  font-family: "Public Sans";
+  src: url("/fonts/PublicSans-Italic-VF-v2001.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2074, U+20AC,
+    U+2122;
+}
+
+/* Noto Sans Malayalam 2.104, wght 100-900, Malayalam subset. The range keeps
+   U+200C-200D: ZWNJ and ZWJ are how Malayalam conjuncts and chillu forms are
+   written, and dropping them breaks the script silently rather than loudly.
+   U+0964-0965 are danda and double danda, the script's full stops. */
+@font-face {
+  font-family: "Noto Sans Malayalam";
+  src: url("/fonts/NotoSansMalayalam-VF-v2104.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0964-0965, U+0D00-0D7F, U+200C-200D;
+}
+
 /* ---------------------------------------------------------------------------
-   Palette — three-state theming.
+   Palette — three-state theming, one declaration per colour.
 
-   The bare :root below carries the COMPLETE light palette. The two dark
-   blocks only redefine values that already exist here. Nothing may be
-   declared for the first time inside a media query or an attribute selector:
-   a viewer whose system reports neither preference must still get a full set
-   of colours, and `tokens.test.ts` fails the build if one is missing.
+   Every colour is a single `light-dark(light, dark)` pair. The duplicated dark
+   palette this file used to carry is gone: a token could previously be
+   introduced inside a dark block and then be undefined for a reader whose
+   system reports no preference, which is the failure `tokens.test.ts` was
+   written to catch. A pair cannot half-exist, so the test now checks the
+   stronger property that both arguments are present.
 
-   Values follow the Atlas of Urban Expansion. The laterite band that used to
-   sit above the masthead is gone with the paddy palette it belonged to; the
-   Atlas separates the header from the page with a single black rule.
+   `color-scheme` below is load-bearing, not decorative. `light-dark()` returns
+   its FIRST argument whenever `color-scheme` computes to `normal`, so without
+   the `light dark` declaration on the bare `:root` the whole site would be
+   locked to the light palette no matter what the reader chose. The two
+   attribute rules under it are how the in-page toggle wins over the system
+   preference in both directions; `useTheme.ts` sets and removes `data-theme`.
+
+   Values are the v4 design canvas. One departs from it: see --accent.
    --------------------------------------------------------------------------- */
 
 :root {
-  /* -----------------------------------------------------------------------
-     Ground and surfaces. The page is a white sheet on a grey ground, after
-     the Atlas of Urban Expansion, whose body is
-     `linear-gradient(to bottom, #f5f5f5, #dadada)`.
-     ----------------------------------------------------------------------- */
-  --paper: #f5f5f5;
-  --ground-far: #dadada;
-  --surface: #ffffff;
-  --surface-2: #f5f5f5;
-
-  /* Text. Body copy is grey, not black -- the Atlas sets #5a5a5a and reserves
-     #333 for emphasis. */
-  --ink: #333333;
-  --ink-2: #5a5a5a;
-  --ink-3: #929292;
-
-  --rule: #dadada;
-  --rule-2: #cccccc;
-
-  /* The one accent, and it touches links, hovers and downloads only. It never
-     colours data: it sits close enough to LDF red that a second use on a chart
-     would read as a party colour. */
-  --accent: #ff6653;
-  --accent-ink: #ffffff;
-  --accent-wash: #ffeeeb;
+  color-scheme: light dark;
 
   /* -----------------------------------------------------------------------
-     Front colours. Semantic and identical in both themes -- a reader learns
-     "that red is LDF" once and it must stay true in dark mode. Deepened away
-     from the coral accent so a link is never mistaken for a party.
+     Ground and surfaces. The page is a white sheet ruled in grey, and in dark
+     mode a near-black sheet with one raised step. Light mode has no second
+     surface tint on purpose — the canvas separates blocks with rules, and a
+     grey panel behind a table competes with the rules for the same job.
      ----------------------------------------------------------------------- */
-  --ldf: #a8322a;
-  --udf: #2f6fb5;
-  --nda: #c07d12;
-  --oth: #8b8b8b;
+  --paper: light-dark(#ffffff, #12161b);
+  --ground-far: light-dark(#f6f7f8, #0c0f13);
+  --surface: light-dark(#ffffff, #12161b);
+  --surface-2: light-dark(#ffffff, #1a1f26);
+
+  /* The recessed step, and NOT a second panel colour. --surface-2 is flat
+     white in light on purpose (see above), which is right for a block that
+     already has a rule around it and wrong for the small things that have no
+     rule of their own: an inline code span, the unfilled remainder of a ratio
+     bar, a control that cannot be used. Those disappear into the sheet at
+     #ffffff. This is the canvas's own second surface, and it is separate from
+     --surface-2 so that giving a code span its tint back does not also put a
+     grey panel behind every table. */
+  --inset: light-dark(#f6f7f8, #1a1f26);
+
+  /* Text, four steps. --ink-3 is the smallest step that is still text: it
+     carries micro-labels and table headers at 6.09:1 on white and 5.99:1 on
+     the dark ground. --ink-4 is 3.15:1 and is therefore NOT for text — it is
+     for hairlines, disabled marks and other non-text ink, where 3:1 is the
+     bar. Putting a caption in --ink-4 is the mistake this note exists for. */
+  --ink: light-dark(#1b1f24, #e6e9ec);
+  --ink-2: light-dark(#2f353d, #c3c9d0);
+  --ink-3: light-dark(#5b636d, #8d959e);
+  --ink-4: light-dark(#8b929a, #767e88);
+
+  --rule: light-dark(#e4e7ea, #23292f);
+  --rule-2: light-dark(#d4d8dd, #2b3239);
 
   /* -----------------------------------------------------------------------
-     Type scale. Nine names, six values: --t1..--t9 are kept because every
-     font-size in src/ is written against them and the token lint checks the
-     names. The six values are the whole scale, and a seventh is a bug.
+     The accent. It touches links, hovers, focus rings and downloads only; it
+     never colours data.
+
+     The canvas draws #14549b and this is #0b2f5e, which is the one value on
+     the page that departs from it. Measured: #14549b against the UDF blue is
+     ΔE 8.5 under deuteranopia, where roughly 15 is the floor for telling two
+     categories apart, so a link and a party read as the same colour on the
+     same screen. #0b2f5e reads as the same navy, raises that separation to
+     28.1, and lifts contrast on white from 7.58:1 to 13.27:1. Put to the
+     project owner and approved, 2026-09-07. `tokens.test.ts` holds the floor,
+     so moving this token back to the canvas value fails the build rather than
+     failing quietly for the readers who cannot see the difference.
+
+     Dark mode keeps the canvas's #7fb2e8, which already separates cleanly.
+
+     --accent-ink is what is drawn ON the accent, not near it. --accent-wash is
+     the accent laid over the ground at low opacity; the canvas has no wash of
+     its own, so these two are derived rather than picked.
      ----------------------------------------------------------------------- */
-  --t1: 12px;  /* uppercase micro-labels, table headers */
-  --t2: 15px;  /* captions, notes, source lines */
-  --t3: 15px;  /* dense UI and table cells */
-  --t4: 19px;  /* running text */
-  --t5: 20px;  /* lede and panel titles */
-  --t6: 20px;  /* section headings, uppercase */
-  --t7: 30px;  /* every figure on the site */
-  --t8: 30px;  /* figures again: there is no second figure size */
-  --t9: clamp(32px, 3.6vw, 52px); /* the page headline, once per page */
+  --accent: light-dark(#0b2f5e, #7fb2e8);
+  --accent-ink: light-dark(#ffffff, #12161b);
+  --accent-wash: light-dark(#ebeef2, #212c38);
+
+  /* -----------------------------------------------------------------------
+     Front colours. One value each, and deliberately no light-dark(): their
+     meaning is external to this site, so a reader learns "that red is LDF"
+     once and it has to stay true in the other theme, on a printout, and in a
+     screenshot pasted into a document. `tokens.test.ts` fails a front given a
+     light-dark() pair.
+     ----------------------------------------------------------------------- */
+  --ldf: #c8402f;
+  --udf: #1f6fb5;
+  --nda: #e0891c;
+  --oth: #98a0a8;
+
+  /* The hairline that separates one front from its neighbour on a map or a
+     chart. Every pairwise contrast among the four fills is between 1.00 and
+     1.96:1, so adjacent wards of different fronts have no edge of their own;
+     WCAG 1.4.11 allows exactly this and asks for a border instead. It is one
+     value, like the fronts it outlines, and it is dark rather than white
+     because a white hairline clears UDF (5.25:1) and LDF (4.96:1) but fails
+     NDA (2.70:1) and OTH (2.65:1). This one clears all four: 3.46 / 3.66 /
+     6.71 / 6.86. */
+  --front-stroke: #12161b;
+
+  /* -----------------------------------------------------------------------
+     Type scale. Nine names, taken from the canvas. Three steps are fluid: a
+     clamp() inside a token definition is still a token, and the lint that
+     rejects a loose `font-size` at a call site is unaffected by what the
+     token expands to.
+     ----------------------------------------------------------------------- */
+  --t1: clamp(11px, 1.25vw, 14px);  /* micro-labels, table headers */
+  --t2: 13px;                       /* captions, notes, source lines */
+  --t3: 14px;                       /* dense UI and table cells */
+  --t4: 16px;                       /* running text */
+  --t5: clamp(16px, 1.4vw, 18px);   /* lede and panel titles */
+  --t6: 20px;                       /* section headings */
+  --t7: clamp(22px, 2.8vw, 30px);   /* every figure on the site */
+  --t8: clamp(22px, 2.8vw, 30px);   /* figures again: there is no second figure size */
+  --t9: clamp(30px, 4.6vw, 50px);   /* the page headline, once per page */
 
   /* Named for what they do, for anything written from here on. */
   --t-label: var(--t1);
@@ -106,83 +206,51 @@
   --s8: 64px;
 
   --lh-tight: 1.1;
-  --lh-snug: 1.375;
+  --lh-snug: 1.35;
   --lh-body: 1.6;
   --lh-ui: 1.5;
 
-  --track-display: -0.008em;
-  --track-head: 1px;
+  --track-display: -0.02em;
+  --track-head: -0.01em;
   --track-label: 1.2px;
 
-  /* One measure, sized so 19px text lands near 70 characters a line. */
+  /* One measure, sized so 16px text lands near 70 characters a line. */
   --measure: 70ch;
   --measure-h1: none;
   --measure-h2: none;
   --measure-lede: none;
 
   /* -----------------------------------------------------------------------
-     Families. The Atlas pairs DIN Next LT Pro UltraLight for display with
-     Neue Haas Grotesk for everything else; both are Monotype commercial
-     licences, so Barlow and Archivo stand in. --font-serif keeps its name
-     because every component is written against it -- the site is all sans
-     now, and the display face is opt-in through --font-display.
+     Families. Public Sans for text and display, with Noto Sans Malayalam
+     immediately behind it in every stack -- Public Sans has no Malayalam, and
+     these stacks style body names and assistant answers that are routinely in
+     it. The platform faces after them are the swap-period fallback and the
+     answer if a woff2 fails to load, not the design.
+
+     Archivo and Barlow used to be named here and were never vendored, so the
+     site rendered in Helvetica; the @font-face blocks above are what make
+     these names mean anything.
      ----------------------------------------------------------------------- */
-  --font-sans: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-sans: "Public Sans", "Noto Sans Malayalam", "Helvetica Neue", Helvetica,
+    Arial, sans-serif;
   --font-serif: var(--font-sans);
-  --font-display: "Barlow", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: "Public Sans", "Noto Sans Malayalam", "Helvetica Neue",
+    Helvetica, Arial, sans-serif;
 
   --container: 1240px;
   --band: 0px;
   --radius: 0px;
+}
 
+/* The reader's explicit choice. These two rules carry no colours at all —
+   every value above resolves from `color-scheme`, so a theme is switched by
+   changing which half of each pair applies, not by restating the palette. */
+:root[data-theme="light"] {
   color-scheme: light;
 }
 
-/* Dark, by system preference — unless the reader has explicitly chosen light. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #1e1e1e;
-    --ground-far: #0c0c0c;
-    --surface: #161616;
-    --surface-2: #1f1f1f;
-
-    --ink: #e8e8e8;
-    --ink-2: #b0b0b0;
-    --ink-3: #7e7e7e;
-
-    --rule: #2f2f2f;
-    --rule-2: #414141;
-
-    --accent: #ff7a68;
-    --accent-ink: #141414;
-    --accent-wash: #2a1a17;
-
-    color-scheme: dark;
-
-  }
-}
-
-/* Dark, by explicit choice. Repeated rather than shared with the media block so
-   the toggle wins in both directions. */
 :root[data-theme="dark"] {
-  --paper: #1e1e1e;
-  --ground-far: #0c0c0c;
-  --surface: #161616;
-  --surface-2: #1f1f1f;
-
-  --ink: #e8e8e8;
-  --ink-2: #b0b0b0;
-  --ink-3: #7e7e7e;
-
-  --rule: #2f2f2f;
-  --rule-2: #414141;
-
-  --accent: #ff7a68;
-  --accent-ink: #141414;
-  --accent-wash: #2a1a17;
-
   color-scheme: dark;
-
 }
 
 /* ---------------------------------------------------------------------------
@@ -199,9 +267,11 @@
   --color-ground-far: var(--ground-far);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-inset: var(--inset);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
   --color-rule: var(--rule);
   --color-rule-2: var(--rule-2);
   --color-accent: var(--accent);
@@ -211,6 +281,7 @@
   --color-udf: var(--udf);
   --color-nda: var(--nda);
   --color-oth: var(--oth);
+  --color-front-stroke: var(--front-stroke);
 
   --font-serif: var(--font-serif);
   --font-sans: var(--font-sans);
@@ -347,10 +418,13 @@ h2,
 h3,
 h4 {
   font-family: var(--font-serif);
-  /* Nothing on this site is bold. The Atlas sets `font-weight: normal` on
-     every heading and lets size, case and colour carry the hierarchy; a
-     600-weight heading here was left over from the serif system. */
-  font-weight: 400;
+  /* Weight carries hierarchy again. The August rule that nothing on the site
+     is bold went with the Atlas palette it belonged to: it left every heading
+     at 400, so a section head was distinguished from the paragraph under it
+     by size alone, which at --t6 against --t4 is four pixels. The canvas sets
+     its heads at 500 and reserves 400 for display type, where the size is
+     doing the work already; h1 restates 400 below. */
+  font-weight: 500;
   line-height: var(--lh-snug);
   letter-spacing: var(--track-head);
   text-wrap: balance;
@@ -359,6 +433,10 @@ h4 {
 
 h1 {
   font-size: var(--t7);
+  /* Display type is set light, not heavy: at this size the scale is the
+     emphasis, and a 500 headline reads as shouting next to a 500 section
+     head. */
+  font-weight: 400;
   line-height: var(--lh-tight);
   letter-spacing: var(--track-display);
   max-width: var(--measure-h1);
@@ -538,104 +616,169 @@ hr {
 }
 
 /* ---------------------------------------------------------------------------
-   Shell chrome
+   Page idioms.
+
+   A kicker, a headline, a section head, a figure, a ratio bar and a rail. Each
+   was written out in two or three module stylesheets, and the copies had
+   already drifted: the ratio bar's scale set tabular figures on the finances
+   page and proportional ones on the home page, so one row of numbers stacked
+   and the other wobbled; the bar itself was a wrapper plus a track in one file
+   and a bare track in two; the eyebrow and the head were byte-identical in two
+   files and the head's comment claimed index.css set `h2` to 600, which it
+   never did.
+
+   Both module headers used to argue the duplication was deliberate -- that
+   index.css is the settled system and a page-level idiom does not belong in
+   it. That reading held while there were two copies and one palette. It did
+   not survive a third identity in ten weeks: the same argument was made about
+   the table, and c0e0a10 then found five copies carrying three different
+   header rules.
+
+   Placement is NOT here. A finances figure is a ruled row with its term at the
+   left and its number at the right; a meetings figure is a stack with the term
+   underneath. That is the page's business and stays in the module, exactly as
+   `.data-table` above leaves cell padding to the base rules and lets a
+   meetings date column keep its own no-wrap. Modules reach these through
+   `composes: … from global`, so no markup has to know they moved.
    --------------------------------------------------------------------------- */
 
-.masthead {
-  background: var(--surface);
-  border-bottom: 1px solid var(--ink);
-}
-
-.masthead-inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s3) var(--s5);
-  padding-block: var(--s4);
-}
-
-.masthead-title {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s3);
-  color: var(--ink);
-  text-decoration: none;
-}
-
-/* The mark keeps its own baseline; the name sits beside it, not on it. */
-.masthead-title svg {
-  flex: none;
-  align-self: center;
-}
-
-.masthead-name {
-  display: flex;
-  flex-direction: column;
-  font-family: var(--font-serif);
-  font-size: var(--t6);
-  line-height: 1.1;
-  letter-spacing: var(--track-head);
-}
-
-.masthead-name-mal {
-  font-size: var(--t2);
-  letter-spacing: 0;
-  color: var(--ink-2);
-}
-
-.masthead-sub {
-  font-family: var(--font-sans);
-  font-size: var(--t2);
-  line-height: var(--lh-ui);
-  color: var(--ink-2);
-  margin: 0;
-  text-align: right;
-  max-width: 34ch;
-}
-
-@media (max-width: 640px) {
-  .masthead-sub {
-    text-align: left;
-  }
-}
-
-/* The only sticky element. */
-.tabbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--paper);
-  border-bottom: 1px solid var(--rule);
-}
-
-.tabbar-inner {
-  display: flex;
-  gap: var(--s5);
-  overflow-x: auto;
-}
-
-.tab {
-  flex: none;
+/* The page's kicker: which section, which body, which year. The one place on
+   a section page the accent appears without being a link. */
+.eyebrow {
   font-family: var(--font-sans);
   font-size: var(--t1);
   line-height: var(--lh-ui);
   letter-spacing: var(--track-label);
   text-transform: uppercase;
-  color: var(--ink-2);
-  text-decoration: none;
-  padding-block: var(--s3);
-  /* Reserves the active rule's space so the row does not shift on selection. */
-  border-bottom: 2px solid transparent;
-}
-
-.tab:hover {
-  color: var(--ink);
-}
-
-.tab-active {
   color: var(--accent);
-  border-bottom-color: var(--accent);
+  margin-block: 0 var(--s3);
+}
+
+/* The headline, once per page, and never broken into a narrow stack. Set at
+   400 like `h1` above: at --t9 the size is the emphasis, and the 300 these
+   carried was a rule from the palette before last. */
+.page-headline {
+  font-family: var(--font-display);
+  font-size: var(--t9);
+  font-weight: 400;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+  margin-block: 0 var(--s5);
+  max-width: none;
+}
+
+/* A section heading: 20px, uppercase, tracked, on a hairline. 500 because the
+   base `h1..h4` rule sets 500 and this class outranks it -- restating 400 here
+   was what left a section head and the paragraph under it four pixels apart
+   and nothing else. */
+.section-head {
+  font-family: var(--font-sans);
+  font-size: var(--t6);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--track-head);
+  text-transform: uppercase;
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule);
+  padding: 0 0 var(--s3);
+  /* The space above a heading comes from the gap between sections, not from
+     the heading: `h2:first-child` above zeroes a margin here anyway, and a
+     heading that set both would space unevenly down the page. */
+  margin-block: 0 var(--s5);
+  max-width: none;
+}
+
+/* The one size above body. There is no second figure size.
+
+   These carry the type and nothing about placement, which is the caller's:
+   a finances figure is a ruled row, a meetings figure is a stack. The term
+   sets NO margin here on purpose. index.css is bundled after the module
+   stylesheets, so a global and a module class of equal specificity resolve in
+   the global's favour; a `margin: 0` here would silently eat the caller's own
+   spacing, which is the E16 failure in miniature. The value keeps its reset
+   because it is a `dd`, and a `dd` carries a 40px inline margin nobody wants
+   and nobody overrides. */
+.figure-value {
+  font-family: var(--font-display);
+  font-size: var(--t7);
+  font-weight: 400;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.figure-term {
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ---------------------------------------------------------------------------
+   The ratio bar.
+
+   Proportional by construction: the SVG's viewBox is 100 units wide and each
+   segment is its own share of it, so the bar carries no pixel dimension and
+   nothing in it stretches when the container changes width. Width, max-width
+   and margins are the caller's; everything a reader can see is here.
+
+   The track is --inset rather than --surface-2 because the unfilled remainder
+   is the whole point of the drawing: on a white sheet a white remainder inside
+   a hairline reads as an empty box, not as the part that was not spent.
+   --------------------------------------------------------------------------- */
+
+.ratio-bar {
+  display: block;
+  background: var(--inset);
+  border: 1px solid var(--rule);
+}
+
+/* Ink, not the accent: the accent touches links, hovers and downloads, and
+   never data. */
+.ratio-bar-fill {
+  fill: var(--ink-2);
+}
+
+/* The second segment, where a bar has two. Lighter than the first so the
+   reading order is not in doubt. */
+.ratio-bar-minor {
+  fill: var(--rule-2);
+}
+
+/* The two ends of the scale, read as one line under the bar. Tabular, because
+   these are numbers and one of the three copies of this was setting them in
+   proportional widths. */
+.ratio-bar-scale {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--s3);
+  font-family: var(--font-sans);
+  font-size: var(--t1);
+  line-height: var(--lh-ui);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  margin-block: var(--s2) 0;
+}
+
+/* An aside set apart by a rule rather than boxed: it is a sentence to read,
+   and nothing on this site is a card. Distinct from `.notice` below, which
+   states a cause -- a rail carries a record the running text is not carrying. */
+.rail {
+  font-size: var(--t2);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  border-left: 2px solid var(--rule-2);
+  padding: var(--s2) 0 var(--s2) var(--s5);
+  margin-block: var(--s5) 0;
+  max-width: var(--measure);
 }
 
 /* ---------------------------------------------------------------------------
@@ -695,9 +838,15 @@ hr {
   max-width: 100%;
 }
 
+/* Disabled reads the same way here as on .pageButton in finances: the text
+   drops to --ink-3 and the border goes slack. The tint is the second signal,
+   because colour alone leaves a greyed-out select and an enabled one the same
+   shape for a reader who cannot see the difference. */
 .field-select:disabled {
-  background: var(--surface-2);
+  background: var(--inset);
   color: var(--ink-3);
+  border-color: var(--rule);
+  cursor: not-allowed;
 }
 
 /* A stated cause — a bad code, or a section this body has no record in. Ruled
@@ -784,18 +933,18 @@ svg[data-chart] {
 .prose-chat p { margin: var(--s2) 0; max-width: none; }
 .prose-chat p:first-child { margin-top: 0; }
 .prose-chat p:last-child { margin-bottom: 0; }
-.prose-chat strong { font-weight: 500; }
+.prose-chat strong { font-weight: 600; }
 .prose-chat ul, .prose-chat ol { margin: var(--s2) 0; padding-left: var(--s5); }
 .prose-chat li { margin: var(--s1) 0; }
 .prose-chat code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--t3);
-  background: var(--surface-2);
+  background: var(--inset);
   padding: var(--s1) var(--s2);
   border-radius: var(--radius);
 }
 .prose-chat pre {
-  background: var(--surface-2);
+  background: var(--inset);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: var(--s3) var(--s4);
@@ -819,8 +968,11 @@ svg[data-chart] {
   padding: var(--s2) var(--s3);
   text-align: left;
 }
+/* A header row in an answer's table. The tint marks it; the weight is reset
+   because the browser's own bold on `th` is not this site's emphasis -- the
+   assistant's own emphasis is `.prose-chat strong` above, at 600. */
 .prose-chat th {
-  background: var(--surface-2);
+  background: var(--inset);
   font-weight: 400;
 }
 .prose-chat h1, .prose-chat h2, .prose-chat h3 {

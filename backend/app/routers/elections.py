@@ -12,14 +12,24 @@ The three cases this endpoint keeps apart:
   constituted in 2015 reads as not yet constituted in 2010 rather than as
   having won zero seats.
 
+``/statewide/{cycle}`` is the fourth case and a different question: not one
+body but all of them, summed per cycle for the block that appears on both the
+home page and the elections page.
+
 Every column in ``elections.*`` is text, as the SEC's own exports publish it.
-Counts are cast here rather than in the database so an unparseable value
-surfaces as null rather than failing the whole build.
+Counts on the per-body payloads are cast here rather than in the database so an
+unparseable value surfaces as null rather than failing the whole build. The
+statewide aggregate casts in SQL instead, because counting a hundred thousand
+ward rows in Python to answer one question would be the wrong place to do the
+arithmetic; the cast there is written so that an unparseable cell is one null
+and not a failed query.
 """
 
+import time
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Request
+from pydantic import BaseModel
 
 from ..database import get_pool
 from ..public import (
@@ -288,6 +298,301 @@ async def fronts(request: Request, cycle: int):
             "provenance": provenance("elections"),
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Statewide aggregate
+# ---------------------------------------------------------------------------
+
+# The fronts, in the order the site draws them. Fixed here rather than read
+# from the data so a cycle with no rows still returns four fronts.
+FRONTS = ("LDF", "UDF", "NDA", "OTH")
+
+# The SEC publishes one of three control types, or nothing. "unstated" carries
+# the fourth case rather than dropping those bodies out of the denominator.
+CONTROL_TYPES = ("majority", "hung", "tie", "unstated")
+
+# Reservation as the SEC spells it. Anything else, including a blank, is
+# counted as "Unstated" so the categories always sum to the ward count.
+RESERVATIONS = ("General", "Woman", "SC", "SC Woman", "ST", "ST Woman", "Unstated")
+
+# Margin bands in absolute votes, since a ward's electorate is not published
+# and a share of valid votes would be a different question. ``unknown`` holds
+# wards where either vote count is missing or unparseable — an uncontested
+# ward has no runner-up.
+MARGIN_BANDS: tuple[tuple[str, str, int | None, int | None], ...] = (
+    ("under_50", "Under 50 votes", None, 49),
+    ("50_99", "50 to 99", 50, 99),
+    ("100_249", "100 to 249", 100, 249),
+    ("250_499", "250 to 499", 250, 499),
+    ("500_999", "500 to 999", 500, 999),
+    ("1000_plus", "1,000 or more", 1000, None),
+    ("unknown", "Margin not published", None, None),
+)
+
+# Every column in ``elections.*`` is text. ``regexp_replace`` strips anything
+# that is not a digit and ``nullif`` turns what is left of an unparseable value
+# into null, so one bad cell is one null rather than a failed query.
+_INT = "nullif(regexp_replace({col}, '\\D', '', 'g'), '')::int"
+
+STATEWIDE_SEATS_SQL = f"""
+    SELECT count(*)::int                                   AS bodies,
+           sum({_INT.format(col='lb_seats_ldf')})::int      AS ldf,
+           sum({_INT.format(col='lb_seats_udf')})::int      AS udf,
+           sum({_INT.format(col='lb_seats_nda')})::int      AS nda,
+           sum({_INT.format(col='lb_seats_oth')})::int      AS oth,
+           count(*) FILTER (WHERE lower(btrim(coalesce(lb_control_type, ''))) = 'majority')::int AS majority,
+           count(*) FILTER (WHERE lower(btrim(coalesce(lb_control_type, ''))) = 'hung')::int     AS hung,
+           count(*) FILTER (WHERE lower(btrim(coalesce(lb_control_type, ''))) = 'tie')::int      AS tie,
+           count(*) FILTER (WHERE lower(btrim(coalesce(lb_control_type, '')))
+                                  NOT IN ('majority', 'hung', 'tie'))::int                       AS unstated
+    FROM elections.body_result
+    WHERE cycle = $1
+"""
+
+STATEWIDE_WARDS_SQL = f"""
+    WITH w AS (
+        SELECT {_INT.format(col='winner_votes')} - {_INT.format(col='runnerup_votes')} AS margin,
+               btrim(coalesce(reservation, '')) AS reservation
+        FROM elections.ward
+        WHERE cycle = $1
+    )
+    SELECT count(*)::int AS wards,
+           count(*) FILTER (WHERE margin < 50)::int                        AS "under_50",
+           count(*) FILTER (WHERE margin BETWEEN 50 AND 99)::int           AS "50_99",
+           count(*) FILTER (WHERE margin BETWEEN 100 AND 249)::int         AS "100_249",
+           count(*) FILTER (WHERE margin BETWEEN 250 AND 499)::int         AS "250_499",
+           count(*) FILTER (WHERE margin BETWEEN 500 AND 999)::int         AS "500_999",
+           count(*) FILTER (WHERE margin >= 1000)::int                     AS "1000_plus",
+           count(*) FILTER (WHERE margin IS NULL)::int                     AS "unknown",
+           count(*) FILTER (WHERE reservation = 'General')::int            AS "General",
+           count(*) FILTER (WHERE reservation = 'Woman')::int              AS "Woman",
+           count(*) FILTER (WHERE reservation = 'SC')::int                 AS "SC",
+           count(*) FILTER (WHERE reservation = 'SC Woman')::int           AS "SC Woman",
+           count(*) FILTER (WHERE reservation = 'ST')::int                 AS "ST",
+           count(*) FILTER (WHERE reservation = 'ST Woman')::int           AS "ST Woman",
+           count(*) FILTER (WHERE reservation
+                            NOT IN ('General', 'Woman', 'SC', 'SC Woman', 'ST', 'ST Woman'))::int AS "Unstated"
+    FROM w
+"""
+
+NO_STATEWIDE_RESULT = (
+    "The State Election Commission has published no result for any local body "
+    "in this cycle."
+)
+
+
+class FrontSeats(BaseModel):
+    """One front's ward seats, summed across every body that contested."""
+
+    front: str
+    seats: int | None
+    #: Share of all ward seats in the cycle, 0.0–1.0. ``None`` when no body has
+    #: a published result, because a share of no seats is not zero — it is
+    #: unknown, and drawing it as 0% would be a claim about an election the
+    #: Commission has not reported.
+    share: float | None
+
+
+class MarginBand(BaseModel):
+    """Wards whose winning margin fell in one band of votes."""
+
+    key: str
+    label: str
+    min_votes: int | None
+    max_votes: int | None
+    wards: int | None
+    share: float | None
+
+
+class ControlCount(BaseModel):
+    """Councils by how they are controlled, not by which front controls them."""
+
+    control_type: str
+    bodies: int | None
+    share: float | None
+
+
+class ReservationCount(BaseModel):
+    """Ward seats by the reservation the seat was notified under."""
+
+    reservation: str
+    wards: int | None
+    share: float | None
+
+
+class StatewideElections(BaseModel):
+    cycle: int
+    available: bool
+    reason_code: str | None
+    reason: str | None
+    #: The denominators, stated rather than left to be inferred from the parts.
+    bodies_with_result: int
+    wards_counted: int
+    seats: list[FrontSeats]
+    seats_total: int | None
+    margins: list[MarginBand]
+    control: list[ControlCount]
+    reservation: list[ReservationCount]
+    provenance: dict[str, str]
+
+
+# A few minutes. The block this backs sits on two pages, Elections being the
+# busier of them, and every visit to either would otherwise re-run two
+# full-table aggregates for the same four possible answers.
+#
+# The TTL is the whole point of the cache being safe. A cycle is a stable key,
+# so without one a warm entry would never be displaced short of a restart — and
+# the backend runs `restart: unless-stopped`, so it outlives a data reload into
+# the same volume. A stale entry does not only serve a stale figure: it pins a
+# stale *strong* ETag behind a 24-hour `Cache-Control` on every client that saw
+# it, which no rebuild would dislodge.
+#
+# This is a per-process dictionary and is therefore wrong the moment there are
+# two workers: each would hold its own copy and expire it on its own clock, so
+# two clients could hold different strong ETags for the same URL. It exists at
+# all because nginx in front of this does no `proxy_cache` — there is nowhere
+# else for a shared cached copy to live.
+#
+# Concurrent cold requests for the same cycle each run the aggregate. At four
+# cycles over a database this size that is a duplicated query, not a stampede,
+# so there is deliberately no single-flight lock to go wrong.
+STATEWIDE_CACHE_TTL = 300.0
+_statewide_cache: dict[int, tuple[float, dict[str, Any]]] = {}
+
+
+def reset_statewide_cache() -> None:
+    """Drop every cached cycle. For tests, and for a reload in the same process."""
+    _statewide_cache.clear()
+
+
+def _share(part: int | None, whole: int | None) -> float | None:
+    """A share, or ``None`` where there is no denominator to divide by."""
+    if part is None or not whole:
+        return None
+    return part / whole
+
+
+async def statewide_payload(conn, cycle: int) -> dict[str, Any]:
+    """The aggregate for one cycle, uncached."""
+    seats_row = await conn.fetchrow(STATEWIDE_SEATS_SQL, cycle)
+    ward_row = await conn.fetchrow(STATEWIDE_WARDS_SQL, cycle)
+
+    bodies = seats_row["bodies"]
+    wards = ward_row["wards"]
+    available = bool(bodies or wards)
+
+    seat_counts = {front: seats_row[front.lower()] if bodies else None for front in FRONTS}
+    seats_total = sum(v for v in seat_counts.values() if v is not None) if bodies else None
+
+    payload = StatewideElections(
+        cycle=cycle,
+        available=available,
+        reason_code=None if available else NO_RESULT_FOR_CYCLE,
+        reason=None if available else NO_STATEWIDE_RESULT,
+        bodies_with_result=bodies,
+        wards_counted=wards,
+        seats=[
+            FrontSeats(
+                front=front,
+                seats=seat_counts[front],
+                share=_share(seat_counts[front], seats_total),
+            )
+            for front in FRONTS
+        ],
+        seats_total=seats_total,
+        margins=[
+            MarginBand(
+                key=key,
+                label=label,
+                min_votes=low,
+                max_votes=high,
+                wards=ward_row[key] if wards else None,
+                share=_share(ward_row[key], wards) if wards else None,
+            )
+            for key, label, low, high in MARGIN_BANDS
+        ],
+        control=[
+            ControlCount(
+                control_type=control,
+                bodies=seats_row[control] if bodies else None,
+                share=_share(seats_row[control], bodies) if bodies else None,
+            )
+            for control in CONTROL_TYPES
+        ],
+        reservation=[
+            ReservationCount(
+                reservation=reservation,
+                wards=ward_row[reservation] if wards else None,
+                share=_share(ward_row[reservation], wards) if wards else None,
+            )
+            for reservation in RESERVATIONS
+        ],
+        provenance=provenance("elections"),
+    )
+    return payload.model_dump()
+
+
+@router.get("/statewide/{cycle}", response_model=StatewideElections)
+async def statewide(request: Request, cycle: int):
+    """Kerala's whole local-body result for one cycle, in four distributions.
+
+    Declared above ``/{lb_code}/{cycle}`` so the path resolves here rather than
+    to a body whose code is "statewide".
+
+    **What is being summed.** A ward seat is a ward seat in exactly one body,
+    and Kerala elects five kinds of body on the same day: grama panchayats,
+    municipalities and corporations, which divide the ground between them, and
+    block panchayats and district panchayats, which are elected over the same
+    ground again. 941 grama panchayats + 86 municipalities + 6 corporations are
+    1,033 first-tier bodies; the 152 blocks and 14 districts bring the bodies
+    that contest to 1,199. (``core.local_body`` holds 1,238, the extra 39 being
+    bodies that no longer contest.) A rural voter therefore casts three ballots
+    and is represented by three winners, so ``seats_total`` counts seats and not
+    voters, and it is roughly a third larger than the number of wards a map of
+    Kerala would show.
+
+    That is the same warning ``/fronts/{cycle}`` carries about colour: a block
+    panchayat's result is its own and never a rollup of the grama panchayats
+    inside it. Here the tiers are added rather than nested, which is legitimate
+    for a question about seats won — every seat in the sum is a distinct seat —
+    and wrong for any question about territory or population. A front's share of
+    ward seats is not its share of Kerala, and this endpoint carries no figure
+    that claims to be.
+
+    **The denominators**, each stated in the payload rather than inferred:
+
+    * ``seats`` is over ``seats_total``, the sum of the four front columns on
+      every ``body_result`` row for the cycle. It is the seats the Commission
+      reported, so a body whose row is missing is absent from both halves of the
+      fraction rather than counted as zero.
+    * ``margins`` and ``reservation`` are over ``wards_counted``, the ward rows
+      for the cycle. Both partition it exactly: every ward falls in one margin
+      band, ``unknown`` included, and under one reservation, ``Unstated``
+      included.
+    * ``control`` is over ``bodies_with_result``.
+
+    A cycle with no rows at all returns this whole shape with nulls in place of
+    every figure and ``available: false``, so a page can say the record is
+    absent instead of drawing a chart of zeroes (R20).
+    """
+    if cycle not in VALID_CYCLES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{cycle} is not a local-body election cycle. "
+            f"Cycles are {', '.join(str(c) for c in VALID_CYCLES)}.",
+        )
+
+    cached = _statewide_cache.get(cycle)
+    if cached is not None and time.monotonic() - cached[0] < STATEWIDE_CACHE_TTL:
+        return public_json(request, cached[1])
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        payload = await statewide_payload(conn, cycle)
+    _statewide_cache[cycle] = (time.monotonic(), payload)
+
+    return public_json(request, payload)
 
 
 @router.get("/{lb_code}/{cycle}")

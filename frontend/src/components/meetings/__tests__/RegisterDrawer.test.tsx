@@ -51,10 +51,10 @@ describe("the way into a meeting's own document", () => {
     const first = await row(1);
 
     expect(
-      within(first).getByRole("button", { name: "Read the decision register" }),
+      within(first).getByRole("button", { name: /^Read the decision register/ }),
     ).toBeInTheDocument();
     expect(
-      within(first).getByRole("button", { name: "Read the minutes" }),
+      within(first).getByRole("button", { name: /^Read the minutes/ }),
     ).toBeInTheDocument();
   });
 
@@ -62,7 +62,7 @@ describe("the way into a meeting's own document", () => {
     renderAt("/meetings/M08032/2023-2024");
     const last = await row(chalakudyMeetingRows.length);
 
-    expect(within(last).getByText("No document available")).toBeInTheDocument();
+    expect(within(last).getByText("Not published by Sakarma")).toBeInTheDocument();
     expect(within(last).queryByRole("button")).not.toBeInTheDocument();
   });
 });
@@ -72,7 +72,7 @@ describe("the panel", () => {
     renderAt("/meetings/M08032/2023-2024");
     const first = await row(1);
     await userEvent.click(
-      within(first).getByRole("button", { name: "Read the decision register" }),
+      within(first).getByRole("button", { name: /^Read the decision register/ }),
     );
 
     const document_ = await screen.findByTestId("register-html");
@@ -90,7 +90,7 @@ describe("the panel", () => {
     renderAt("/meetings/M08032/2023-2024");
     const first = await row(1);
     await userEvent.click(
-      within(first).getByRole("button", { name: "Read the decision register" }),
+      within(first).getByRole("button", { name: /^Read the decision register/ }),
     );
 
     const panel = await screen.findByRole("dialog");
@@ -105,7 +105,7 @@ describe("the panel", () => {
     renderAt("/meetings/M08032/2023-2024");
     const first = await row(1);
     const open = within(first).getByRole("button", {
-      name: "Read the decision register",
+      name: /^Read the decision register/,
     });
 
     await userEvent.click(open);
@@ -135,7 +135,7 @@ describe("the panel", () => {
       renderAt("/meetings/M08032/2023-2024");
       const first = await row(1);
       const open = within(first).getByRole("button", {
-        name: "Read the decision register",
+        name: /^Read the decision register/,
       });
 
       await userEvent.click(open);
@@ -159,7 +159,7 @@ describe("the panel", () => {
     renderAt("/meetings/M08032/2023-2024");
     const first = await row(1);
     await userEvent.click(
-      within(first).getByRole("button", { name: "Read the decision register" }),
+      within(first).getByRole("button", { name: /^Read the decision register/ }),
     );
 
     expect(await screen.findByTestId("register-missing")).toHaveTextContent(
@@ -183,7 +183,7 @@ describe("the panel", () => {
     renderAt("/meetings/M08032/2023-2024");
     const first = await row(1);
     await userEvent.click(
-      within(first).getByRole("button", { name: "Read the decision register" }),
+      within(first).getByRole("button", { name: /^Read the decision register/ }),
     );
 
     const alert = await screen.findByRole("alert");

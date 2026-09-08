@@ -32,6 +32,20 @@ const FONT_HOSTS = [
  * line and is the one file that must not regain an importer while it does.
  */
 
+/**
+ * The vendored faces, by the exact filename the CSS and the preload name. The
+ * version is part of the name on purpose: nginx serves /fonts/ as immutable
+ * for a year, so a face can only change by changing its name.
+ */
+const VENDORED_FONTS = [
+  "PublicSans-Roman-VF-v2001.woff2",
+  "PublicSans-Italic-VF-v2001.woff2",
+  "NotoSansMalayalam-VF-v2104.woff2",
+];
+
+/** The one face the document preloads. */
+const PRELOADED_FONT = "PublicSans-Roman-VF-v2001.woff2";
+
 let bundle = "";
 /** Where the build under test landed, for assertions about emitted assets. */
 let BUILD_DIR = "";
@@ -78,12 +92,88 @@ describe("the built bundle", () => {
     }
   });
 
+  /**
+   * The vendored faces. These assertions are about emitted files rather than
+   * about the source, because every way this has broken in practice is a build
+   * problem: a file that lives in public/ but never reaches dist, a preload
+   * href left as an unresolved __VITE_PUBLIC_ASSET__ placeholder, or a
+   * filename bumped in one of the three places it appears and not the others.
+   */
+  it("emits every vendored woff2 to dist/fonts", () => {
+    const emitted = readdirSync(path.join(BUILD_DIR, "fonts"));
+    for (const face of VENDORED_FONTS) {
+      expect(emitted, `${face} was not emitted`).toContain(face);
+    }
+    // Every face carries its upstream version, because /fonts/ is served
+    // immutable for a year and an unversioned name can never be corrected.
+    for (const face of emitted.filter((f) => f.endsWith(".woff2"))) {
+      expect(face, `dist/fonts holds an unversioned file: ${face}`).toMatch(
+        /-v\d+\.woff2$/,
+      );
+    }
+
+    // The OFL requires its notice to travel with the fonts, so it ships too.
+    expect(emitted, "the font licences were not emitted").toContain("LICENSE.txt");
+  });
+
+  it("declares each vendored face from its own origin", () => {
+    const faces = [...bundle.matchAll(/@font-face\s*\{[^}]*\}/g)].map((m) => m[0]);
+    for (const face of VENDORED_FONTS) {
+      const declared = faces.find((f) => f.includes(face));
+      expect(declared, `no @font-face loads ${face}`).toBeTruthy();
+      expect(declared, `${face} is declared without font-display: swap`).toContain(
+        "swap",
+      );
+      // A relative or bare path would resolve against the stylesheet in
+      // /assets/, not the site root, and 404 in production only.
+      expect(declared).toMatch(new RegExp(`url\\(["']?/fonts/${face}`));
+    }
+  });
+
+  /**
+   * Malayalam is the reason there are two families rather than one. Public
+   * Sans carries no Malayalam glyph, so a stack that names only Public Sans
+   * renders body names, ward names and assistant answers in whatever the
+   * platform happens to have -- or in tofu on a machine that has nothing.
+   * jsdom cannot measure real rendering, so this asserts the two things that
+   * make the rendering possible: the face is declared over the Malayalam
+   * block, and every stack that can receive Malayalam names it.
+   */
+  it("keeps Malayalam on its own vendored family, behind Public Sans", () => {
+    const faces = [...bundle.matchAll(/@font-face\s*\{[^}]*\}/g)].map((m) => m[0]);
+    const malayalam = faces.find((f) => f.includes("Noto Sans Malayalam"));
+    expect(malayalam, "no @font-face for Noto Sans Malayalam").toBeTruthy();
+
+    // The block itself, plus the joiners the script cannot be shaped without.
+    // Matched loosely because the CSS minifier drops leading zeros from a
+    // unicode-range: U+0D00 is emitted as u+d00.
+    const range = malayalam?.toLowerCase() ?? "";
+    expect(range).toMatch(/u\+0*d00-0*d7f/);
+    expect(range, "ZWNJ/ZWJ dropped: conjuncts break").toMatch(/u\+200c-200d/);
+
+    // Separate family names. A single family claiming both scripts is what
+    // produces tofu, because per-character fallback never leaves it.
+    expect(malayalam).not.toContain("Public Sans");
+    for (const token of ["--font-sans:", "--font-serif:", "--font-display:"]) {
+      const decl = bundle.slice(bundle.indexOf(token)).split(";")[0];
+      if (decl.includes("var(")) continue; // an alias for another token
+      expect(decl, `${token} cannot render Malayalam`).toContain(
+        "Noto Sans Malayalam",
+      );
+      expect(decl, `${token} does not name the vendored text face`).toContain(
+        "Public Sans",
+      );
+    }
+  });
+
   it("ships the token palette rather than a stale @theme", () => {
-    // Cheap proof the stylesheet in the bundle is the designed one — the
-    // Atlas ground and coral accent, in both themes.
-    expect(bundle.toLowerCase()).toContain("#f5f5f5");
-    expect(bundle.toLowerCase()).toContain("#ff6653");
-    expect(bundle.toLowerCase()).toContain("#ff7a68");
+    // Cheap proof the stylesheet in the bundle is the designed one: the v4
+    // dark ground and both halves of the accent pair. All three arrive
+    // through light-dark(), so a build that dropped the dark half would take
+    // #7fb2e8 with it.
+    expect(bundle.toLowerCase()).toContain("#12161b");
+    expect(bundle.toLowerCase()).toContain("#0b2f5e");
+    expect(bundle.toLowerCase()).toContain("#7fb2e8");
   });
 
   /**
@@ -103,6 +193,33 @@ describe("the built bundle", () => {
     for (const asset of ["favicon.svg", "favicon-32.png", "apple-touch-icon.png"]) {
       expect(readdirSync(BUILD_DIR), `${asset} was not emitted`).toContain(asset);
     }
+  });
+
+  /**
+   * A preload href is the one URL in the document that nothing else validates:
+   * it is not a fetch the app makes, so a wrong path is a silent extra 404 and
+   * a font that arrives late instead of early. Vite rewrites public/ paths in
+   * index.html, and a mistake there surfaces as a literal
+   * __VITE_PUBLIC_ASSET__ placeholder in the built HTML.
+   */
+  it("preloads exactly one font, and the href resolves to a real file", () => {
+    const html = readFileSync(path.join(BUILD_DIR, "index.html"), "utf8");
+    const preloads = [...html.matchAll(/<link[^>]*as="font"[^>]*>/g)].map((m) => m[0]);
+    expect(preloads.length, "expected exactly one font preload").toBe(1);
+
+    const [tag] = preloads;
+    expect(tag, "a font preload without crossorigin is fetched twice").toMatch(
+      /crossorigin/,
+    );
+    expect(tag).not.toContain("__VITE_PUBLIC_ASSET__");
+
+    const href = tag.match(/href="([^"]+)"/)?.[1] ?? "";
+    expect(href, "the preload points off-origin").toMatch(/^\/fonts\//);
+    expect(href).toContain(PRELOADED_FONT);
+    expect(
+      statSync(path.join(BUILD_DIR, href.replace(/^\//, ""))).isFile(),
+      `preloaded ${href} is not in the build`,
+    ).toBe(true);
   });
 
   it("has a favicon that parses and fetches nothing", () => {
@@ -129,9 +246,12 @@ describe("the built bundle", () => {
     expect(doc.documentElement.tagName).toBe("svg");
 
     // It carries its own ground and its own ink, because a favicon sits on
-    // browser chrome and inherits no colour from anything.
-    expect(doc.querySelector("rect")?.getAttribute("fill")?.toLowerCase()).toBe("#f1f3e9");
-    expect(doc.querySelector("circle")?.getAttribute("fill")?.toLowerCase()).toBe("#3e5c2a");
+    // browser chrome and inherits no colour from anything. These two hexes
+    // are the reason the assertion is worth having: it held #f1f3e9 and
+    // #3e5c2a for two identities after the palette they came from was
+    // deleted, because a stale favicon is the one asset nobody looks at.
+    expect(doc.querySelector("rect")?.getAttribute("fill")?.toLowerCase()).toBe("#0b2f5e");
+    expect(doc.querySelector("circle")?.getAttribute("fill")?.toLowerCase()).toBe("#7fb2e8");
   });
 
   it("contains no framer-motion", () => {

@@ -162,7 +162,36 @@ def public_csv(request: Request, text: str, filename: str) -> Response:
 RATE_LIMIT = int(os.environ.get("PUBLIC_RATE_LIMIT_PER_MINUTE", "600"))
 RATE_WINDOW = 60.0
 
+# The counters, one deque of timestamps per client address.
+#
+# This map used to grow without bound, which was invisible while every request
+# arrived keyed on nginx's container address: one key, forever. Now that the key
+# is the caller's own address (see `app/main.py` on ProxyHeadersMiddleware),
+# every distinct source address on a public site would leave a deque behind on a
+# VM with under a gigabyte free. `_sweep` is what keeps the map the size of
+# recent traffic rather than the size of all traffic ever.
 _hits: dict[str, deque[float]] = {}
+
+# A key is only ever removed by a sweep, and a sweep only runs when someone
+# makes a request, so the map is bounded by the number of distinct addresses
+# seen within one window plus whatever arrived since the last sweep. Sweeping
+# no more than once a window keeps it O(1) amortised per request; the size cap
+# forces a sweep early if a burst of new addresses arrives inside one window,
+# so a flood cannot outrun the interval.
+MAX_TRACKED_CLIENTS = 20_000
+
+_last_sweep = 0.0
+
+
+def _sweep(now: float) -> None:
+    """Drop clients whose window has emptied. Cheap, and rarely."""
+    global _last_sweep
+    if now - _last_sweep < RATE_WINDOW and len(_hits) < MAX_TRACKED_CLIENTS:
+        return
+    _last_sweep = now
+    for client, window in list(_hits.items()):
+        if not window or now - window[-1] > RATE_WINDOW:
+            del _hits[client]
 
 
 def check_rate(client: str, now: float | None = None, limit: int | None = None) -> bool:
@@ -177,6 +206,7 @@ def check_rate(client: str, now: float | None = None, limit: int | None = None) 
         return True
 
     now = time.monotonic() if now is None else now
+    _sweep(now)
     window = _hits.setdefault(client, deque())
     while window and now - window[0] > RATE_WINDOW:
         window.popleft()
@@ -187,7 +217,13 @@ def check_rate(client: str, now: float | None = None, limit: int | None = None) 
 
 
 def rate_limit(request: Request) -> None:
-    """Router dependency. 429 with a ``Retry-After`` once the window is full."""
+    """Router dependency. 429 with a ``Retry-After`` once the window is full.
+
+    ``request.client.host`` is the caller only because ``app/main.py`` installs
+    ``ProxyHeadersMiddleware``. Remove that and this reads nginx's container
+    address on every request, which makes the limit a single global 600 a minute
+    shared by everyone — the shape the limiter had in production until now.
+    """
     client = request.client.host if request.client else "unknown"
     if not check_rate(client):
         raise HTTPException(
@@ -199,7 +235,9 @@ def rate_limit(request: Request) -> None:
 
 def reset_rate_limits() -> None:
     """Drop all counters. For tests, and for a process that has been idle."""
+    global _last_sweep
     _hits.clear()
+    _last_sweep = 0.0
 
 
 # ---------------------------------------------------------------------------

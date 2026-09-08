@@ -1,136 +1,85 @@
 /**
  * The home page.
  *
- * The copy is GS's own, from pages 3-6 of the review deck, used verbatim. Two
- * typos are fixed and nothing else: "publically" reads "publicly", and "not
- * easy decipher" reads "not easy to decipher". His opening paragraph is whole
- * — an earlier draft split it across a display figure, which manufactured a
- * poster number out of a sentence that already had a source in it.
+ * It opens on one local government rather than on an argument. The page it
+ * replaced ran four blocks of prose from the review deck and asked a reader who
+ * had just arrived to go and find a panchayat; a reader who did not already
+ * care about Kerala local government had nothing to look at. That copy is not
+ * deleted — the statutory sequence is the reason joining Sulekha and Sakarma
+ * means anything — it moves to `/method`, which is the one page where its
+ * first-person plural is allowed to run unaltered.
  *
- * Four blocks, in his order: the title and lede, how the records are made, what
- * joining them shows, and who the joined record answers to. Each block carries
- * a rail: an aside, ruled rather than boxed, holding the record the running
- * text is not holding. On the join block that is the Sakarma half, and it comes
- * from the same endpoint the meetings section reads.
+ * What stands here instead, top to bottom: the hero and the ask card, five
+ * counts of the site's scale, Amboori grama panchayat in three numbered
+ * panels, the same election read across the whole state, and the ask card
+ * again.
  *
- * The one thing here that is not GS's writing is the colophon at the foot. The
- * ODbL requires the boundary attribution to travel with the data, and this page
- * carried the site's only copy of it before the rewrite.
+ * The ask card is the only gate on the page and the only gate on the site.
+ * Every table, chart, map and download answers without an account; the
+ * assistant does not, because each question spends model tokens. The three
+ * sample questions under the card are anchors into this same page, so the
+ * claim that they need no account is one the page keeps rather than makes.
+ *
+ * The statewide block and the worked example share one cycle. They are
+ * two readings of one election, and letting them drift to different cycles
+ * would put two answers to the same question on one screen.
  */
 
 import { Link } from "react-router-dom";
 
-import AmbooriParagraph from "@/components/home/AmbooriParagraph";
+import StatewideBlock from "@/components/elections/StatewideBlock";
+import { useStatewide } from "@/components/elections/useStatewide";
+import AskCard from "@/components/home/AskCard";
+import StatStrip from "@/components/home/StatStrip";
+import WorkedExample, { EXAMPLE_CYCLE } from "@/components/home/WorkedExample";
 
 import styles from "@/components/home/home.module.css";
 
 export default function HomeSection() {
+  const statewide = useStatewide(EXAMPLE_CYCLE);
+
   return (
     <div className="shell-container section-page">
-      <div className={styles.block}>
-        <h1>What Kerala&rsquo;s local governments plan, and what they spend</h1>
-        <p className="lede">
-          Understanding how Kerala&rsquo;s local governments work through data.
-        </p>
-
-        <p className={styles.prose}>
-          India devolves a substantial share of its rural development spending to
-          elected panchayats. The Fifteenth Finance Commission allocated
-          &#8377;2.36 lakh crore to rural local bodies for 2021&ndash;26 (Report
-          of the Fifteenth Finance Commission, 2021). Roughly 260,000 panchayats
-          administer it for more than 800 million people.
-        </p>
-        <p className={styles.prose}>How each body decides its share is set by statute.</p>
-        <p className={styles.prose}>
-          Kerala law requires a local government to formulate its annual plan in
-          open assembly, adopt each project by resolution of the elected council,
-          and spend only against what was adopted.
-        </p>
-        <p className={styles.prose}>The sequence is a precondition of the expenditure.</p>
-        <p className={styles.prose}>
-          In this website we deconstruct this sequence. We present development
-          project accounts, local council meeting records and election results
-          for each of Kerala&rsquo;s 1,238 local governments and display them in
-          an easy to read and digest format. Every table on this site can be
-          downloaded.
-        </p>
-
-        <aside className={styles.rail}>
-          <span className={styles.railKey}>The sequence Kerala law requires</span>
-          <ol className={styles.railSteps}>
-            <li>Formulate the annual plan in open assembly.</li>
-            <li>Adopt each project by resolution of the elected council.</li>
-            <li>Spend only against what was adopted.</li>
-          </ol>
-        </aside>
-      </div>
-
-      <div className={styles.block}>
-        <h2>How do we do it</h2>
-        <ul className={styles.points}>
-          <li>
-            Kerala records its development plan proposals and local council
-            meetings in separate web portals.
-          </li>
-          <li>
-            <a href="https://plan.lsgkerala.gov.in" target="_blank" rel="noopener noreferrer">
-              Sulekha
+      <div className={styles.hero}>
+        <div className={styles.heroText}>
+          <h1 className="page-headline">Explore local government activity</h1>
+          <p className="lede">
+            Kerala&rsquo;s local governments plan, deliberate and spend money for
+            the delivery of public goods and services at the ward level. The
+            documents that record these actions are stored in different portals
+            of the Kerala Local Self Government. GramSAMBANDH connects those
+            portals into one picture of local government activity.
+          </p>
+          <p className={styles.heroActions}>
+            <a href="#amboori" className={styles.primary}>
+              Start with one local government
             </a>
-            , the plan monitoring portal, holds what each body formulated and
-            what it paid, 3.6 million projects since 2012&ndash;13.{" "}
-            <a
-              href="https://meeting.lsgkerala.gov.in"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Sakarma
-            </a>
-            , the meeting portal, holds when each council sat and what it
-            minuted, 443,000 meetings since 2015&ndash;16.
-          </li>
-          <li>
-            Both Sulekha and Sakarma have always been publicly accessible. But
-            they are not easy to decipher. Besides this, both the Sulekha and
-            Sakarma systems contain information about the same local
-            governments, but neither refers to the other in a meaningful manner.
-          </li>
-        </ul>
+          </p>
+        </div>
 
+        <AskCard idPrefix="hero" samples />
       </div>
 
-      <div className={styles.block}>
-        <h2>What happens if we join the records?</h2>
-        <p className={styles.prose}>
-          Let&rsquo;s take Amboori Grama Panchayat&rsquo;s example. A local body
-          located in Thiruvananthapuram district.
+      <StatStrip statewide={statewide} />
+
+      <WorkedExample />
+
+      <div className={styles.statewide}>
+        <StatewideBlock
+          cycle={EXAMPLE_CYCLE}
+          heading={`The same election across Kerala, ${EXAMPLE_CYCLE}`}
+          controlId="statewide-control"
+          marginsId="statewide-margins"
+        />
+      </div>
+
+      <div className={styles.closing}>
+        <h2 className="section-head">Ask about any local government</h2>
+        <p className={styles.closingLede}>
+          The record above is one body of 1,238. The assistant reads the same
+          three portals for any of them, one question at a time.
         </p>
-        <AmbooriParagraph />
-      </div>
-
-      <div className={styles.block}>
-        <h2>Who can use it?</h2>
-        <ul className={styles.points}>
-          <li>
-            The Kerala Institute of Local Administration trains the officials who
-            file these records, and the state local government department sets
-            the terms they file under. The Union Ministry of Panchayati Raj sets
-            the national reporting standards Kerala&rsquo;s portals answer to,
-            through eGramSwaraj and Meri Panchayat. For each of them the joined
-            record answers a question the portals separately cannot: how far a
-            body&rsquo;s spending follows the plan its council adopted.
-          </li>
-          <li>
-            Kerala&rsquo;s grama panchayats have about 25 million residents. The
-            assembly that adopts the plan is open to all of them.
-          </li>
-        </ul>
-
-        <aside className={styles.rail}>
-          <span className={styles.railKey}>Who the records are filed by</span>
-          Officials trained by KILA, under terms set by the state local
-          government department, answering to national standards set by the Union
-          Ministry of Panchayati Raj.
-        </aside>
+        <AskCard idPrefix="closing" />
       </div>
 
       <p className={styles.colophon}>

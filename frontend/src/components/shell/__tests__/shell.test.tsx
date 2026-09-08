@@ -1,38 +1,55 @@
 /**
- * The masthead's two behaviours worth pinning: which route opens expanded, and
- * whether the theme choice survives and outranks the system preference.
+ * The shell: one masthead row on every route, and a footer carrying what the
+ * masthead used to.
  *
- * Neither is visible to jsdom as a rendered height — CSS modules do not load —
- * so the collapse is asserted through `data-stuck`, which is the same signal
- * the stylesheet keys off.
+ * The old suite here asserted a collapse — `data-stuck` per route, a banner on
+ * the home page only, a scroll threshold and an upward gesture to reopen. None
+ * of that exists any more, so the file was rewritten rather than pruned.
+ *
+ * What stayed: the theme choice must survive and outrank the system
+ * preference, the controls must have accessible names, and the Malayalam name
+ * must still be on the site — in the footer now.
+ *
+ * `useAuth` is mocked because `AuthProvider` fetches `/auth/me` on mount, which
+ * makes the sign-in state of the header a question about the network. The mock
+ * throws when no account is set, which is exactly what the real hook does with
+ * no provider above it, so the signed-out case also covers the copy tests that
+ * render the masthead on its own.
  */
 
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import Masthead from "../Masthead";
+import SiteFooter from "../SiteFooter";
 import TabBar from "../TabBar";
 
-function scrollTo(y: number) {
-  Object.defineProperty(window, "scrollY", { value: y, configurable: true });
-  act(() => {
-    window.dispatchEvent(new Event("scroll"));
-  });
-}
+const account = vi.hoisted(() => ({
+  current: null as { token: string | null; logout: () => void } | null,
+}));
 
-/** The nameplate has no layout in jsdom, so its height is stated outright. */
-function giveNameplateHeight(px: number) {
-  Object.defineProperty(screen.getByTestId("nameplate"), "offsetHeight", {
-    value: px,
-    configurable: true,
-  });
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => {
+    if (!account.current) throw new Error("useAuth must be used within AuthProvider");
+    return account.current;
+  },
+}));
+
+const MALAYALAM = "ഗ്രാമ സംബന്ധ്";
+
+function renderMasthead(route = "/") {
+  return render(
+    <MemoryRouter initialEntries={[route]}>
+      <Masthead />
+    </MemoryRouter>,
+  );
 }
 
 beforeEach(() => {
+  account.current = null;
   window.localStorage.clear();
   document.documentElement.removeAttribute("data-theme");
-  Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
 });
 
 afterEach(() => {
@@ -40,160 +57,79 @@ afterEach(() => {
 });
 
 describe("the masthead", () => {
-  it("carries the nameplate, the strapline and the section nav", () => {
-    render(
-      <MemoryRouter>
-        <Masthead />
-      </MemoryRouter>,
-    );
+  it("carries the wordmark, the five tabs and the two controls", () => {
+    renderMasthead();
 
     expect(screen.getByRole("banner")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Gram Sambandh" })).toHaveAttribute(
       "href",
       "/",
     );
-    expect(screen.getByTestId("strapline")).toHaveTextContent(
-      "System for Analysing Meetings and Budgets for Accountable Neighbourhood Development & Hyperlocal governance",
-    );
+    expect(screen.getByTestId("masthead")).toHaveTextContent("GramSAMBANDH");
+    expect(screen.getByRole("navigation", { name: "Sections" })).toBeInTheDocument();
+    expect(screen.getByTestId("theme-toggle")).toBeInTheDocument();
+    expect(screen.getByTestId("signin")).toBeInTheDocument();
   });
 
-  it("carries the Malayalam name once, and not in the accessible name", () => {
-    render(
-      <MemoryRouter>
-        <Masthead />
-      </MemoryRouter>,
-    );
+  it("is the same row on every route", () => {
+    // Everything but which tab is current: the header no longer has a resting
+    // state per route, which is the whole point of the change.
+    const structure = () =>
+      screen
+        .getByTestId("masthead")
+        .innerHTML.replace(/ aria-current="page"/g, "")
+        .replace(/ class="[^"]*"/g, "");
 
-    const malayalam = screen.getByText("\u0d17\u0d4d\u0d30\u0d3e\u0d2e \u0d38\u0d02\u0d2c\u0d28\u0d4d\u0d27\u0d4d");
-    expect(malayalam).toHaveAttribute("lang", "ml");
-    // It sits inside the home link, whose aria-label keeps a screen reader
-    // from hearing the same name twice.
-    expect(screen.getByRole("link", { name: "Gram Sambandh" })).toContainElement(
-      malayalam,
-    );
-  });
-
-  it("sets the eight letters of SAMBANDH apart from the rest", () => {
-    render(
-      <MemoryRouter>
-        <Masthead />
-      </MemoryRouter>,
-    );
-
-    const letters = [...screen.getByTestId("strapline").querySelectorAll("i")].map(
-      (i) => i.textContent,
-    );
-    expect(letters.join("")).toBe("SAMBANDH");
-  });
-
-  it("opens expanded on the home page and collapsed everywhere else", () => {
-    const { unmount } = render(
-      <MemoryRouter initialEntries={["/"]}>
-        <Masthead />
-      </MemoryRouter>,
-    );
-    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "false");
+    const { unmount } = renderMasthead("/");
+    const home = structure();
     unmount();
 
-    render(
-      <MemoryRouter initialEntries={["/finances"]}>
-        <Masthead />
-      </MemoryRouter>,
-    );
-    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
+    renderMasthead("/finances");
+    expect(structure()).toBe(home);
   });
 
-  it("draws the banner slot on the home page only", () => {
-    const { unmount } = render(
-      <MemoryRouter initialEntries={["/"]}>
-        <Masthead />
-      </MemoryRouter>,
-    );
-    expect(screen.getByTestId("masthead-banner")).toBeInTheDocument();
-    unmount();
+  it("has no collapsed state and no banner left to collapse", () => {
+    renderMasthead("/");
 
-    render(
-      <MemoryRouter initialEntries={["/meetings"]}>
-        <Masthead />
-      </MemoryRouter>,
-    );
+    expect(screen.getByTestId("masthead")).not.toHaveAttribute("data-stuck");
     expect(screen.queryByTestId("masthead-banner")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("nameplate")).not.toBeInTheDocument();
   });
 
-  /** An upward wheel gesture, of the size a reader actually makes. */
-  function pullDown(px: number) {
-    act(() => {
-      window.dispatchEvent(new WheelEvent("wheel", { deltaY: -px }));
-    });
-  }
+  it("offers a way in when signed out", () => {
+    renderMasthead();
 
-  it("collapses on the first scroll and comes back only when asked", () => {
-    render(
-      <MemoryRouter initialEntries={["/"]}>
-        <Masthead />
-      </MemoryRouter>,
-    );
-    giveNameplateHeight(300);
-
-    // A stray tick is not a scroll.
-    scrollTo(4);
-    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "false");
-
-    // The point of the change: the reader does not have to clear the
-    // nameplate's own height -- 300px here, and a 400px banner on the real
-    // home route -- before the header gets out of the way.
-    scrollTo(20);
-    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
-
-    // Scroll anchoring glides the position back to 0 as the nameplate leaves
-    // the document. That must not read as "the reader went back to the top".
-    scrollTo(0);
-    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
-
-    // Nor may a single stray tick bring it back.
-    pullDown(10);
-    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
-
-    // A deliberate pull at the top does.
-    pullDown(80);
-    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "false");
+    expect(screen.getByTestId("signin")).toHaveAttribute("href", "/login");
+    expect(screen.queryByTestId("account")).not.toBeInTheDocument();
   });
 
-  it("ignores an upward gesture made away from the top", () => {
-    render(
-      <MemoryRouter initialEntries={["/"]}>
-        <Masthead />
-      </MemoryRouter>,
+  it("offers saved questions and a way out when signed in", () => {
+    const logout = vi.fn();
+    account.current = { token: "a-token", logout };
+
+    renderMasthead();
+
+    expect(screen.queryByTestId("signin")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Saved questions" })).toHaveAttribute(
+      "href",
+      "/ask",
     );
-    giveNameplateHeight(300);
 
-    scrollTo(600);
-    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
-
-    // Reading back up the page is not a request for the nameplate.
-    pullDown(200);
-    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    expect(logout).toHaveBeenCalledOnce();
   });
 
-  it("never expands on its own away from home", () => {
-    render(
-      <MemoryRouter initialEntries={["/elections"]}>
-        <Masthead />
-      </MemoryRouter>,
-    );
-
-    scrollTo(0);
-    expect(screen.getByTestId("masthead")).toHaveAttribute("data-stuck", "true");
+  it("reads as signed out when there is no provider above it", () => {
+    // The masthead is chrome and is rendered on its own by other suites. A
+    // missing provider is a signed-out reader, not a thrown error.
+    expect(() => renderMasthead()).not.toThrow();
+    expect(screen.getByTestId("signin")).toBeInTheDocument();
   });
 });
 
 describe("the theme control", () => {
   it("writes the choice to the root element and to storage", () => {
-    render(
-      <MemoryRouter>
-        <Masthead />
-      </MemoryRouter>,
-    );
+    renderMasthead();
 
     fireEvent.click(screen.getByTestId("theme-toggle"));
 
@@ -201,20 +137,17 @@ describe("the theme control", () => {
     expect(window.localStorage.getItem("gs-theme")).toBe("dark");
   });
 
-  it("keeps both instances in sync", () => {
-    render(
-      <MemoryRouter>
-        <Masthead />
-      </MemoryRouter>,
-    );
+  it("says what it will switch to", () => {
+    renderMasthead();
 
-    expect(screen.getByTestId("theme-toggle")).toHaveTextContent("Dark");
-    expect(screen.getByTestId("theme-toggle-bar")).toHaveTextContent("Dark");
+    const toggle = screen.getByTestId("theme-toggle");
+    expect(toggle).toHaveTextContent("Dark");
+    expect(toggle).toHaveAccessibleName("Switch to the dark theme");
 
-    fireEvent.click(screen.getByTestId("theme-toggle-bar"));
+    fireEvent.click(toggle);
 
-    expect(screen.getByTestId("theme-toggle")).toHaveTextContent("Light");
-    expect(screen.getByTestId("theme-toggle-bar")).toHaveTextContent("Light");
+    expect(toggle).toHaveTextContent("Light");
+    expect(toggle).toHaveAccessibleName("Switch to the light theme");
   });
 
   it("beats a dark system preference when the reader has chosen light", () => {
@@ -232,11 +165,7 @@ describe("the theme control", () => {
         }) as unknown as MediaQueryList,
     );
 
-    render(
-      <MemoryRouter>
-        <Masthead />
-      </MemoryRouter>,
-    );
+    renderMasthead();
 
     // The system says dark, so the control offers light.
     expect(screen.getByTestId("theme-toggle")).toHaveTextContent("Light");
@@ -249,11 +178,7 @@ describe("the theme control", () => {
   it("restores a stored choice on the next visit", () => {
     window.localStorage.setItem("gs-theme", "dark");
 
-    render(
-      <MemoryRouter>
-        <Masthead />
-      </MemoryRouter>,
-    );
+    renderMasthead();
 
     expect(document.documentElement).toHaveAttribute("data-theme", "dark");
   });
@@ -265,13 +190,7 @@ describe("the theme control", () => {
         throw new Error("storage disabled");
       });
 
-    expect(() =>
-      render(
-        <MemoryRouter>
-          <Masthead />
-        </MemoryRouter>,
-      ),
-    ).not.toThrow();
+    expect(() => renderMasthead()).not.toThrow();
 
     getItem.mockRestore();
   });
@@ -302,5 +221,55 @@ describe("the section nav", () => {
       .getAllByRole("link")
       .filter((a) => a.getAttribute("aria-current") === "page");
     expect(current.map((a) => a.textContent)).toEqual(["Meetings"]);
+  });
+});
+
+describe("the footer", () => {
+  function renderFooter() {
+    return render(
+      <MemoryRouter>
+        <SiteFooter />
+      </MemoryRouter>,
+    );
+  }
+
+  it("sets the eight letters of SAMBANDH apart from the rest", () => {
+    renderFooter();
+
+    const strapline = screen.getByTestId("strapline");
+    expect(strapline).toHaveTextContent(
+      "System for Analysing Meetings and Budgets for Accountable Neighbourhood Development and Hyperlocal governance",
+    );
+    const letters = [...strapline.querySelectorAll("i")].map((i) => i.textContent);
+    expect(letters.join("")).toBe("SAMBANDH");
+  });
+
+  it("carries the Malayalam name, marked as Malayalam", () => {
+    renderFooter();
+
+    expect(screen.getByText(MALAYALAM)).toHaveAttribute("lang", "ml");
+  });
+
+  it("carries the boundary licence the banner used to", () => {
+    // ODbL 1.0 requires the attribution wherever the derived data is served,
+    // and the app still serves the local body boundary files.
+    renderFooter();
+
+    const footer = screen.getByRole("contentinfo");
+    expect(footer).toHaveTextContent("OpenStreetMap contributors");
+    expect(footer).toHaveTextContent("ODbL 1.0");
+    expect(screen.getByRole("link", { name: "opendatakerala" })).toHaveAttribute(
+      "href",
+      "https://opendatakerala.org/",
+    );
+  });
+
+  it("offers a way to report a wrong figure that is not a personal inbox", () => {
+    renderFooter();
+
+    const report = screen.getByRole("link", { name: "Report an error" });
+    // Any address will do; that there is one, and that it is a mailto, is the
+    // contract. The site's only route for a correction must not go missing.
+    expect(report.getAttribute("href")).toMatch(/^mailto:.+@.+$/);
   });
 });
