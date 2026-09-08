@@ -109,13 +109,6 @@ describe("the statutory sequence", () => {
     ]);
   });
 
-  it("says which half of the page is computed", async () => {
-    renderMethod();
-
-    expect(
-      await screen.findByText(/Everything after it is computed from the published record/),
-    ).toBeInTheDocument();
-  });
 
   it("still renders when the request fails", async () => {
     server.use(http.get("*/api/method", () => HttpResponse.error()));

@@ -23,13 +23,14 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import HomeSection from "../HomeSection";
+import { EXAMPLE_CYCLE } from "@/components/home/WorkedExample";
 import SiteFooter from "@/components/shell/SiteFooter";
 import { provenance } from "@/test/handlers";
 import { server } from "@/test/setup";
 
 const AMBOORI = "G01014";
 const YEAR = "2023-2024";
-const CYCLE = 2020;
+const CYCLE = EXAMPLE_CYCLE;
 
 /** Amboori 2023-24 as the live API returns it. */
 const financesPayload = {
@@ -224,7 +225,11 @@ describe("the hero and the stat strip", () => {
     expect(strip).toHaveTextContent("941 grama panchayats, 86 municipalities and 6 corporations");
     expect(strip).toHaveTextContent("3.6 million");
     expect(strip).toHaveTextContent("455,000+");
-    expect(strip).toHaveTextContent("915");
+    // The close-margin count is the aggregate's own narrowest band, read live
+    // rather than typed. The canvas said "915 under ten votes"; the record has
+    // no ten-vote band to answer that from.
+    expect(strip).toHaveTextContent("4,567");
+    expect(strip).toHaveTextContent("Wards won by under 50 votes");
     expect(strip).toHaveTextContent("of the 20,962 wards with a published ward result");
 
     // The counts the aggregate does not answer are a snapshot, and say so.
@@ -334,16 +339,17 @@ describe("the three panels", () => {
     ).toHaveTextContent("Ward 3 was won by 9 votes");
   });
 
-  it("draws the wards as cells in the outline, and says the cells carry no place", async () => {
+  it("draws the real wards, and says which cycle publishes them", async () => {
     amboori();
     renderHome();
 
-    // Ward polygons exist for 2025 alone, so a 2020 panel is the body's own
-    // outline with one numbered cell per ward inside it. The caption is the
-    // whole reason that is honest.
+    // The example runs on 2025 because that is the only cycle Kerala publishes
+    // ward boundaries for, so this panel draws Amboori's own wards rather than
+    // numbered cells standing in for them. The caption says so, because the
+    // earlier cycles on the elections page do not get a real map.
     expect(
-      await screen.findByText(/The numbered cells inside it are not/),
-    ).toHaveTextContent("says nothing about where that ward is");
+      await screen.findByText(/each drawn on the boundary published for that cycle/),
+    ).toHaveTextContent("the earlier ones are on the elections page");
   });
 
   it("says Sulekha publishes no sector and none is inferred", async () => {
@@ -411,7 +417,7 @@ describe("the statewide block", () => {
 
     const block = await screen.findByTestId("statewide");
     expect(within(block).getByRole("heading", { level: 2 })).toHaveTextContent(
-      "The same election across Kerala, 2020",
+      `The same election across Kerala, ${CYCLE}`,
     );
 
     for (const heading of [
@@ -434,10 +440,10 @@ describe("the statewide block", () => {
     renderHome();
 
     const block = await screen.findByTestId("statewide");
-    expect(within(block).getByRole("heading", { level: 2 })).toHaveTextContent("2020");
+    expect(within(block).getByRole("heading", { level: 2 })).toHaveTextContent(String(CYCLE));
 
     const table = await screen.findByRole("table", {
-      name: /Ward results, Amboori grama panchayat, 2020/,
+      name: new RegExp(`Ward results, Amboori grama panchayat, ${CYCLE}`),
     });
     expect(table).toBeInTheDocument();
   });

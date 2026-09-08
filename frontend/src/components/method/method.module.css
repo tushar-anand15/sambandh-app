@@ -45,13 +45,6 @@
   padding-block: 0 var(--s7);
 }
 
-.standing {
-  font-size: var(--t2);
-  line-height: var(--lh-body);
-  color: var(--ink-3);
-  max-width: var(--measure);
-  margin-block: 0 var(--s5);
-}
 
 .prose {
   max-width: var(--measure);

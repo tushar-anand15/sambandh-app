@@ -519,6 +519,12 @@ const ambooriBody = {
   lb_type: "Grama Panchayat",
 };
 
+/**
+ * The cycle the worked example uses. 2025 because it is the only one Kerala
+ * publishes ward boundaries for, so the home page draws real wards.
+ */
+export const EXAMPLE_FIXTURE_CYCLE = 2025;
+
 export function ambooriCycle(cycle: number) {
   const base = {
     lb_code: AMBOORI_CODE,
@@ -529,7 +535,7 @@ export function ambooriCycle(cycle: number) {
     last_cycle: 2025,
   };
 
-  if (cycle !== 2020) {
+  if (cycle !== EXAMPLE_FIXTURE_CYCLE) {
     return {
       ...base,
       available: false as const,
@@ -634,7 +640,7 @@ const NO_STATEWIDE_RESULT =
   "in this cycle.";
 
 export function statewidePayload(cycle: number) {
-  if (cycle !== 2015 && cycle !== 2020) {
+  if (cycle !== 2015 && cycle !== 2020 && cycle !== EXAMPLE_FIXTURE_CYCLE) {
     return {
       cycle,
       available: false as const,

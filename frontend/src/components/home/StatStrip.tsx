@@ -9,21 +9,30 @@
  * list holds 1,238, the extra 39 being bodies that no longer contest. A bare
  * "1,033 local governments" would be a figure with three defensible readings.
  *
- * The seat count is read from the Commission's own record for 2020 rather than
- * typed, which is R17: the State Election Commission is the denominator, not
- * the KSMART ward extract the design canvas counted. The other four are a
- * snapshot of one build, and the line under the strip names its date, because
- * an unlabelled figure here would contradict a section page tomorrow without
- * saying which of the two moved.
+ * Three of the five -- seats, wards and the close-margin count -- are read from
+ * the Commission's own record rather than typed, which is R17: the State
+ * Election Commission is the denominator, not the KSMART ward extract the
+ * design canvas counted. The other two are a snapshot of one build, and the
+ * line under the strip names its date, because an unlabelled figure here would
+ * contradict a section page tomorrow without saying which of the two moved.
+ *
+ * The close-margin count is the endpoint's narrowest band, which is under 50
+ * votes. The canvas said "915 wards under ten"; there is no ten-vote band to
+ * read that from, and a figure the page cannot answer for is worse than a
+ * wider one it can.
  */
 
 import { formatCount } from "@/components/elections/payload";
 import type { StatewideState } from "@/components/elections/useStatewide";
+import { EXAMPLE_CYCLE } from "./WorkedExample";
 
 import styles from "./home.module.css";
 
-/** The cycle the whole page is set to. The worked example is a 2020 result. */
-export const STRIP_CYCLE = 2020;
+/**
+ * The cycle the whole page is set to. It follows the worked example, so the
+ * strip and the panels below it can never name two different elections.
+ */
+export const STRIP_CYCLE = EXAMPLE_CYCLE;
 
 /**
  * The design canvas's own figures, from the build it was synced against.
@@ -34,6 +43,7 @@ export const SNAPSHOT_DATE = "4 September 2026";
 const SNAPSHOT = {
   seats: 21820,
   wards: 20962,
+  closeWards: 4421,
 };
 
 interface Stat {
@@ -52,6 +62,9 @@ export default function StatStrip({ statewide }: { statewide: StatewideState }) 
   const seats = live?.seats_total ?? SNAPSHOT.seats;
   const wards = live?.wards_counted ?? SNAPSHOT.wards;
   const bodies = live?.bodies_with_result ?? 1199;
+  const closest = live?.margins?.[0] ?? null;
+  const closeWards = closest?.wards ?? SNAPSHOT.closeWards;
+  const closeLabel = (closest?.label ?? "Under 50 votes").toLowerCase();
 
   const stats: Stat[] = [
     {
@@ -75,8 +88,8 @@ export default function StatStrip({ statewide }: { statewide: StatewideState }) 
       of: "published in Sakarma by all 1,199 contesting bodies since 2015–16",
     },
     {
-      value: "915",
-      label: "Wards won by under 10 votes",
+      value: formatCount(closeWards),
+      label: `Wards won by ${closeLabel}`,
       of: `of the ${formatCount(wards)} wards with a published ward result in ${STRIP_CYCLE}`,
     },
   ];
@@ -96,7 +109,7 @@ export default function StatStrip({ statewide }: { statewide: StatewideState }) 
       </ul>
       <p className={styles.stripSource}>
         {live
-          ? `Seats and wards are read from the Commission's ${STRIP_CYCLE} record. The other three counts are a snapshot of the build published on ${SNAPSHOT_DATE}.`
+          ? `Seats, wards and the margin count are read from the Commission's ${STRIP_CYCLE} record. The other two are a snapshot of the build published on ${SNAPSHOT_DATE}.`
           : `The Commission's ${STRIP_CYCLE} totals did not load, so every count here is a snapshot of the build published on ${SNAPSHOT_DATE}.`}
       </p>
     </section>

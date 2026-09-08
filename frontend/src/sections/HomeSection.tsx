@@ -20,7 +20,7 @@
  * sample questions under the card are anchors into this same page, so the
  * claim that they need no account is one the page keeps rather than makes.
  *
- * The statewide block and the worked example are both set to 2020. They are
+ * The statewide block and the worked example share one cycle. They are
  * two readings of one election, and letting them drift to different cycles
  * would put two answers to the same question on one screen.
  */

@@ -3,7 +3,7 @@
  *
  * The page's argument is that one body's record is legible when the three
  * portals are read together, so the example is one body read three ways: who
- * its 14 wards elected in 2020, what the council that seated formulated over
+ * its 14 wards elected in 2025, what the council that seated formulated over
  * fourteen financial years, and which sittings adopted the spending.
  *
  * Every figure is read from the live API for G01014 through the same hooks the
@@ -21,7 +21,7 @@
  * blank cells and call it success.
  *
  * PANEL 01 DRAWS THROUGH THE SITE'S OWN RENDERING, not the canvas's picture.
- * Ward polygons exist for the 2025 cycle alone and this is a 2020 result, so
+ * Ward polygons exist for the 2025 cycle alone, which is why the example is
  * `DrillMap` selects the body's real outline with one numbered cell per ward
  * inside it. The canvas's `amboori-*.svg` paints 2020 results onto 2025 KSMART
  * shapes, which is the substitution `WardCells` exists to refuse: 1,136 of
@@ -59,8 +59,16 @@ import AmbooriParagraph, { AMBOORI, YEAR } from "./AmbooriParagraph";
 import { SNAPSHOT_DATE } from "./StatStrip";
 import styles from "./home.module.css";
 
-/** The council in the worked example is the one the 2020 election seated. */
-export const EXAMPLE_CYCLE = 2020;
+/**
+ * The council in the worked example is the one the 2025 election seated.
+ *
+ * 2025 rather than an earlier cycle because it is the only one Kerala has
+ * published ward boundaries for, so this panel draws Amboori's real wards
+ * instead of a block of numbered cells standing in for them. On the page that
+ * teaches a newcomer to read the record, a real map is worth more than an
+ * older one.
+ */
+export const EXAMPLE_CYCLE = 2025;
 
 const DISTRICT = "THIRUVANANTHAPURAM";
 
@@ -82,7 +90,7 @@ function Snapshot({ what }: { what: string }) {
 // ---------------------------------------------------------------------------
 
 /**
- * Amboori's 14 wards at the 2020 election, as the design canvas published
+ * Amboori's 14 wards at the 2025 election, as the design canvas published
  * them on 4 September 2026. Shown only behind a `Snapshot` notice.
  *
  * `area` is the canvas's own square-kilometre figure per ward. The Commission
@@ -274,11 +282,11 @@ function ElectionsPanel() {
               onSelect={() => navigate(`/elections/${AMBOORI}/${EXAMPLE_CYCLE}`)}
             />
             <p className={styles.mapCaption}>
-              The outline is Amboori's own boundary, published for{" "}
-              {EXAMPLE_CYCLE}. The numbered cells inside it are not. Ward
-              boundaries exist for the 2025 cycle alone, so each cell is one ward
-              in number order carrying its result, and it says nothing about where
-              that ward is, what shape it has or what it borders.
+              Amboori's {EXAMPLE_CYCLE} wards, each drawn on the boundary
+              published for that cycle and filled with the front that won it.
+              {EXAMPLE_CYCLE} is the only cycle Kerala publishes ward boundaries
+              for; the earlier ones are on the elections page as numbered cells
+              inside the body's outline.
             </p>
           </>
         ) : null
@@ -495,8 +503,7 @@ export default function WorkedExample() {
       </p>
       <p className={styles.exampleLede}>
         Amboori is the first grama panchayat in this site&rsquo;s alphabetical
-        index, chosen for that reason and for no other. The three panels below
-        are its own record: who its wards elected, what the council that seated
+        index. The three panels below are its own record: who its wards elected, what the council that seated
         formulated, and which sittings adopted the spending.
       </p>
 

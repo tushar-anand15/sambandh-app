@@ -43,11 +43,6 @@ function StandingPreamble() {
   return (
     <section className={styles.preamble} aria-labelledby="statutory-sequence">
       <h2 id="statutory-sequence">The sequence Kerala law requires</h2>
-      <p className={styles.standing}>
-        This section states the law. Everything after it is computed from the
-        published record.
-      </p>
-
       <p className={styles.prose}>
         India devolves a substantial share of its rural development spending to
         elected panchayats. The Fifteenth Finance Commission allocated
